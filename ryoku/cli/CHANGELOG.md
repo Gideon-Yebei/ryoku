@@ -33,6 +33,11 @@
   (`internal/doctor/reconcile_boot_rw.go`).
 
 ### Fixed
+- **`ryoku doctor` no longer floods its report with pacman ownership lines.**
+  The stray-file check probed each `/usr/bin/ryoku-*`, unit, polkit rule and
+  plymouth asset with `pacman -Qo` wired to the terminal, so every update ended
+  with about 100 "is owned by" lines. The probe now only reads the exit status
+  (`internal/doctor/doctor.go`).
 - **`ryoku update` no longer warns about a compositor that is not installed.**
   Materialize lays down every compositor's config tree, then rendered each
   incomplete one, so a Hyprland-only box printed "could not render niri's
