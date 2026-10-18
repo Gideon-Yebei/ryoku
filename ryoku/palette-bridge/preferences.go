@@ -9,11 +9,18 @@ import (
 )
 
 type spotifyPreferences struct {
-	NeutralStyle    bool    `json:"neutralStyle"`
-	AccentStrength  float64 `json:"accentStrength"`
-	SurfaceTint     float64 `json:"surfaceTint"`
-	NeutralText     bool    `json:"neutralText"`
-	RemoveGradients bool    `json:"removeGradients"`
+	NeutralStyle      bool    `json:"neutralStyle"`
+	AccentStrength    float64 `json:"accentStrength"`
+	SurfaceTint       float64 `json:"surfaceTint"`
+	NeutralText       bool    `json:"neutralText"`
+	RemoveGradients   bool    `json:"removeGradients"`
+	SurfaceBrightness float64 `json:"surfaceBrightness"`
+	SidebarTint       float64 `json:"sidebarTint"`
+	PlayerTint        float64 `json:"playerTint"`
+	CardTint          float64 `json:"cardTint"`
+	AccentButtons     bool    `json:"accentButtons"`
+	AccentProgress    bool    `json:"accentProgress"`
+	AccentLinks       bool    `json:"accentLinks"`
 }
 
 type bridgePreferences struct {
@@ -25,6 +32,8 @@ type preferencesHub struct{ *paletteHub }
 func defaultBridgePreferences() bridgePreferences {
 	return bridgePreferences{Spotify: spotifyPreferences{
 		NeutralStyle: false, AccentStrength: 100, SurfaceTint: 5, NeutralText: true, RemoveGradients: true,
+		SurfaceBrightness: 50, SidebarTint: 100, PlayerTint: 100, CardTint: 100,
+		AccentButtons: true, AccentProgress: true, AccentLinks: true,
 	}}
 }
 
@@ -63,11 +72,18 @@ func decodePreferences(data []byte) ([]byte, error) {
 				return nil, fmt.Errorf("paletteBridge.spotify: %w", err)
 			}
 			fields := map[string]any{
-				"neutralStyle":    &preferences.Spotify.NeutralStyle,
-				"accentStrength":  &preferences.Spotify.AccentStrength,
-				"surfaceTint":     &preferences.Spotify.SurfaceTint,
-				"neutralText":     &preferences.Spotify.NeutralText,
-				"removeGradients": &preferences.Spotify.RemoveGradients,
+				"neutralStyle":      &preferences.Spotify.NeutralStyle,
+				"accentStrength":    &preferences.Spotify.AccentStrength,
+				"surfaceTint":       &preferences.Spotify.SurfaceTint,
+				"neutralText":       &preferences.Spotify.NeutralText,
+				"removeGradients":   &preferences.Spotify.RemoveGradients,
+				"surfaceBrightness": &preferences.Spotify.SurfaceBrightness,
+				"sidebarTint":       &preferences.Spotify.SidebarTint,
+				"playerTint":        &preferences.Spotify.PlayerTint,
+				"cardTint":          &preferences.Spotify.CardTint,
+				"accentButtons":     &preferences.Spotify.AccentButtons,
+				"accentProgress":    &preferences.Spotify.AccentProgress,
+				"accentLinks":       &preferences.Spotify.AccentLinks,
 			}
 			for key, destination := range fields {
 				if value, ok := object[key]; ok {
@@ -86,6 +102,16 @@ func decodePreferences(data []byte) ([]byte, error) {
 	}
 	if preferences.Spotify.SurfaceTint < 0 || preferences.Spotify.SurfaceTint > 20 {
 		return nil, errors.New("spotify.surfaceTint must be between 0 and 20")
+	}
+	for name, value := range map[string]float64{
+		"surfaceBrightness": preferences.Spotify.SurfaceBrightness,
+		"sidebarTint":       preferences.Spotify.SidebarTint,
+		"playerTint":        preferences.Spotify.PlayerTint,
+		"cardTint":          preferences.Spotify.CardTint,
+	} {
+		if value < 0 || value > 100 {
+			return nil, fmt.Errorf("spotify.%s must be between 0 and 100", name)
+		}
 	}
 	return json.Marshal(preferences)
 }

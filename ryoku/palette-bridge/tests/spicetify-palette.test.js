@@ -125,6 +125,38 @@ assert.equal(properties.get("--spice-text"), palette.onSurface);
 assert.ok(!elements.get("ryoku-wallpaper-token-bridge").textContent.includes(".main-home-homeHeader"));
 preferences({ neutralStyle: true, surfaceTint: 20 });
 assert.notEqual(properties.get("--spice-main"), "#131416");
+// Surface controls and accent targets work independently, without palette events.
+preferences({ neutralStyle: true, surfaceTint: 20 });
+const tintedMain = properties.get("--spice-main");
+const tintedCard = properties.get("--spice-card");
+preferences({ neutralStyle: true, surfaceTint: 20, sidebarTint: 0, playerTint: 0, cardTint: 0 });
+assert.equal(properties.get("--spice-sidebar"), "#17181b");
+assert.equal(properties.get("--spice-player"), "#101113");
+assert.equal(properties.get("--spice-card"), "#222327");
+assert.equal(properties.get("--spice-main"), tintedMain);
+assert.notEqual(tintedCard, properties.get("--spice-card"));
+preferences({ neutralStyle: true, surfaceTint: 0, surfaceBrightness: 0 });
+assert.equal(properties.get("--spice-main"), "#000000");
+assert.equal(properties.get("--spice-card"), "#000000");
+preferences({ neutralStyle: true, surfaceBrightness: 100 });
+assert.ok(luminance(properties.get("--spice-main")) > luminance(tintedMain));
+assert.ok(contrast(properties.get("--spice-button"), properties.get("--spice-card")) >= 4.5);
+preferences({ neutralStyle: true, accentButtons: false });
+assert.equal(properties.get("--spice-button"), "#c7c9d1");
+assert.notEqual(properties.get("--spice-progress-fg"), "#c7c9d1");
+preferences({ neutralStyle: true, accentProgress: false, accentLinks: false });
+assert.notEqual(properties.get("--spice-button"), "#c7c9d1");
+assert.equal(properties.get("--spice-progress-fg"), "#c7c9d1");
+assert.equal(properties.get("--spice-pagelink-active"), "#c7c9d1");
+assert.equal(properties.get("--spice-heart"), "#c7c9d1");
+for (const token of ["text-bright-accent", "essential-bright-accent"]) {
+  assert.ok(elements.get("ryoku-wallpaper-token-bridge").textContent.includes(`--${token}: var(--spice-pagelink-active)`));
+}
+for (const invalid of [{surfaceBrightness: 101}, {sidebarTint: -1}, {playerTint: "50"}, {cardTint: null}, {accentButtons: 1}]) {
+  const previousWrites = writes;
+  preferences({neutralStyle: true, ...invalid});
+  assert.equal(writes, previousWrites, "invalid granular preferences preserve the rendered style");
+}
 const beforeInvalid = writes;
 preferences({ neutralStyle: true, surfaceTint: 999 });
 assert.equal(writes, beforeInvalid);

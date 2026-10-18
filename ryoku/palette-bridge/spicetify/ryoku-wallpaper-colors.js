@@ -68,7 +68,12 @@
       --essential-base: var(--spice-main) !important;
     }
   `;
-  let preferences = { neutralStyle: false, accentStrength: 100, surfaceTint: 5, neutralText: true, removeGradients: true };
+  const defaultPreferences = {
+    neutralStyle: false, accentStrength: 100, surfaceTint: 5, neutralText: true, removeGradients: true,
+    surfaceBrightness: 50, sidebarTint: 100, playerTint: 100, cardTint: 100,
+    accentButtons: true, accentProgress: true, accentLinks: true,
+  };
+  let preferences = { ...defaultPreferences };
   let latestPalette = null;
   function mix(base, tint, amount) {
     return "#" + [1, 3, 5].map(i => Math.round(
@@ -87,36 +92,52 @@
     if (!/^#[0-9a-f]{6}$/i.test(palette.primary || "")) return null;
     const tint = mix("#c7c9d1", palette.primary, preferences.accentStrength / 100);
     const amount = preferences.surfaceTint / 100;
-    const main = mix("#131416", tint, amount * 0.5);
-    const card = mix("#222327", tint, amount);
+    const surface = (base, weight) => {
+      const brightness = preferences.surfaceBrightness;
+      const foundation = brightness <= 50
+        ? mix("#000000", base, brightness / 50)
+        : mix(base, "#ffffff", (brightness - 50) / 50 * 0.12);
+      return mix(foundation, tint, amount * weight);
+    };
+    const main = surface("#131416", 0.5);
+    const card = surface("#222327", preferences.cardTint / 100);
     let accent = tint;
     for (let amount = 0.1; (luminance(accent) + 0.05) / (luminance(card) + 0.05) < 4.5; amount += 0.1) {
       accent = mix(tint, "#ffffff", Math.min(amount, 1));
     }
+    const button = preferences.accentButtons ? accent : "#c7c9d1";
+    const progress = preferences.accentProgress ? accent : "#c7c9d1";
+    const link = preferences.accentLinks ? accent : "#c7c9d1";
     return {
       text: preferences.neutralText ? "#f1f1f3" : (palette.onSurface || "#f1f1f3"),
       subtext: preferences.neutralText ? "#b6b8c0" : (palette.onSurfaceVariant || "#b6b8c0"), main,
-      "main-elevated": mix("#1c1d21", tint, amount * 0.9),
+      "main-elevated": surface("#1c1d21", 0.9),
       "main-transition": main,
-      highlight: mix("#292b30", tint, amount * 1.5),
-      "highlight-elevated": mix("#33353b", tint, amount * 1.8),
-      sidebar: mix("#17181b", tint, amount * 0.7),
-      player: mix("#101113", tint, amount * 0.4),
+      highlight: surface("#292b30", 1.5),
+      "highlight-elevated": surface("#33353b", 1.8),
+      sidebar: surface("#17181b", 0.7 * preferences.sidebarTint / 100),
+      player: surface("#101113", 0.4 * preferences.playerTint / 100),
       card, shadow: "#000000",
-      "selected-row": "#f1f1f3", button: accent,
-      "button-active": mix(accent, "#ffffff", 0.15),
+      "selected-row": "#f1f1f3", button,
+      "button-active": mix(button, "#ffffff", 0.15),
       "button-disabled": "#555760",
-      "tab-active": mix("#292b30", tint, amount * 1.5),
+      "tab-active": surface("#292b30", 1.5),
       notification: accent, "notification-error": "#f28b82",
-      misc: "#6b6e78", "play-button": accent,
-      "play-button-active": mix(accent, "#ffffff", 0.15),
-      "progress-fg": accent, "progress-bg": "#45474f",
-      heart: accent, "pagelink-active": accent, "radio-btn-active": accent,
+      misc: "#6b6e78", "play-button": button,
+      "play-button-active": mix(button, "#ffffff", 0.15),
+      "progress-fg": progress, "progress-bg": "#45474f",
+      heart: link, "pagelink-active": link, "radio-btn-active": link,
     };
   }
 
   // Modern Spotify surfaces use Encore tokens in addition to --spice-*.
   const neutralCss = `
+    :root,
+    .encore-dark-theme,
+    .encore-dark-theme .encore-base-set {
+      --text-bright-accent: var(--spice-pagelink-active) !important;
+      --essential-bright-accent: var(--spice-pagelink-active) !important;
+    }
     body,
     .Root__top-container,
     .Root__globalNav { background-color: var(--spice-player) !important; }
@@ -127,7 +148,7 @@
       color: #131416 !important;
     }
     .playback-progressbar .x-progressBar-fillColor {
-      background-color: var(--spice-button) !important;
+      background-color: var(--spice-progress-fg) !important;
     }
     :root .encore-bright-accent-set {
       --background-base: var(--spice-button) !important;
@@ -199,15 +220,14 @@
   }
 
   function updatePreferences(doc) {
-    const next = doc && doc.spotify;
-    if (!next || typeof next.neutralStyle !== "boolean" || typeof next.neutralText !== "boolean" ||
-        typeof next.removeGradients !== "boolean" || !Number.isFinite(next.accentStrength) ||
-        next.accentStrength < 0 || next.accentStrength > 100 || !Number.isFinite(next.surfaceTint) ||
-        next.surfaceTint < 0 || next.surfaceTint > 20) return;
-    preferences = {
-      neutralStyle: next.neutralStyle, neutralText: next.neutralText,
-      removeGradients: next.removeGradients, accentStrength: next.accentStrength, surfaceTint: next.surfaceTint,
-    };
+    const incoming = doc && doc.spotify;
+    if (!incoming || typeof incoming !== "object" || Array.isArray(incoming)) return;
+    const next = { ...defaultPreferences, ...incoming };
+    const booleans = ["neutralStyle", "neutralText", "removeGradients", "accentButtons", "accentProgress", "accentLinks"];
+    const ranges = { accentStrength: 100, surfaceTint: 20, surfaceBrightness: 100, sidebarTint: 100, playerTint: 100, cardTint: 100 };
+    if (booleans.some(key => typeof next[key] !== "boolean") ||
+        Object.entries(ranges).some(([key, max]) => !Number.isFinite(next[key]) || next[key] < 0 || next[key] > max)) return;
+    preferences = Object.fromEntries(Object.keys(defaultPreferences).map(key => [key, next[key]]));
     render();
   }
   function subscribe(url, apply) {

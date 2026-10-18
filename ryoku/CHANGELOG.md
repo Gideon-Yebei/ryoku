@@ -5,7 +5,9 @@
 ### Added
 - **Ryogami offers opt-in Spotify styling and palette bridge controls.**
   Integrations > Palette bridge adds neutral Spotify styling, accent strength,
-  surface tint, neutral text and colour-wash controls. The original palette
+  surface brightness, separate sidebar/player/card tint, independent button,
+  progress and link accents, neutral text and colour-wash controls in collapsible
+  groups. The original palette
   mapping stays the default; preferences repaint the running client without
   an app restart. The page also offers explicit per-app setup/removal, service
   controls, status and palette health checks (`shell/ryogami/`, `palette-bridge/`).

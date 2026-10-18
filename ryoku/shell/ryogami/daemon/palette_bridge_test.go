@@ -10,7 +10,7 @@ import (
 
 func TestPaletteBridgeSpotifySettings(t *testing.T) {
 	d := newSettingsDaemon(t)
-	defaults := map[string]interface{}{"neutralStyle": false, "accentStrength": float64(100), "surfaceTint": float64(5), "neutralText": true, "removeGradients": true}
+	defaults := map[string]interface{}{"neutralStyle": false, "accentStrength": float64(100), "surfaceTint": float64(5), "neutralText": true, "removeGradients": true, "surfaceBrightness": float64(50), "sidebarTint": float64(100), "playerTint": float64(100), "cardTint": float64(100), "accentButtons": true, "accentProgress": true, "accentLinks": true}
 	for name, want := range defaults {
 		key := "paletteBridge.spotify." + name
 		spec, ok := specFor(key)
@@ -18,7 +18,7 @@ func TestPaletteBridgeSpotifySettings(t *testing.T) {
 			t.Fatalf("%s default: %+v", key, spec)
 		}
 	}
-	for key, bounds := range map[string][]float64{"accentStrength": {0, 100}, "surfaceTint": {0, 20}} {
+	for key, bounds := range map[string][]float64{"accentStrength": {0, 100}, "surfaceTint": {0, 20}, "surfaceBrightness": {0, 100}, "sidebarTint": {0, 100}, "playerTint": {0, 100}, "cardTint": {0, 100}} {
 		for _, value := range []float64{bounds[0], bounds[1]} {
 			if err := validateSetting("paletteBridge.spotify."+key, value); err != nil {
 				t.Fatal(err)
@@ -30,7 +30,7 @@ func TestPaletteBridgeSpotifySettings(t *testing.T) {
 			}
 		}
 	}
-	values := map[string]interface{}{"neutralStyle": true, "accentStrength": float64(70), "surfaceTint": float64(12), "neutralText": false, "removeGradients": false}
+	values := map[string]interface{}{"neutralStyle": true, "accentStrength": float64(70), "surfaceTint": float64(12), "neutralText": false, "removeGradients": false, "surfaceBrightness": float64(65), "sidebarTint": float64(40), "playerTint": float64(20), "cardTint": float64(80), "accentButtons": false, "accentProgress": false, "accentLinks": false}
 	for name, value := range values {
 		if err := d.persistSetting("paletteBridge.spotify."+name, value); err != nil {
 			t.Fatal(err)

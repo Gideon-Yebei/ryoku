@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,7 +14,7 @@ import (
 	"time"
 )
 
-const defaultPreferences = `{"spotify":{"neutralStyle":false,"accentStrength":100,"surfaceTint":5,"neutralText":true,"removeGradients":true}}`
+const defaultPreferences = `{"spotify":{"neutralStyle":false,"accentStrength":100,"surfaceTint":5,"neutralText":true,"removeGradients":true,"surfaceBrightness":50,"sidebarTint":100,"playerTint":100,"cardTint":100,"accentButtons":true,"accentProgress":true,"accentLinks":true}}`
 
 func TestPreferencesDefaultsToggleAndInvalidUpdates(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "ryogami.json")
@@ -31,7 +32,7 @@ func TestPreferencesDefaultsToggleAndInvalidUpdates(t *testing.T) {
 	if err := hub.readFile(path); err != nil {
 		t.Fatal(err)
 	}
-	want := `{"spotify":{"neutralStyle":true,"accentStrength":40,"surfaceTint":12,"neutralText":false,"removeGradients":false}}`
+	want := `{"spotify":{"neutralStyle":true,"accentStrength":40,"surfaceTint":12,"neutralText":false,"removeGradients":false,"surfaceBrightness":50,"sidebarTint":100,"playerTint":100,"cardTint":100,"accentButtons":true,"accentProgress":true,"accentLinks":true}}`
 	if got := string(hub.snapshot().data); got != want {
 		t.Fatalf("preferences = %s", got)
 	}
@@ -230,5 +231,44 @@ func TestPreferencesReadFailureRetainsDefaultsAndLastValid(t *testing.T) {
 	}
 	if got := string(hub.snapshot().data); got != prior {
 		t.Fatalf("read error changed last valid preferences: %s", got)
+	}
+}
+
+func TestPreferencesGranularControls(t *testing.T) {
+	for _, field := range []string{"surfaceBrightness", "sidebarTint", "playerTint", "cardTint"} {
+		for _, value := range []string{"0", "42.5", "100"} {
+			data, err := decodePreferences([]byte(fmt.Sprintf(`{"paletteBridge":{"spotify":{"%s":%s}}}`, field, value)))
+			if err != nil {
+				t.Fatalf("%s=%s: %v", field, value, err)
+			}
+			var output map[string]map[string]json.RawMessage
+			if err := json.Unmarshal(data, &output); err != nil {
+				t.Fatal(err)
+			}
+			if got := string(output["spotify"][field]); got != value {
+				t.Fatalf("%s = %s, want %s", field, got, value)
+			}
+		}
+		for _, value := range []string{"-1", "101", `"50"`, "true", "null"} {
+			if _, err := decodePreferences([]byte(fmt.Sprintf(`{"paletteBridge":{"spotify":{"%s":%s}}}`, field, value))); err == nil {
+				t.Fatalf("accepted %s=%s", field, value)
+			}
+		}
+	}
+	for _, field := range []string{"accentButtons", "accentProgress", "accentLinks"} {
+		for _, value := range []string{"true", "false"} {
+			data, err := decodePreferences([]byte(fmt.Sprintf(`{"paletteBridge":{"spotify":{"%s":%s}}}`, field, value)))
+			if err != nil {
+				t.Fatalf("%s=%s: %v", field, value, err)
+			}
+			if !strings.Contains(string(data), fmt.Sprintf(`"%s":%s`, field, value)) {
+				t.Fatalf("toggle missing from %s", data)
+			}
+		}
+		for _, value := range []string{"0", `"true"`, "null"} {
+			if _, err := decodePreferences([]byte(fmt.Sprintf(`{"paletteBridge":{"spotify":{"%s":%s}}}`, field, value))); err == nil {
+				t.Fatalf("accepted %s=%s", field, value)
+			}
+		}
 	}
 }
