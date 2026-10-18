@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **Ryogami offers opt-in Spotify styling and palette bridge controls.**
+  Integrations > Palette bridge adds neutral Spotify styling, accent strength,
+  surface tint, neutral text and colour-wash controls. The original palette
+  mapping stays the default; preferences repaint the running client without
+  an app restart. The page also offers explicit per-app setup/removal, service
+  controls, status and palette health checks (`shell/ryogami/`, `palette-bridge/`).
 - **Ryoku Settings has a per-compositor window size.** Full page remains the
   default on Hyprland and Wayfire; niri keeps its normal column unless Custom
   is chosen. Custom centres a percentage-based size without shrinking below
@@ -233,10 +239,6 @@
   `hub/quickshell/schema/DesktopScenePage.js`, `shell/ipc/control.go`).
 
 ### Fixed
-- **Spotify's wallpaper colours use calmer surfaces and clearer accents.**
-  The bridge keeps text neutral and panels charcoal with a subtle wallpaper
-  tint, accents play controls and progress, and removes competing decorative
-  colour washes while preserving artwork (`palette-bridge/spicetify/`).
 - **The palette bridge waits for the first login instead of restart-looping at
   boot.** It starts without a palette, reports it unavailable until one is
   written, and watches for the cache directory to appear

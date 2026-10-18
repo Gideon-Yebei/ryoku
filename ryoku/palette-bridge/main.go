@@ -64,10 +64,15 @@ func (h *paletteHub) publish(data []byte) error {
 		return err
 	}
 
+	h.publishSnapshot(valid)
+	return nil
+}
+
+func (h *paletteHub) publishSnapshot(valid []byte) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if bytes.Equal(valid, h.current.data) {
-		return nil
+		return
 	}
 	h.current = snapshot{data: valid, version: h.current.version + 1}
 	for client := range h.clients {
@@ -82,7 +87,6 @@ func (h *paletteHub) publish(data []byte) error {
 			client <- h.current
 		}
 	}
-	return nil
 }
 
 func (h *paletteHub) readFile(path string) error {
@@ -198,9 +202,14 @@ func watchPalette(path string, reload func() error) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	_, err = syscall.InotifyAddWatch(fd, dir, syscall.IN_CLOSE_WRITE|syscall.IN_MOVED_TO)
+	_, err = syscall.InotifyAddWatch(fd, dir, syscall.IN_CLOSE_WRITE|syscall.IN_MOVED_TO|syscall.IN_DELETE|syscall.IN_MOVED_FROM)
 	if err != nil {
 		return err
+	}
+
+	// Pick up files written between the initial read and attaching the watch.
+	if err := reload(); err != nil {
+		log.Printf("initial watched file ignored: %v", err)
 	}
 
 	buffer := make([]byte, syscall.SizeofInotifyEvent+4096)
@@ -256,10 +265,27 @@ func main() {
 		}
 	}()
 
+	config := os.Getenv("XDG_CONFIG_HOME")
+	if config == "" {
+		config = filepath.Join(home, ".config")
+	}
+	preferencesPath := filepath.Join(config, "ryoku", "ryogami.json")
+	preferences := newPreferencesHub()
+	if err := preferences.readFile(preferencesPath); err != nil {
+		log.Printf("initial preferences ignored: %v", err)
+	}
+	go func() {
+		if err := watchPalette(preferencesPath, func() error { return preferences.readFile(preferencesPath) }); err != nil {
+			log.Printf("preferences watcher unavailable; retaining current preferences: %v", err)
+		}
+	}()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/colors.json", hub.paletteHandler)
 	mux.HandleFunc("/v1/palette", hub.paletteHandler)
 	mux.HandleFunc("/v1/events", hub.eventsHandler)
+	mux.HandleFunc("/v1/preferences", preferences.paletteHandler)
+	mux.HandleFunc("/v1/preferences/events", preferences.eventsHandler)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok\n")) })
 	server := &http.Server{Addr: *listen, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 

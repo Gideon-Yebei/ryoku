@@ -46,8 +46,15 @@ vm.runInNewContext(source, {
   window, document, EventSource, CustomEvent, JSON, Object, setTimeout,
 });
 
-assert.equal(streams.length, 1);
-assert.equal(streams[0].url, "http://127.0.0.1:47616/v1/events");
+assert.equal(streams.length, 2);
+const paletteStream = streams.find(s => s.url === "http://127.0.0.1:47616/v1/events");
+const preferencesStream = streams.find(s => s.url === "http://127.0.0.1:47616/v1/preferences/events");
+assert.ok(paletteStream);
+assert.ok(preferencesStream);
+const defaults = { neutralStyle: false, accentStrength: 100, surfaceTint: 5, neutralText: true, removeGradients: true };
+function preferences(values) {
+  preferencesStream.onmessage({ data: JSON.stringify({ spotify: { ...defaults, ...values } }) });
+}
 assert.ok(elements.get("ryoku-wallpaper-token-bridge").textContent.includes("--encore-focus-outline-color"));
 
 const palette = {
@@ -58,8 +65,14 @@ const palette = {
   outlineVariant: "#777777", tertiary: "#abcdef", error: "#ff0000",
   surfaceVariant: "#515253", secondary: "#778899",
 };
-streams[0].onmessage({ data: JSON.stringify(palette) });
+paletteStream.onmessage({ data: JSON.stringify(palette) });
 
+assert.equal(properties.get("--spice-text"), palette.onSurface, "default keeps the original text mapping");
+assert.equal(properties.get("--spice-main"), palette.background, "default keeps the original palette surfaces");
+assert.equal(properties.get("--spice-button"), palette.primary);
+assert.ok(!elements.get("ryoku-wallpaper-token-bridge").textContent.includes(".main-home-homeHeader"));
+preferences({ neutralStyle: true });
+assert.ok(elements.get("ryoku-wallpaper-token-bridge").textContent.includes(".main-home-homeHeader"));
 function luminance(hex) {
   const c = [1, 3, 5].map(i => {
     const v = parseInt(hex.slice(i, i + 2), 16) / 255;
@@ -81,30 +94,58 @@ assert.equal(properties.get("--spice-progress-fg"), properties.get("--spice-butt
 assert.equal(events.at(-1).type, "ryoku-palette-changed");
 assert.deepEqual(events.at(-1).detail, palette, "the complete source palette remains available to integrations");
 const initialWrites = writes;
-streams[0].onmessage({ data: JSON.stringify(palette) });
+paletteStream.onmessage({ data: JSON.stringify(palette) });
 assert.equal(writes, initialWrites, "identical palettes do not cause repaint churn");
 const eventCount = events.length;
-streams[0].onmessage({ data: JSON.stringify({ ...palette, secondary: "#abcdef" }) });
+paletteStream.onmessage({ data: JSON.stringify({ ...palette, secondary: "#abcdef" }) });
 assert.equal(writes, initialWrites, "unused role changes do not repaint surfaces");
 assert.equal(events.length, eventCount + 1, "other integrations still receive the full palette event");
-streams[0].onmessage({ data: JSON.stringify({ ...palette, primary: "#ffb4a8" }) });
+paletteStream.onmessage({ data: JSON.stringify({ ...palette, primary: "#ffb4a8" }) });
 assert.equal(properties.get("--spice-button"), "#ffb4a8", "readable wallpaper accents keep their hue");
 assert.notEqual(properties.get("--spice-main"), palette.background);
 assert.equal(properties.get("--spice-text"), "#f1f1f3");
 assert.equal(properties.get("--spice-rgb-button"), "255,180,168");
 for (const primary of ["#000000", "#0000ff", "#ffffff", "#002200"]) {
-  streams[0].onmessage({ data: JSON.stringify({ ...palette, primary }) });
+  paletteStream.onmessage({ data: JSON.stringify({ ...palette, primary }) });
   assert.ok(contrast(properties.get("--spice-button"), properties.get("--spice-card")) >= 4.5, primary);
 }
 const validWrites = writes;
-streams[0].onmessage({ data: JSON.stringify({ primary: "invalid" }) });
+paletteStream.onmessage({ data: JSON.stringify({ primary: "invalid" }) });
 assert.equal(writes, validWrites, "invalid palette cannot replace the current colors");
+preferences({});
+assert.equal(properties.get("--spice-main"), palette.background, "settings still work after an invalid palette event");
 
-streams[0].onerror();
-assert.equal(streams[0].closed, true);
+// Settings apply without a new palette event or app reload, and off restores the original.
+paletteStream.onmessage({ data: JSON.stringify(palette) });
+preferences({ neutralStyle: true, surfaceTint: 0, accentStrength: 0, neutralText: false, removeGradients: false });
+assert.equal(properties.get("--spice-main"), "#131416");
+assert.equal(properties.get("--spice-card"), "#222327");
+assert.equal(properties.get("--spice-button"), "#c7c9d1");
+assert.equal(properties.get("--spice-text"), palette.onSurface);
+assert.ok(!elements.get("ryoku-wallpaper-token-bridge").textContent.includes(".main-home-homeHeader"));
+preferences({ neutralStyle: true, surfaceTint: 20 });
+assert.notEqual(properties.get("--spice-main"), "#131416");
+const beforeInvalid = writes;
+preferences({ neutralStyle: true, surfaceTint: 999 });
+assert.equal(writes, beforeInvalid);
+preferences({});
+assert.equal(properties.get("--spice-main"), palette.background);
+assert.equal(properties.get("--spice-card"), palette.surfaceContainer);
+assert.equal(properties.get("--spice-text"), palette.onSurface);
+assert.equal(properties.get("--spice-button"), palette.primary);
+assert.ok(!elements.get("ryoku-wallpaper-token-bridge").textContent.includes(".Root__now-playing-bar"));
+
+paletteStream.onerror();
+assert.equal(paletteStream.closed, true);
 assert.equal(timers.length, 1);
 assert.equal(timers[0].delay, 1000);
 timers[0].callback();
-assert.equal(streams.length, 2);
-assert.equal(streams[1].url, "http://127.0.0.1:47616/v1/events");
-console.log("PASS: Spotify extension maps Ryoku roles and reconnects its local SSE stream");
+assert.equal(streams.length, 3);
+assert.equal(streams[2].url, "http://127.0.0.1:47616/v1/events");
+preferencesStream.onerror();
+assert.equal(preferencesStream.closed, true);
+assert.equal(timers.length, 2);
+timers[1].callback();
+assert.equal(streams.length, 4);
+assert.equal(streams[3].url, "http://127.0.0.1:47616/v1/preferences/events");
+console.log("PASS: Spotify preserves defaults, applies opt-in preferences live, restores original styling and reconnects");
