@@ -30,6 +30,11 @@
   and Space works when assigned in the picker controls. Keyboard apply now goes
   through the shared keymap without changing card clicks
   (`ryogami/picker/{qml/KeyChord.js,src/scene/cardfield.cpp}`).
+- **The ii dock no longer sits over fullscreen video while pinned.** Its Not
+  over fullscreen switch now moves the dock off that monitor and gives the edge
+  back; editing and preset changes still keep it in view. Niri fills the missing
+  per-monitor fullscreen state from the compositor's foreign-toplevel signal
+  (`quickshell/shell/modules/dock/ii/Dock.qml`, `../ui/Singletons/Wm.qml`).
 - **Workshop downloads no longer stay stuck at Preparing.** Ryogami stops a
   silent Steam helper, gives large scenes a generous overall limit, and always
   reports a finished or actionable failed state. SteamCMD ownership and login

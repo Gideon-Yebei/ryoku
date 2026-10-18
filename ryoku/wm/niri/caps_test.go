@@ -64,6 +64,13 @@ func TestManifestIsDeliverable(t *testing.T) {
 	}
 }
 
+func TestDeniesWorkspaceFullscreenState(t *testing.T) {
+	c := wm.Caps{Supports: capsManifest}
+	if c.Has(wm.CapWorkspaceFullscreenState) {
+		t.Error("niri workspace frames have no fullscreen field; the shell must enrich them from foreign toplevels")
+	}
+}
+
 // niri recreates its outputs under a long-lived capturing layer surface and
 // the Qt client dies resolving the vanished screen, so the manifest must keep
 // denying this or the launcher frost comes back and takes the shell with it.

@@ -68,6 +68,7 @@ var capsManifest = []wm.Capability{
 	wm.CapWorkspaces,
 	wm.CapWorkspaceMoveToOutput,
 	wm.CapWindowWorkspaceMap,
+	wm.CapWorkspaceFullscreenState,
 	wm.CapWindowGeometry,
 	wm.CapFocusHistory,
 	wm.CapWindowRules,

@@ -74,6 +74,13 @@ func TestManifestIsDeliverable(t *testing.T) {
 	}
 }
 
+func TestClaimsWorkspaceFullscreenState(t *testing.T) {
+	c := wm.Caps{Supports: capsManifest}
+	if !c.Has(wm.CapWorkspaceFullscreenState) {
+		t.Error("Wayfire workspace frames carry fullscreen views and must stay authoritative")
+	}
+}
+
 func TestOutputCapabilitiesAndPortalContracts(t *testing.T) {
 	c := wm.Caps{Supports: capsManifest}
 	for _, want := range []wm.Capability{wm.CapOutputPower, wm.CapOutputMirror, wm.CapOutputHdr} {

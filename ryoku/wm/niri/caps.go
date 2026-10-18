@@ -17,6 +17,10 @@ import (
 // shell cannot draw a general overview. Floating windows do report position and
 // size for persistence, while CapNativeOverview supplies the general overview.
 //
+// CapWorkspaceFullscreenState: niri's IPC windows carry no fullscreen field.
+// The shell instead enriches the active workspace from the matching
+// foreign-toplevel handle, whose fullscreen state niri publishes.
+//
 // CapSubmap, CapGlobalShortcuts, CapFocusGrab, CapScreenShader, CapPlugins:
 // niri implements none of these protocols or subsystems.
 //

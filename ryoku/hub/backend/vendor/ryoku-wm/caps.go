@@ -14,13 +14,17 @@ const (
 	CapSpecialWorkspace      Capability = "specialWorkspace"
 	CapWorkspaceMoveToOutput Capability = "workspaceMoveToOutput"
 	CapWindowWorkspaceMap    Capability = "windowWorkspaceMap"
-	CapWindowGeometry        Capability = "windowGeometry"
-	CapFocusHistory          Capability = "focusHistory"
-	CapWindowRules           Capability = "windowRules"
-	CapLayerRules            Capability = "layerRules"
-	CapSubmap                Capability = "submap"
-	CapGlobalShortcuts       Capability = "globalShortcuts"
-	CapFocusGrab             Capability = "focusGrab"
+	// CapWorkspaceFullscreenState means workspace frames authoritatively carry
+	// their fullscreen bit. Without it the shell may enrich the active workspace
+	// from a matching foreign-toplevel handle.
+	CapWorkspaceFullscreenState Capability = "workspaceFullscreenState"
+	CapWindowGeometry           Capability = "windowGeometry"
+	CapFocusHistory             Capability = "focusHistory"
+	CapWindowRules              Capability = "windowRules"
+	CapLayerRules               Capability = "layerRules"
+	CapSubmap                   Capability = "submap"
+	CapGlobalShortcuts          Capability = "globalShortcuts"
+	CapFocusGrab                Capability = "focusGrab"
 	// CapWorkspaceSlideStyle is set when the compositor reports how it slides
 	// between workspaces (axis, distance, curve, duration, fade), so a
 	// full-screen overlay can match the real motion instead of assuming one.
@@ -111,7 +115,7 @@ const (
 func All() []Capability {
 	return []Capability{
 		CapWorkspaces, CapSpecialWorkspace, CapWorkspaceMoveToOutput,
-		CapWindowWorkspaceMap, CapWindowGeometry, CapFocusHistory,
+		CapWindowWorkspaceMap, CapWorkspaceFullscreenState, CapWindowGeometry, CapFocusHistory,
 		CapWindowRules, CapLayerRules, CapSubmap, CapGlobalShortcuts,
 		CapFocusGrab, CapWorkspaceSlideStyle,
 		CapScreenShader, CapPlugins, CapLiveConfigEval, CapConfigReload,

@@ -106,6 +106,7 @@ Shared by Hyprland and niri:
 Shared by Hyprland and wayfire:
 
     outputHdr  outputMirror  specialWorkspace  windowGeometry
+    workspaceFullscreenState
 
 Hyprland only:
 
@@ -139,6 +140,10 @@ that change what a user sees:
   on-screen position. Floating windows do expose their output-local tile
   rectangle; the provider converts it to global logical geometry so native
   move/resize placement can be persisted without claiming general geometry.
+- **`workspaceFullscreenState`** is absent on niri because its window IPC has
+  no fullscreen field. The shell joins niri's per-output window frames to the
+  compositor's foreign-toplevel fullscreen signal, so fullscreen-aware surfaces
+  such as the dock still step aside on the correct monitor.
 - **`globalShortcuts`** is absent on niri and wayfire because neither
   implements the protocol, so keybinds reach shell surfaces by running
   `ryoku-shell <verb>` instead. Every shell surface remains reachable.
