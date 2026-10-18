@@ -10,6 +10,12 @@ BuildRequires:  bash
 BuildRequires:  coreutils
 BuildRequires:  findutils
 BuildRequires:  golang >= 1.26.4
+Suggests:       python3
+Suggests:       git
+Suggests:       cmake
+Suggests:       gcc
+Suggests:       gcc-c++
+Suggests:       make
 
 %description
 ryoku-hub, built from the shared Ryoku source and package payload recipe.

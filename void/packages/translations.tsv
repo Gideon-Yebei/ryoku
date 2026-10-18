@@ -24,6 +24,7 @@ catppuccin-cursors-mocha	catppuccin-cursors-mocha	extra	repo=ryoku
 cava	cava	desktop	
 chromium	chromium	desktop	
 cliphist	cliphist	desktop	
+cmake	cmake	optional	
 cryptsetup	cryptsetup	system	
 curl	curl	desktop	
 dav1d	libdav1d	desktop	
@@ -123,6 +124,7 @@ linux-headers	linux-headers	desktop
 localsend-bin	localsend-bin	extra	repo=ryoku
 looking-glass	-	optional	No Void repository package.
 lua	lua	optional	
+make	make	optional	
 mangohud	MangoHud	desktop	
 matugen	matugen	desktop	
 mesa	mesa-dri mesa-vaapi	desktop	
