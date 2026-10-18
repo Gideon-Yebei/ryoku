@@ -38,9 +38,6 @@ Item {
     readonly property bool installAvailable: pg.packageAvailable
     readonly property string installUnavailableReason: pg.packageReason
     property bool openaiKeySet: false
-    property bool selectAfterDownload: true
-    readonly property var reduxPreset: pg.presetFor("parakeet-redux")
-    readonly property bool reduxInstalled: pg.reduxPreset !== null && pg.reduxPreset.present
     property bool cancelRequested: false
     property string installError: ""
     property string downloading: ""    // preset key whose model is downloading, or ""
@@ -125,13 +122,12 @@ Item {
         }
         pg.download(key);
     }
-    function download(key, selectOnSuccess) {
+    function download(key) {
         if (pg.downloading !== "")
             return;
         pg.busyError = "";
         pg.notice = "";
         pg.dlPercent = -1;
-        pg.selectAfterDownload = selectOnSuccess !== false;
         pg.cancelRequested = false;
         pg.installError = "";
         pg.downloading = key;
@@ -234,14 +230,9 @@ Item {
                 pg.notice = I18n.tr("Installation canceled. Your selected model is unchanged.");
                 pg.reload();
             } else if (code === 0 && exitStatus === 0) {
-                if (pg.selectAfterDownload) {
-                    pg.selected = k;
-                    pg.notice = I18n.tr("Model installed.");
-                    pg.apply(null);
-                } else {
-                    pg.notice = I18n.tr("Adapter installed. Your selected model is unchanged.");
-                    pg.reload();
-                }
+                pg.selected = k;
+                pg.notice = I18n.tr("Model installed.");
+                pg.apply(null);
             } else {
                 pg.busyError = pg.installError || I18n.tr("Installation failed (exit %1).").arg(code);
                 pg.reload();
@@ -515,7 +506,7 @@ Item {
                                         text: I18n.tr(card.modelData.language)
                                             + "  \u00b7  " + I18n.tr(card.modelData.speed)
                                             + "  \u00b7  " + card.modelData.size
-                                            + (card.busy ? I18n.tr("  \u00b7  downloading\u2026")
+                                            + (card.busy ? I18n.tr("  \u00b7  installing\u2026")
                                                 : (card.modelData.cloud ? ""
                                                     : (card.modelData.present ? I18n.tr("  \u00b7  downloaded") : I18n.tr("  \u00b7  not downloaded"))))
                                         color: (card.busy || (!card.modelData.cloud && !card.modelData.present)) ? Tokens.ink : Tokens.inkFaint
@@ -577,22 +568,30 @@ Item {
                                     font.pixelSize: 7
                                 }
 
-                                // trailing action: heartbeat while downloading, else
-                                // a download or remove glyph for local models (cloud:
-                                // none). the MouseArea consumes its own clicks so the
-                                // card's tap-to-select does not double-fire here.
+                                // Each installing model keeps a visible cancel action on its card.
                                 Item {
                                     id: action
                                     anchors.right: parent.right
                                     anchors.verticalCenter: parent.verticalCenter
                                     anchors.rightMargin: Tokens.s3
-                                    width: card.busy ? 78 : 26
+                                    width: card.busy ? cancelModelBtn.implicitWidth : 26
                                     height: 26
 
+                                    Btn {
+                                        id: cancelModelBtn
+                                        objectName: "dictation-cancel-" + card.modelData.key
+                                        anchors.fill: parent
+                                        visible: card.busy
+                                        compact: true
+                                        text: pg.cancelRequested ? I18n.tr("Canceling…") : I18n.tr("Cancel")
+                                        armed: !pg.cancelRequested
+                                        enabled: !pg.cancelRequested
+                                        onAct: pg.cancelDownload()
+                                    }
                                     Rectangle {
                                         id: actBtn
                                         anchors.fill: parent
-                                        visible: !card.modelData.cloud
+                                        visible: !card.busy && !card.modelData.cloud
                                         radius: Tokens.radius
                                         color: actMa.containsMouse ? Tokens.tint10 : "transparent"
                                         border.width: Tokens.border
@@ -604,7 +603,7 @@ Item {
                                             // a paired minus for remove (not danger, and
                                             // there is no red here to carry one); a down
                                             // arrow for a fetch.
-                                            text: card.busy ? (pg.cancelRequested ? I18n.tr("Canceling…") : I18n.tr("Cancel")) : (card.modelData.present ? "\u2212" : "\u2193")
+                                            text: card.modelData.present ? "\u2212" : "\u2193"
                                             color: Tokens.inkDim
                                             font.family: Tokens.ui
                                             font.pixelSize: 12
@@ -614,12 +613,10 @@ Item {
                                         id: actMa
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        enabled: !card.modelData.cloud && !(card.busy && pg.cancelRequested)
+                                        enabled: !card.modelData.cloud && !card.busy
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            if (card.busy)
-                                                pg.cancelDownload();
-                                            else if (card.modelData.present)
+                                            if (card.modelData.present)
                                                 pg.removeModel(card.modelData.key);
                                             else
                                                 pg.requestDownload(card.modelData.key);
@@ -730,9 +727,9 @@ Item {
                 // ── PACKAGE: uninstall handoff ──
                 SettingCard {
                     width: content.colWidth
-                    title: I18n.tr("PACKAGES")
+                    title: I18n.tr("PACKAGE")
                     expanded: false
-                    summary: pg.reduxInstalled ? I18n.tr("VOXTYPE-BIN · REDUX ADAPTER") : I18n.tr("VOXTYPE-BIN")
+                    summary: I18n.tr("VOXTYPE-BIN")
 
                     Text {
                         width: parent.width
@@ -761,55 +758,6 @@ Item {
                             onAct: pg.removeVoxtype()
                         }
                     }
-
-                    Column {
-                        width: parent.width
-                        visible: pg.reduxPreset !== null
-                        spacing: Tokens.s2
-                        Rectangle {
-                            width: parent.width; height: Tokens.border
-                            color: Tokens.line
-                        }
-                        Text {
-                            width: parent.width
-                            leftPadding: Tokens.s4; rightPadding: Tokens.s4
-                            topPadding: Tokens.s3
-                            text: I18n.tr("Voxtype Redux Adapter")
-                            color: Tokens.ink
-                            font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                            font.weight: Font.Medium
-                        }
-                        Text {
-                            width: parent.width
-                            leftPadding: Tokens.s4; rightPadding: Tokens.s4
-                            wrapMode: Text.WordWrap
-                            text: pg.reduxInstalled
-                                ? I18n.tr("Installed. Connects Redux to Voxtype. Removing it also removes the Redux model and its private runtime.")
-                                : I18n.tr("Not installed. Install the adapter, Redux model and runtime without changing your selected model.")
-                            color: Tokens.inkMuted
-                            font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
-                        }
-                        Item {
-                            width: parent.width
-                            height: reduxPackageBtn.implicitHeight + Tokens.s3 * 2
-                            Btn {
-                                id: reduxPackageBtn
-                                anchors.left: parent.left; anchors.leftMargin: Tokens.s4
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: pg.downloading === "parakeet-redux"
-                                    ? (pg.cancelRequested ? I18n.tr("Canceling…") : I18n.tr("Cancel installation"))
-                                    : (pg.reduxInstalled ? I18n.tr("Remove adapter") : I18n.tr("Install adapter"))
-                                enabled: pg.reduxPreset !== null && !pg.cancelRequested
-                                    && (pg.downloading === "" || pg.downloading === "parakeet-redux")
-                                onAct: {
-                                    if (pg.downloading === "parakeet-redux") pg.cancelDownload();
-                                    else if (pg.reduxInstalled) pg.removeModel("parakeet-redux");
-                                    else pg.download("parakeet-redux", false);
-                                }
-                            }
-                        }
-                    }
-
                 }
 
                 // error banner, pinned at the bottom: an error is inverted text and

@@ -7,10 +7,8 @@ languages; the local accuracy benchmarks cover English only.
 
 ## Install, select, switch and remove
 
-Dictation > Packages lists Voxtype Redux Adapter separately, with installed
-status and Install/Remove controls. Package installation does not change the
-selected model; its progress has a Cancel control. Model-card installation
-continues to select the model after a successful installation.
+The adapter belongs to the Redux model option, not a separate Packages entry.
+Every installing model shows Cancel directly on its model card.
 
 Clicking the missing option builds a CPU-only parakeet.cpp runtime from pinned
 MIT-licensed source and downloads a checksum-pinned Redux GGUF. It installs the
@@ -81,8 +79,9 @@ Pinned source revisions, weight hash and licenses are recorded in
 - Five installer tests cover install/remove/reinstall, interrupted download,
   rollback on publication failure, edited-file preservation, and invalid receipts.
 - A process-group test verifies even SIGTERM-ignoring descendants are killed.
-- Two offscreen Quickshell tests exercise the actual page's cancellation handler,
-  both after startup and before startup, preserving selection and cleaning staging.
+- Four offscreen Quickshell tests exercise the actual model-card Cancel button
+  for Whisper and Redux, after startup and before startup, preserving selection
+  and cleaning staging.
 - A fresh isolated home built the pinned native library from source, downloaded
   the hash-verified model, installed the adapter and transcribed the clean 5s clip
   correctly. This used the new 213 MB published GGUF; the existing local 318 MB
