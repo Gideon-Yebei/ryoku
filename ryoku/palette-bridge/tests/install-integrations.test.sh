@@ -2,6 +2,7 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+bash "$project_root/tests/zen-profiles.test.sh"
 test_root=$(mktemp -d /tmp/ryoku-palette-install.XXXXXX)
 trap 'rm -rf "$test_root"' EXIT
 config_root="$test_root/config"

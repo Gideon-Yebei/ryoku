@@ -149,14 +149,40 @@ if $want_zen; then
   else
     profile_root=$(find "$zen_root" -mindepth 2 -maxdepth 2 -name .parentlock -printf '%h\n' -quit 2>/dev/null || true)
     if [[ -z "$profile_root" && -f "$zen_root/profiles.ini" ]]; then
-      profile_path=$(awk -F= '
-        /^\[Profile/ { active=1; path=""; preferred=0; next }
-        /^\[/ { if (active && preferred && path != "") { print path; exit }; active=0 }
-        active && $1 == "Path" { path=$2 }
-        active && $1 == "Default" && $2 == "1" { preferred=1 }
-        END { if (active && preferred && path != "") print path }
-      ' "$zen_root/profiles.ini" | head -n1)
-      [[ -n "$profile_path" ]] && profile_root="$zen_root/$profile_path"
+      while IFS= read -r candidate; do
+        if [[ -d "$candidate" ]]; then
+          profile_root="$candidate"
+          break
+        fi
+      done < <(awk -v root="$zen_root" '
+        function saveProfile() {
+          if (profile && preferred && path != "")
+            defaults[++profileCount] = relative == "0" ? path : root "/" path
+        }
+        { sub(/\r$/, "") }
+        /^\[/ {
+          saveProfile()
+          profile = ($0 ~ /^\[Profile[^]]+\]$/)
+          installation = ($0 ~ /^\[Install[^]]+\]$/)
+          path = ""; preferred = 0; relative = "1"
+          next
+        }
+        /^[;#]/ { next }
+        index($0, "=") {
+          key = substr($0, 1, index($0, "=") - 1)
+          value = substr($0, index($0, "=") + 1)
+          if (profile && key == "Path") path = value
+          if (profile && key == "IsRelative") relative = value
+          if (profile && key == "Default" && value == "1") preferred = 1
+          if (installation && key == "Default" && value != "")
+            installs[++installCount] = substr(value, 1, 1) == "/" ? value : root "/" value
+        }
+        END {
+          saveProfile()
+          for (i = 1; i <= installCount; i++) print installs[i]
+          for (i = 1; i <= profileCount; i++) print defaults[i]
+        }
+      ' "$zen_root/profiles.ini")
     fi
   fi
   [[ -n "${profile_root:-}" && -d "$profile_root" ]] || {

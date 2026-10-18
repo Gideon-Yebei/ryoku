@@ -233,6 +233,10 @@
   `hub/quickshell/schema/DesktopScenePage.js`, `shell/ipc/control.go`).
 
 ### Fixed
+- **Zen palette setup finds absolute and installation-specific profiles.** The
+  bridge installer honours `IsRelative=0` and modern `Install` defaults when
+  Zen is closed, while explicit and running profiles keep precedence
+  (`palette-bridge/install-integrations.sh`).
 - **The palette bridge waits for the first login instead of restart-looping at
   boot.** It starts without a palette, reports it unavailable until one is
   written, and watches for the cache directory to appear
