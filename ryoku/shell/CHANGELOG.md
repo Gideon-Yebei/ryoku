@@ -14,6 +14,11 @@
   `quickshell/shell/services/Notifs.qml`).
 
 ### Fixed
+- **Orpheus clears its Voice notification dot on every monitor at once.**
+  Opening the notifications card on any output, clearing the list, or enabling
+  Do Not Disturb advances one shared in-memory read state; arrivals while the
+  card is open or Do Not Disturb is active stay read
+  (`quickshell/shell/{services/Notifs.qml,modules/bar/barstyles/orpheus/}`).
 - **Workshop downloads no longer stay stuck at Preparing.** Ryogami stops a
   silent Steam helper, gives large scenes a generous overall limit, and always
   reports a finished or actionable failed state. SteamCMD ownership and login
