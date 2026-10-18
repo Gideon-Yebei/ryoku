@@ -2,7 +2,7 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-test_root=$(mktemp -d /tmp/ryoku-zen-profiles.XXXXXX)
+test_root=$(mktemp -d "${TMPDIR:-/tmp}/ryoku-zen-profiles.XXXXXX")
 trap 'rm -rf "$test_root"' EXIT
 mkdir -p "$test_root/bin"
 for tool in ryoku ryogami; do
@@ -10,7 +10,7 @@ for tool in ryoku ryogami; do
   chmod +x "$test_root/bin/$tool"
 done
 
-for scenario in relative absolute install-relative install-absolute crlf fallback running override; do
+for scenario in relative absolute install-relative install-absolute crlf quoted fallback running override; do
   config="$test_root/$scenario/config"
   zen="$config/zen"
   profile="$zen/default.profile"
@@ -21,8 +21,11 @@ for scenario in relative absolute install-relative install-absolute crlf fallbac
     relative)
       printf '[Profile0]\nDefault=1\nPath=default.profile\nIsRelative=1\n' > "$zen/profiles.ini"
       ;;
-    absolute|crlf)
+    absolute|crlf|quoted)
       profile="$test_root/$scenario/external profile=one"
+      if [[ $scenario == quoted ]]; then
+        profile="$test_root/$scenario/external \"profile\\one"
+      fi
       printf '[Profile0]\nDefault=1\nIsRelative=0\nPath=%s\n' "$profile" > "$zen/profiles.ini"
       if [[ $scenario == crlf ]]; then
         sed -i 's/$/\r/' "$zen/profiles.ini"
@@ -61,8 +64,8 @@ for scenario in relative absolute install-relative install-absolute crlf fallbac
       exit 1
     }
   grep -Fxq '@import "ryoku-colors.css";' "$profile/chrome/userChrome.css"
-  grep -Fq "output_path = \"$profile/chrome/ryoku-colors.css\"" \
-    "$config/ryoku/user_edits/matugen/apps.toml"
+  expected_output="output_path = $(jq -Rn --arg path "$profile/chrome/ryoku-colors.css" '$path')"
+  grep -Fxq "$expected_output" "$config/ryoku/user_edits/matugen/apps.toml"
   [[ ! -e "$zen/ignored.profile/chrome/userChrome.css" ]]
 done
 

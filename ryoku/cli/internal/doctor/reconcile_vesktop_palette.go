@@ -105,6 +105,7 @@ func preservingVesktopPalette(config, state string) bool {
 	}
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
 	hook := "bash " + quote(filepath.Join(root, "quickcss.sh")) + " " + quote(filepath.Join(config, "vesktop/settings/quickCss.css")) + " " + quote(filepath.Join(root, "palette.css"))
+	encodedOutput, _ := json.Marshal(filepath.Join(root, "palette.css"))
 	active, output, post := false, false, false
 	for _, line := range strings.Split(string(raw), "\n") {
 		line = strings.TrimSpace(line)
@@ -116,7 +117,7 @@ func preservingVesktopPalette(config, state string) bool {
 			continue
 		}
 		if active {
-			output = output || line == `output_path = "`+filepath.Join(root, "palette.css")+`"`
+			output = output || line == "output_path = "+string(encodedOutput)
 			if strings.HasPrefix(line, "post_hook = ") {
 				var decoded string
 				if json.Unmarshal([]byte(strings.TrimPrefix(line, "post_hook = ")), &decoded) == nil {

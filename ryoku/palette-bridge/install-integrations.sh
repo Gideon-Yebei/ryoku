@@ -82,7 +82,10 @@ record_owned() {
 }
 
 set_matugen_section() {
-  local section="$1" input_path="$2" output_path="$3" hook="${4:-}" temporary
+  local section="$1" input_path="$2" output_path="$3" hook="${4:-}" temporary input_value output_value
+  command -v jq >/dev/null || { printf 'jq is required to write Matugen integrations\n' >&2; return 1; }
+  input_value=$(jq -Rn --arg value "$input_path" '$value')
+  output_value=$(jq -Rn --arg value "$output_path" '$value')
   temporary=$(mktemp)
   awk -v target="[$section]" '
     $0 == target { skip=1; next }
@@ -91,8 +94,8 @@ set_matugen_section() {
   ' "$overlay_apps" > "$temporary"
   {
     printf '\n[%s]\n' "$section"
-    printf 'input_path = "%s"\n' "$input_path"
-    printf 'output_path = "%s"\n' "$output_path"
+    printf 'input_path = %s\n' "$input_value"
+    printf 'output_path = %s\n' "$output_value"
     if [[ -n "$hook" ]]; then
       printf 'post_hook = %s\n' "$(jq -Rn --arg hook "$hook" '$hook')"
     fi

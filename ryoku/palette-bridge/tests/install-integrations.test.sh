@@ -3,7 +3,7 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 bash "$project_root/tests/zen-profiles.test.sh"
-test_root=$(mktemp -d "/tmp/ryoku-palette install's.XXXXXX")
+test_root=$(mktemp -d "${TMPDIR:-/tmp}/ryoku-palette install's \"quote\".XXXXXX")
 trap 'rm -rf "$test_root"' EXIT
 config_root="$test_root/config"
 fake_bin="$test_root/bin"
@@ -63,7 +63,7 @@ cmp "$project_root/templates/zen.css" "$overlay/templates/zen.css"
 cmp "$project_root/vesktop/midnight-ryoku.theme.css" \
   "$config_root/vesktop/themes/midnight-ryoku.theme.css"
 [[ $(grep -c '^\[templates\.vesktop\]$' "$overlay/apps.toml") == 1 ]]
-grep -Fq "output_path = \"$state_root/ryoku/palette-bridge/vesktop/palette.css\"" "$overlay/apps.toml"
+grep -Fxq "output_path = $(jq -Rn --arg path "$state_root/ryoku/palette-bridge/vesktop/palette.css" '$path')" "$overlay/apps.toml"
 grep -q '^post_hook = .*quickcss' "$overlay/apps.toml"
 [[ $(grep -c '^\[templates\.zen\]$' "$overlay/apps.toml") == 1 ]]
 [[ $(grep -c '^\[templates\.existing\]$' "$overlay/apps.toml") == 1 ]]

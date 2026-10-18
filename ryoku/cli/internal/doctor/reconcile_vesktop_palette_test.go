@@ -10,7 +10,7 @@ import (
 
 func TestVesktopPaletteMigration(t *testing.T) {
 	root := t.TempDir()
-	config, state := filepath.Join(root, "config"), filepath.Join(root, "state")
+	config, state := filepath.Join(root, "config"), filepath.Join(root, `state with "quote"`)
 	t.Setenv("XDG_CONFIG_HOME", config)
 	t.Setenv("XDG_STATE_HOME", state)
 	template := filepath.Join(config, "ryoku/user_edits/matugen/templates/vesktop-colors.css")
