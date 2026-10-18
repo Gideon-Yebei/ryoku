@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- **Dictation offers Redux Multilingual.** On systemd desktops the Dictation
+  page lists Redux, a fast Parakeet model for 25 European languages that runs
+  through a resident worker. Picking it builds the speech runtime from pinned
+  source on the machine and downloads the checksum-pinned model; the card shows
+  each step and one progress bar while the build stays at low priority, and
+  every installing model can be cancelled. Switching away keeps Redux for a
+  quick return and stops its worker. Contributed by Sipper1236, whose MIT
+  adapter ships unmodified and is credited on Credits and in `NOTICE`
+  (`backend/voxtype_install.go`, `backend/voxtype_redux.go`,
+  `backend/assets/redux/`, `quickshell/pages/DictationPage.qml`,
+  `../../docs/dictation.md`).
 - **General can choose the icon theme.** The picker lists installed icon themes
   by their own names, leaves cursor-only and hidden themes out, and applies the
   choice together to GNOME settings, GTK 3/4, Qt 6, KDE apps and the Ryoku

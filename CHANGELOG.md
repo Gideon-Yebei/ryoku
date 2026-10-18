@@ -5,9 +5,6 @@ for finer detail.
 
 ## Unreleased
 
-### New
-- Dictation offers Redux Multilingual + Adapter on systemd desktops, with a pinned source-built runtime, install/remove lifecycle, and cancelable model installations. Switching models keeps Redux cached and stops its worker.
-
 ### Removed
 - The mango compositor is gone: its provider, config tree, packages,
   installer choice, deploy steps, tests and docs. Ryoku ships Hyprland and
