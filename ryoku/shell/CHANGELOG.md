@@ -19,6 +19,11 @@
   Do Not Disturb advances one shared in-memory read state; arrivals while the
   card is open or Do Not Disturb is active stay read
   (`quickshell/shell/{services/Notifs.qml,modules/bar/barstyles/orpheus/}`).
+- **Ryogami's wallpaper apply key follows its configured shortcut.** Fresh
+  pickers select the first card in every layout, Enter applies it by default,
+  and Space works when assigned in the picker controls. Keyboard apply now goes
+  through the shared keymap without changing card clicks
+  (`ryogami/picker/{qml/KeyChord.js,src/scene/cardfield.cpp}`).
 - **Workshop downloads no longer stay stuck at Preparing.** Ryogami stops a
   silent Steam helper, gives large scenes a generous overall limit, and always
   reports a finished or actionable failed state. SteamCMD ownership and login
