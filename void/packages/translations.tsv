@@ -207,6 +207,7 @@ ryoku-oh-my-zsh	ryoku-oh-my-zsh	desktop	repo=ryoku
 ryoku-palette-bridge	@repo	desktop	Ryoku-owned package built from the checkout.
 ryoku-rashin	@repo	desktop	Ryoku-owned package built from the checkout.
 ryoku-shell	@repo	desktop	Ryoku-owned package built from the checkout.
+ryomanager	@repo	optional	Ryoku-owned package built from the checkout.
 ryotunes	ryotunes	optional	repo=ryoku
 scrcpy	scrcpy	optional	
 sddm	sddm	desktop	

@@ -72,6 +72,9 @@ for finer detail.
   mutable channels current without changing frozen distro snapshots.
 
 ### Added
+- **RyoManager joins the default apps.** Fresh installs can keep or drop the
+  system monitor; existing boxes get it once through doctor, and a removal
+  stays removed.
 - **niri gains key sounds.** niri has no plugin system, so it could not have the
   keyboard sound Hyprland gets from its `keysounds` plugin; it has one now, from
   a small Rust engine (`ryoku-keysounds`) that reads the keyboard straight from

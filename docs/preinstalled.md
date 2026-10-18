@@ -40,9 +40,11 @@ this page is the readable tour.
 
 ## The Ryoku desktop itself
 
-These are Ryoku's own packages, built from this monorepo and served from the
-`[ryoku]` repo. The `ryoku-desktop` umbrella version-pins them all so a partial
-upgrade never leaves the shell QML running against a stale plugin.
+These are Ryoku's own packages and default applications, served from the
+`[ryoku]` repo. Most build from this monorepo; pinned upstream apps such as
+RyoManager follow the same signed update path. The `ryoku-desktop` umbrella
+version-pins the desktop components so a partial upgrade never leaves the shell
+QML running against a stale plugin.
 
 | Package | What it is |
 |---|---|
@@ -53,6 +55,7 @@ upgrade never leaves the shell QML running against a stale plugin.
 | `ryoku-blobs` | The shared `Ryoku.Blobs` QML plugin |
 | `gpk` | GlazePKG, the RyokuArch package manager |
 | `ryogami` | The wallpaper daemon the shell drives: static, live, and shader transitions |
+| `ryomanager` | RyoManager, the system monitor and process manager. It is selected by default in the installer and can be removed without doctor putting it back |
 | `ryostore` | RyoStore: the catalogue of rices, bundles, and bar styles |
 | `ryowalls` | The wallpaper browser, preview, and AI enhancer |
 | `ryovm` | The virtual-machine manager |

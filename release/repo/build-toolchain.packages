@@ -79,12 +79,12 @@ xorg-xcursorgen
 xcur2png
 python
 
-# pnpm (which pulls nodejs) builds the ryotunes web UI: its PKGBUILD runs
-# `pnpm install --frozen-lockfile && pnpm build` to produce the SvelteKit bundle
-# the Tauri binary embeds, so without pnpm on the host the package cannot build
-# at all.
+# pnpm (which pulls nodejs) builds the ryotunes web UI. RyoManager uses npm's
+# locked install before its Vite build, and Arch packages npm separately from
+# nodejs. Both package managers therefore belong on the build host.
 pnpm
 nodejs
+npm
 
 # gnupg signs every built package and the repo db.
 gnupg

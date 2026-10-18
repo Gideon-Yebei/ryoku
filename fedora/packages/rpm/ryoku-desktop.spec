@@ -118,6 +118,7 @@ Suggests:       neovim
 Suggests:       nautilus
 Suggests:       nautilus-python
 Suggests:       ryotunes
+Suggests:       ryomanager
 Suggests:       waifu2x-ncnn-vulkan
 Suggests:       pavucontrol
 Suggests:       songrec

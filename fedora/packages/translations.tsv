@@ -207,6 +207,7 @@ ryoku-oh-my-zsh	ryoku-oh-my-zsh	desktop	Ryoku-owned RPM.
 ryoku-palette-bridge	ryoku-palette-bridge	desktop	Ryoku-owned RPM.
 ryoku-rashin	ryoku-rashin	desktop	Ryoku-owned RPM.
 ryoku-shell	ryoku-shell	desktop	Ryoku-owned RPM.
+ryomanager	ryomanager	optional	Ryoku-owned RPM.
 ryotunes	ryotunes	optional	Ryoku-owned RPM.
 scrcpy	scrcpy	optional	Provided by a restricted COPR.
 sddm	sddm	desktop	

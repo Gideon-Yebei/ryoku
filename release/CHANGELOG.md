@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- **RyoManager ships in every native Ryoku repository.** Arch, Fedora and Void
+  build it from a pinned commit of `Ryoku-dev/ryomanager`
+  (`packages/ryomanager/`, `../fedora/packages/rpm/ryomanager.spec`,
+  `../void/packages/srcpkgs/ryomanager/`).
 - **Key sounds have shared profiles and a niri engine package.**
   `ryoku-keysounds-profiles` now owns the samples and importer, while the new
   `ryoku-keysounds-niri` package ships niri's standalone engine.
