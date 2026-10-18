@@ -7,6 +7,11 @@ languages; the local accuracy benchmarks cover English only.
 
 ## Install, select, switch and remove
 
+Dictation > Packages lists Voxtype Redux Adapter separately, with installed
+status and Install/Remove controls. Package installation does not change the
+selected model; its progress has a Cancel control. Model-card installation
+continues to select the model after a successful installation.
+
 Clicking the missing option builds a CPU-only parakeet.cpp runtime from pinned
 MIT-licensed source and downloads a checksum-pinned Redux GGUF. It installs the
 bundled MIT-licensed Python adapter, a user worker service, the model, licensing

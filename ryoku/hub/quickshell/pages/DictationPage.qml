@@ -38,6 +38,9 @@ Item {
     readonly property bool installAvailable: pg.packageAvailable
     readonly property string installUnavailableReason: pg.packageReason
     property bool openaiKeySet: false
+    property bool selectAfterDownload: true
+    readonly property var reduxPreset: pg.presetFor("parakeet-redux")
+    readonly property bool reduxInstalled: pg.reduxPreset !== null && pg.reduxPreset.present
     property bool cancelRequested: false
     property string installError: ""
     property string downloading: ""    // preset key whose model is downloading, or ""
@@ -122,12 +125,13 @@ Item {
         }
         pg.download(key);
     }
-    function download(key) {
+    function download(key, selectOnSuccess) {
         if (pg.downloading !== "")
             return;
         pg.busyError = "";
         pg.notice = "";
         pg.dlPercent = -1;
+        pg.selectAfterDownload = selectOnSuccess !== false;
         pg.cancelRequested = false;
         pg.installError = "";
         pg.downloading = key;
@@ -230,9 +234,14 @@ Item {
                 pg.notice = I18n.tr("Installation canceled. Your selected model is unchanged.");
                 pg.reload();
             } else if (code === 0 && exitStatus === 0) {
-                pg.selected = k;
-                pg.notice = I18n.tr("Model installed.");
-                pg.apply(null);
+                if (pg.selectAfterDownload) {
+                    pg.selected = k;
+                    pg.notice = I18n.tr("Model installed.");
+                    pg.apply(null);
+                } else {
+                    pg.notice = I18n.tr("Adapter installed. Your selected model is unchanged.");
+                    pg.reload();
+                }
             } else {
                 pg.busyError = pg.installError || I18n.tr("Installation failed (exit %1).").arg(code);
                 pg.reload();
@@ -721,9 +730,9 @@ Item {
                 // ── PACKAGE: uninstall handoff ──
                 SettingCard {
                     width: content.colWidth
-                    title: I18n.tr("PACKAGE")
+                    title: I18n.tr("PACKAGES")
                     expanded: false
-                    summary: I18n.tr("VOXTYPE-BIN")
+                    summary: pg.reduxInstalled ? I18n.tr("VOXTYPE-BIN · REDUX ADAPTER") : I18n.tr("VOXTYPE-BIN")
 
                     Text {
                         width: parent.width
@@ -752,6 +761,55 @@ Item {
                             onAct: pg.removeVoxtype()
                         }
                     }
+
+                    Column {
+                        width: parent.width
+                        visible: pg.reduxPreset !== null
+                        spacing: Tokens.s2
+                        Rectangle {
+                            width: parent.width; height: Tokens.border
+                            color: Tokens.line
+                        }
+                        Text {
+                            width: parent.width
+                            leftPadding: Tokens.s4; rightPadding: Tokens.s4
+                            topPadding: Tokens.s3
+                            text: I18n.tr("Voxtype Redux Adapter")
+                            color: Tokens.ink
+                            font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                            font.weight: Font.Medium
+                        }
+                        Text {
+                            width: parent.width
+                            leftPadding: Tokens.s4; rightPadding: Tokens.s4
+                            wrapMode: Text.WordWrap
+                            text: pg.reduxInstalled
+                                ? I18n.tr("Installed. Connects Redux to Voxtype. Removing it also removes the Redux model and its private runtime.")
+                                : I18n.tr("Not installed. Install the adapter, Redux model and runtime without changing your selected model.")
+                            color: Tokens.inkMuted
+                            font.family: Tokens.ui; font.pixelSize: Tokens.fSmall
+                        }
+                        Item {
+                            width: parent.width
+                            height: reduxPackageBtn.implicitHeight + Tokens.s3 * 2
+                            Btn {
+                                id: reduxPackageBtn
+                                anchors.left: parent.left; anchors.leftMargin: Tokens.s4
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: pg.downloading === "parakeet-redux"
+                                    ? (pg.cancelRequested ? I18n.tr("Canceling…") : I18n.tr("Cancel installation"))
+                                    : (pg.reduxInstalled ? I18n.tr("Remove adapter") : I18n.tr("Install adapter"))
+                                enabled: pg.reduxPreset !== null && !pg.cancelRequested
+                                    && (pg.downloading === "" || pg.downloading === "parakeet-redux")
+                                onAct: {
+                                    if (pg.downloading === "parakeet-redux") pg.cancelDownload();
+                                    else if (pg.reduxInstalled) pg.removeModel("parakeet-redux");
+                                    else pg.download("parakeet-redux", false);
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 // error banner, pinned at the bottom: an error is inverted text and
