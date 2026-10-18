@@ -233,6 +233,10 @@
   `hub/quickshell/schema/DesktopScenePage.js`, `shell/ipc/control.go`).
 
 ### Fixed
+- **Spotify's wallpaper colours use calmer surfaces and clearer accents.**
+  The bridge keeps text neutral and panels charcoal with a subtle wallpaper
+  tint, accents play controls and progress, and removes competing decorative
+  colour washes while preserving artwork (`palette-bridge/spicetify/`).
 - **The palette bridge waits for the first login instead of restart-looping at
   boot.** It starts without a palette, reports it unavailable until one is
   written, and watches for the cache directory to appear
