@@ -30,6 +30,7 @@ build() {
 check() {
   cd "$_repo/ryoku/palette-bridge"
   bash tests/install-integrations.test.sh
+  bash tests/vesktop-quickcss.test.sh
   bash tests/install.test.sh
 }
 

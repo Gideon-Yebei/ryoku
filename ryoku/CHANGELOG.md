@@ -233,6 +233,10 @@
   `hub/quickshell/schema/DesktopScenePage.js`, `shell/ipc/control.go`).
 
 ### Fixed
+- **Vesktop keeps custom QuickCSS and imports on wallpaper changes.** Palette
+  updates merge only the bridge-owned colour block. Updates repair the exact
+  legacy registration for enabled integrations; disabled and edited setups stay
+  unchanged (`palette-bridge/`, `cli/internal/doctor/reconcile_vesktop_palette.go`).
 - **The palette bridge waits for the first login instead of restart-looping at
   boot.** It starts without a palette, reports it unavailable until one is
   written, and watches for the cache directory to appear
