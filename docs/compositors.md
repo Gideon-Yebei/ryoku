@@ -150,11 +150,16 @@ that change what a user sees:
 - **`liveConfigEval`** and **`configReload`** are absent on niri and wayfire:
   both configs are file-only, watched by the compositor itself (niri on save,
   wayfire on change). The Hub applies on save rather than previewing live.
-- **`persistentScreenCapture`** is absent because niri tears its outputs down
-  and recreates them on a config reload or a mode change. A one-shot capture is
-  fine; a long-lived whole-screen capture can race an output leaving and crash
-  the Qt client. The launcher therefore uses a solid drawer on niri, and the ii
-  dock's live window preview says it is unavailable instead of capturing.
+- **`persistentScreenCapture`** is absent on niri because any whole-screen
+  capture there can crash the shell, a one-shot one included. niri has no
+  ext-image-copy-capture yet, so Quickshell captures through wlr-screencopy and
+  binds a second `wl_output` to do it. Qt files that object as one of its own
+  screens and reads it after the capture is gone (quickshell#1094). The
+  launcher therefore uses a solid drawer on niri and LiveDraw offers no zoom.
+  The ii dock's live window preview captures a window rather than the screen,
+  but it hangs on the same capability and says it is unavailable instead of
+  capturing. Once a niri release ships ext-image-copy-capture, Quickshell
+  captures through Qt's own `wl_output` and the capability can return.
 - **`keyboardGrabSharesPointer`** is absent on Hyprland because a layer surface
   holding the keyboard exclusively takes every pointer event too. The Stage
   Editor's canvas holds the keyboard on niri, so Escape and the arrows reach it
