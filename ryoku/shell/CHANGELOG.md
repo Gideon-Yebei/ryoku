@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **Orpheus can show coding-agent limits and a paired phone.** Its Layout editor
+  now offers an AI usage module backed by the same watched caches as QS Bar, and
+  a phone module with connection, battery, and unread state that opens Kit's
+  Phone tab. Neither changes the default layout
+  (`quickshell/shell/services/AiUsage.qml`,
+  `quickshell/shell/modules/bar/barstyles/{orpheus,qsbar}/`).
 - **Desktop sounds can be tuned, swapped and switched off.** The daemon's cues
   now read a `sounds` key in `shell.json`: one switch and one volume for all of
   them, and per cue an on/off switch and an optional file of your own (a missing
