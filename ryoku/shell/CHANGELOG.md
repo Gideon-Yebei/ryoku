@@ -20,6 +20,12 @@
   `quickshell/shell/services/Notifs.qml`).
 
 ### Fixed
+- **Ryogami keeps the current wallpaper when it optimises the file.** Outputs,
+  workspace wallpapers, library entries, playlists and the recorded wallpaper
+  move to the WebP copy, so restores and rice saves no longer point at the
+  trashed original. The picker's rice list also refreshes when a saved rice
+  changes (`ryogami/daemon/optimize_repoint.go`,
+  `ryogami/picker/src/core/catalogs.cpp`).
 - **Orpheus clears its Voice notification dot on every monitor at once.**
   Opening the notifications card on any output, clearing the list, or enabling
   Do Not Disturb advances one shared in-memory read state; arrivals while the

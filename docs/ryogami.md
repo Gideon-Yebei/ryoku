@@ -52,6 +52,15 @@ restores its display fallback, then its active workspace assignment.
 Stage scenes remain keyed by wallpaper path. Assigning the same image to more
 than one workspace shares its Depth, Parallax, and layer scene.
 
+## Image optimisation
+
+New PNG, JPEG and GIF wallpapers are re-encoded to WebP when they land in the
+library (**Settings > Library > Images & recovery > Auto-optimise new images**,
+on by default). The original goes to Ryogami's trash for the configured number
+of days. When the file on screen gets replaced, Ryogami moves its own state to
+the WebP copy: display and workspace assignments, library entries, playlists
+and the recorded wallpaper that rice saves read.
+
 ## Downloading wallpapers
 
 The Download browser (Ctrl + D) searches Wallhaven, Steam Workshop, Unsplash,
