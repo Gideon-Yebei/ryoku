@@ -32,6 +32,14 @@
   trashed original. The picker's rice list also refreshes when a saved rice
   changes (`ryogami/daemon/optimize_repoint.go`,
   `ryogami/picker/src/core/catalogs.cpp`).
+- **LiveDraw's zoom no longer crashes the shell on niri.** The zoom takes a
+  still of the screen, and on niri that capture binds a second `wl_output` Qt
+  later reads after it is gone (quickshell#1094). The zoom now follows the same
+  `persistentScreenCapture` gate as the launcher frost: the tray and the shortcut
+  list hide it, Ctrl+F does nothing, and a zoom kept across a reload neither
+  captures nor covers the screen. `docs/compositors.md` and the capability's
+  comments in `ryoku/wm` named the wrong cause and now give this one
+  (`modules/dock/ii/services/LiveDraw.qml`, `modules/dock/ii/draw/`).
 - **Orpheus clears its Voice notification dot on every monitor at once.**
   Opening the notifications card on any output, clearing the list, or enabling
   Do Not Disturb advances one shared in-memory read state; arrivals while the
