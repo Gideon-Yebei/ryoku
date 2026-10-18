@@ -24,6 +24,7 @@ catppuccin-cursors-mocha	catppuccin-cursors-mocha	extra	Ryoku-owned RPM.
 cava	cava	desktop	
 chromium	chromium	desktop	
 cliphist	cliphist	desktop	
+cmake	cmake	optional	
 cryptsetup	cryptsetup	system	
 curl	curl	desktop	
 dav1d	dav1d	desktop	
@@ -124,6 +125,7 @@ localsend-bin	localsend-bin	extra	Ryoku-owned RPM.
 looking-glass	-	optional	No Fedora package provides this Arch package.
 lua	lua	optional	
 mangohud	mangohud	desktop	
+make	make	optional	
 matugen	ryoku-extras	desktop	Bundled by the Ryoku extras RPM.
 mesa	mesa-dri-drivers mesa-libGL	desktop	
 mise	mise	dev	Ryoku-owned RPM.

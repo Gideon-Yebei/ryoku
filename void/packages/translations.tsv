@@ -24,6 +24,7 @@ catppuccin-cursors-mocha	catppuccin-cursors-mocha	extra	repo=ryoku
 cava	cava	desktop	
 chromium	chromium	desktop	
 cliphist	cliphist	desktop	
+cmake	cmake	optional	
 cryptsetup	cryptsetup	system	
 curl	curl	desktop	
 dav1d	libdav1d	desktop	
@@ -111,6 +112,7 @@ librsvg	librsvg	desktop
 libusb	libusb	optional	
 libva	libva	desktop	
 libvirt	libvirt	optional	
+make	make	optional	
 libxcb	libxcb	desktop	
 libxkbcommon	libxkbcommon	desktop	
 libyuv	libyuv	desktop	
