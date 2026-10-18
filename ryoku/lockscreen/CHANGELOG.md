@@ -20,6 +20,10 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **The clockwork lockscreen's date turns over at midnight.** The day and date
+  labels read the date once when the lock opened, so a screen locked on
+  Thursday still said Thursday on Friday while the clock kept moving. They now
+  follow the theme's clock timer (`tests/lock-date-rollover.sh`).
 - **A login whose home has no Ryoku tree lays it before the compositor starts.**
   `ryoku-wayland-session` runs `ryoku materialize` as the user when
   `~/.config/ryoku` or the shell's `shell.qml` is missing, the condition
