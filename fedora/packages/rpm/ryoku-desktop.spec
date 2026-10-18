@@ -117,6 +117,8 @@ Suggests:       yazi
 Suggests:       neovim
 Suggests:       nautilus
 Suggests:       nautilus-python
+Suggests:       dolphin
+Suggests:       thunar
 Suggests:       ryotunes
 Suggests:       ryomanager
 Suggests:       waifu2x-ncnn-vulkan

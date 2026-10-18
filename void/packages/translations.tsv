@@ -32,6 +32,7 @@ ddcutil	ddcutil	desktop
 desktop-file-utils	desktop-file-utils	desktop	
 dkms	dkms	desktop	
 docker	docker	desktop	
+dolphin	dolphin	optional	
 dualsensectl	dualsensectl	optional	repo=ryoku
 dosfstools	dosfstools	system	
 edk2-ovmf	edk2-ovmf	desktop	
@@ -227,6 +228,7 @@ swtpm	swtpm	optional
 syntax-highlighting	syntax-highlighting	desktop	
 tesseract	tesseract-ocr	desktop	
 tesseract-data-eng	tesseract-ocr-eng	desktop	
+thunar	Thunar	optional	
 tigervnc	tigervnc	optional	
 translate-shell	translate-shell	desktop	
 ttf-firacode-nerd	ttf-firacode-nerd	desktop	repo=ryoku

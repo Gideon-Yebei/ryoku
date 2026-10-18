@@ -6,6 +6,9 @@ choice	browser	none	None	-	-	-	-	false	bring your own · nothing is installed	Ry
 choice	login-shell	fish	Fish	fish	/usr/bin/fish	-	-	false	Recommended · autosuggestions, abbreviations	Friendly defaults and autosuggestions.	-
 choice	login-shell	zsh	Zsh	zsh,zsh-autosuggestions,zsh-history-substring-search,zsh-syntax-highlighting,ryoku-oh-my-zsh	/usr/bin/zsh	-	-	false	Oh My Zsh with Ryoku's plugins	Oh My Zsh with history and syntax highlighting.	-
 choice	login-shell	bash	Bash	blesh	/usr/bin/bash	-	-	false	the classic shell · ble.sh editing	Familiar Bash with Blesh editing and Ryoku's prompt.	-
+choice	file-manager	nautilus	Files (Nautilus)	nautilus,nautilus-python	/usr/bin/nautilus	-	-	false	Recommended · Ryoku's stash menu	GNOME file manager with Ryoku's stash actions.	-
+choice	file-manager	dolphin	Dolphin	dolphin	/usr/bin/dolphin	-	-	false	KDE file manager	KDE's file manager.	-
+choice	file-manager	thunar	Thunar	thunar	/usr/bin/thunar	-	-	false	light Xfce file manager	Xfce's lightweight file manager.	-
 choice	compositor	hyprland	Hyprland	ryoku-desktop-hyprland	-	-	-	true	dynamic tiling, the Ryoku default	Installs the Hyprland Ryoku desktop variant.	-
 choice	compositor	niri	niri	ryoku-desktop-niri	-	-	-	false	scrollable tiling	Installs the niri Ryoku desktop variant.	-
 choice	compositor	wayfire	Wayfire	ryoku-desktop-wayfire	-	-	-	false	experimental floating windows and depth deck	Installs the experimental Wayfire Ryoku desktop variant.	experimental
@@ -13,5 +16,7 @@ policy	browser	fresh	-	-	-	firefox	-	-	-	-	-
 policy	browser	existing	-	-	-	-	firefox	-	-	-	-
 policy	login-shell	fresh	-	-	-	fish	-	-	-	-	-
 policy	login-shell	existing	-	-	-	-	keep-supported-else-fish	-	-	-	-
+policy	file-manager	fresh	-	-	-	nautilus	-	-	-	-	-
+policy	file-manager	existing	-	-	-	-	keep-supported-else-nautilus	-	-	-	-
 policy	compositor	fresh	-	-	-	first-available	-	-	-	-	-
 policy	compositor	existing	-	-	-	-	first-available	-	-	-	-

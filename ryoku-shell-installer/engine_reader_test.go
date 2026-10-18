@@ -397,3 +397,41 @@ func TestVoidDefaultsToFirstPackagedProvider(t *testing.T) {
 		t.Fatalf("Void provider = %q, available = %v", p.compositor, available)
 	}
 }
+
+func TestEditionPackagePlansIncludeSelectedFileManagerAndRyokuApps(t *testing.T) {
+	root := filepath.Clean("..")
+	for _, editionName := range []string{"void", "fedora"} {
+		t.Run(editionName, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join(root, editionName, "packages", "translations.tsv"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			edition, err := parseEditionCompositors(data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			distro := voidLinux
+			if editionName == "fedora" {
+				distro = newFedoraLinux()
+			}
+			p := defaultPlanForEdition(&facts{distro: distro}, edition)
+			p.fileManager = "dolphin"
+			e := &engine{f: &facts{distro: distro}, p: p, payload: root}
+			packages, err := e.readEditionPackages(editionName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			set := packageSet(packages)
+			for _, pkg := range []string{"dolphin", "ryotunes", "ryomanager", "ryoku-rashin"} {
+				if !set[pkg] {
+					t.Errorf("selected package %s is missing from %v", pkg, packages)
+				}
+			}
+			for _, pkg := range []string{"nautilus", "nautilus-python", "thunar"} {
+				if set[pkg] {
+					t.Errorf("losing file manager package %s is present", pkg)
+				}
+			}
+		})
+	}
+}

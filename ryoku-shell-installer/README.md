@@ -57,26 +57,28 @@ a btrfs root, does not offer Wayfire, and has no Fedora ISO.
 curl -fsSL https://raw.githubusercontent.com/ryoku-dev/ryoku/main/ryoku-shell-installer/install.sh | bash
 ```
 
-For an unattended install, choose the compositor, browser, and login shell:
+For an unattended install, the same catalogue used by the ISO installer is
+available through flags:
 
 ```bash
-curl -fsSL .../install.sh | bash -s -- --yes --compositor niri --browser chromium --shell zsh
+curl -fsSL .../install.sh | bash -s -- --yes --compositor niri --browser chromium --shell zsh --file-manager dolphin --rashin=false --without ryotunes,ryoport
 ```
 
-`--compositor` accepts `hyprland` or `niri`. `--browser` accepts `firefox`
-(recommended and the default), `chromium`, `zen`, or `none`; Zen is
-unavailable on Fedora. `--shell` accepts `fish` (recommended), `zsh`, or
-`bash`. With no shell flag, the installer keeps the account's current login
-shell when it is one of
-those three, and otherwise chooses Fish. `RYOKU_BROWSER` and
-`RYOKU_LOGIN_SHELL` provide the flag defaults for scripted runs.
+`--compositor` accepts the variants shipped by the host edition. `--browser`
+accepts `firefox` (recommended and the default), `chromium`, `zen`, or `none`.
+`--shell` accepts `fish` (recommended), `zsh`, or `bash`; without it the
+installer keeps a supported current shell. `--file-manager` accepts `nautilus`
+(recommended), `dolphin`, or `thunar`; without it an installed one is kept.
+`--rashin=false` leaves out the AI agent. `--without` takes comma-separated
+component IDs such as `ryotunes,ryoport`. Plain Arch also accepts
+`--cachyos-layer`, which adds the CachyOS kernel and tuning while keeping the
+Arch kernel as a fallback.
 
-The package picks are translated for the host: Firefox, Chromium and the chosen
-Fish, Zsh or Bash stack are read from the distro package table. A choice marked
-unavailable there is skipped with a note. Arch builds Zen in the AUR step; Zen
-is not available on Void or Fedora. Bash itself and the shared terminal tools
-(`starship`, `fastfetch`, `zoxide`, `fzf`, `eza`, `bat`, and `mise`) stay
-available with every choice.
+The matching environment variables are `RYOKU_BROWSER`, `RYOKU_LOGIN_SHELL`,
+`RYOKU_FILE_MANAGER`, `RYOKU_RASHIN=0|1`, `RYOKU_WITHOUT`, and
+`RYOKU_CACHYOS_LAYER=0|1`. Package names are translated through the host
+edition table. Choices unavailable on that edition are rejected before sudo.
+Zen and Arch-only AUR components remain unavailable on Void and Fedora.
 
 Preview without changing anything:
 
@@ -107,33 +109,32 @@ terminal language:
    daemons (dunst/mako/waybar/swww/…), a plain Hyprland, niri or sway setup
    to migrate from, an Omarchy install to retire (repo + mirror pin),
    keyboard layout, btrfs, and an interrupted previous run to resume.
-2. **Plan** the browser and login shell, then review the migration toggles.
-   Firefox and Fish are recommended. On Arch, Zen locks the AUR step on because
-   its package is built there. Only the chosen browser and chosen shell stack
-   are added to the package transaction.
+2. **Plan** the compositor, browser, login shell, file manager, Rashin, and
+   apps from the shared installer catalogue, then review the migration toggles.
+   Existing supported shells and file managers are kept. Required edition
+   components stay visible but cannot be turned off.
 3. **Install**, streamed step by step. Arch retires legacy repositories, adds
    `[ryoku]`, installs signed desktop packages and handles AUR extras. Void
    seeds the XBPS signing key, configures the matching Ryoku channel, resolves
    the Void package lanes and installs the signed desktop packages. Fedora
    verifies and imports the RPM release key, writes the channel and restricted
    COPR repository files, then installs the signed desktop and selected
-   compositor packages with the translated browser and shell choices. Debian
-   installs distro dependencies, fetches the pinned fonts and cursor, then
-   builds the desktop from the payload. Every path backs up existing configs,
-   wires SDDM/qylock and networking, materializes the selected compositor
-   config, applies browser and login-shell choices, runs `ryoku doctor`, and
-   verifies the result.
+   compositor packages with the translated choices. Debian installs distro
+   dependencies, fetches the pinned fonts and cursor, then builds the desktop
+   from the payload. Every path backs up existing configs, wires SDDM/qylock
+   and networking, materializes the selected compositor config, applies the
+   application roles, runs `ryoku doctor`, and verifies the result.
 
 Afterwards Arch, Void and Fedora machines update from their signed Ryoku
 package repositories. Debian source builds can rerun the installer at a newer
 payload ref; `ryoku doctor` remains the common health and repair path.
 
-The browser choice sets the HTTP, HTTPS and HTML XDG defaults and the desktop's
-`desktop.apps.browser` role. Packages omitted by either choice are recorded in
-`~/.local/state/ryoku/provisioned`, unless they were already installed before
-the conversion. That keeps `ryoku doctor` and `ryoku update` from adding an
-intentionally omitted package later, without removing software the user already
-had.
+The browser and file-manager choices set their XDG defaults and the
+`desktop.apps.browser` and `desktop.apps.files` roles. Packages omitted by any
+choice are recorded in `~/.local/state/ryoku/provisioned`, unless they were
+already installed before the conversion. That keeps `ryoku doctor` and
+`ryoku update` from adding an intentionally omitted package later without
+removing software the user already had.
 
 Migration policy: rival shells are uninstalled (toggle), conflicting daemons
 are disabled but never uninstalled, the old display manager is disabled (not

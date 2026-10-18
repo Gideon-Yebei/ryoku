@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,6 +49,7 @@ const (
 	fedoraKeyPath        = "/etc/pki/rpm-gpg/RPM-GPG-KEY-ryoku"
 	fedoraKeyURL         = "https://repo.ryoku.dev/stable/ryoku-release-key.pub.asc"
 	fedoraKeyFingerprint = "EB6D3C0F55A7B3CABA6B2838847B274F025DD6E3"
+	cachyosMirrorDB      = "https://mirror.cachyos.org/repo/x86_64_v3/cachyos-v3/cachyos-v3.db"
 )
 
 // channelForRef names the [ryoku] channel a payload ref belongs to (the value
@@ -182,6 +184,7 @@ var aurPkgs = []string{"bibata-cursor-theme-bin", "localsend-bin", "voxtype-bin"
 
 var browserChoices = installerplan.IDs(installerplan.Browser)
 var loginShellChoices = installerplan.IDs(installerplan.LoginShell)
+var fileManagerChoices = installerplan.IDs(installerplan.FileManager)
 
 var browserPackage = func() map[string]string {
 	packages := make(map[string]string, len(browserChoices))
@@ -195,6 +198,12 @@ var browserPackage = func() map[string]string {
 	}
 	return packages
 }()
+
+var fileManagerDesktop = map[string]string{
+	"nautilus": "org.gnome.Nautilus.desktop",
+	"dolphin":  "org.kde.dolphin.desktop",
+	"thunar":   "thunar.desktop",
+}
 
 var loginShellPath = func() map[string]string {
 	paths := make(map[string]string, len(loginShellChoices))
@@ -222,28 +231,43 @@ var sparsePaths = []string{
 }
 
 type plan struct {
-	nvidia     bool   // proprietary NVIDIA driver setup
-	switchDM   bool   // disable current DM, enable SDDM
-	switchNet  bool   // disable other network stacks, enable NetworkManager
-	rivals     bool   // remove rival shell packages
-	softOff    bool   // disable conflicting user daemons
-	aur        bool   // AUR extras
-	devtools   bool   // dev.packages toolchains (go/rust/node/python; recovery needs go)
-	omarchy    bool   // retire the [omarchy] repo and mirror pin
-	monPins    bool   // pin the salvaged monitor layout in monitors_user.lua
-	greeter    bool   // point SDDM at the Ryoku greeter theme
-	resume     bool   // skip steps a previous interrupted run already finished
-	azertyFR   bool   // force the French AZERTY layout (fr) on desktop, console, greeter
-	azertyBE   bool   // force the Belgian AZERTY layout (be) on desktop, console, greeter
-	compositor string // window manager to install (selects ryoku-desktop-<name>)
-	browser    string // firefox, chromium or zen
-	shell      string // fish, zsh or bash
+	nvidia      bool   // proprietary NVIDIA driver setup
+	switchDM    bool   // disable current DM, enable SDDM
+	switchNet   bool   // disable other network stacks, enable NetworkManager
+	rivals      bool   // remove rival shell packages
+	softOff     bool   // disable conflicting user daemons
+	aur         bool   // AUR extras
+	devtools    bool   // dev.packages toolchains (go/rust/node/python; recovery needs go)
+	omarchy     bool   // retire the [omarchy] repo and mirror pin
+	monPins     bool   // pin the salvaged monitor layout in monitors_user.lua
+	greeter     bool   // point SDDM at the Ryoku greeter theme
+	resume      bool   // skip steps a previous interrupted run already finished
+	azertyFR    bool   // force the French AZERTY layout (fr) on desktop, console, greeter
+	azertyBE    bool   // force the Belgian AZERTY layout (be) on desktop, console, greeter
+	compositor  string // window manager to install (selects ryoku-desktop-<name>)
+	browser     string // firefox, chromium, zen or none
+	shell       string // fish, zsh or bash
+	fileManager string
+	edition     installerplan.EditionPlan
+	components  map[string]*bool
 }
 
 func defaultPlan(f *facts, compositorChoices ...[]string) *plan {
-	availableShells := installerplan.IDs(installerplan.LoginShell)
+	edition := "Arch"
+	if f.distroID != "" {
+		edition = f.distroID
+	} else if f.distro != nil {
+		edition = f.distro.name
+	}
+	return defaultPlanWithEdition(f, sourceEditionChoices(edition), compositorChoices...)
+}
+
+func defaultPlanWithEdition(f *facts, edition editionCompositorPlan, compositorChoices ...[]string) *plan {
+	availableShells := edition.choices.AvailableIDs(installerplan.LoginShell)
 	shell := installerplan.ExistingLoginShell(f.userShell, availableShells)
-	availableCompositors := installerplan.IDs(installerplan.Compositor)
+	availableFiles := edition.choices.AvailableIDs(installerplan.FileManager)
+	fileManager := installerplan.ExistingFileManager(f.fileManager, availableFiles)
+	availableCompositors := edition.choices.AvailableIDs(installerplan.Compositor)
 	if len(compositorChoices) > 0 && len(compositorChoices[0]) > 0 {
 		availableCompositors = compositorChoices[0]
 	}
@@ -254,32 +278,33 @@ func defaultPlan(f *facts, compositorChoices ...[]string) *plan {
 		nvidia = false
 		aur = false
 	}
-	return &plan{
-		// Secure Boot rejects unsigned DKMS modules. The NVIDIA script only
-		// blacklists nouveau once the replacement module is in place.
-		nvidia:    nvidia,
-		switchDM:  true,
-		switchNet: true,
-		rivals:    true,
-		softOff:   true,
-		aur:       aur,
-		omarchy:   f.omarchyRepo || f.omarchyMirror || len(f.omarchyGuards) > 0,
-		monPins:   len(f.monOutputs) > 0,
-		// KDE-owned greeter settings are preserved unless the user opts in.
-		greeter:    !f.kdeSddmConf,
-		resume:     f.prevRun != nil,
-		compositor: compositor,
-		browser:    installerplan.FreshDefault(installerplan.Browser),
-		shell:      shell,
-		// the AZERTY overrides are opt-in only; a salvaged layout already
-		// covers anyone who had one configured.
+	p := &plan{
+		nvidia:      nvidia,
+		switchDM:    true,
+		switchNet:   true,
+		rivals:      true,
+		softOff:     true,
+		aur:         aur,
+		omarchy:     f.omarchyRepo || f.omarchyMirror || len(f.omarchyGuards) > 0,
+		monPins:     len(f.monOutputs) > 0,
+		greeter:     !f.kdeSddmConf,
+		resume:      f.prevRun != nil,
+		compositor:  compositor,
+		browser:     installerplan.FreshDefault(installerplan.Browser),
+		shell:       shell,
+		fileManager: fileManager,
+		edition:     edition.choices,
+		components:  map[string]*bool{},
 	}
+	for id, selected := range edition.choices.DefaultComponents() {
+		value := selected
+		p.components[id] = &value
+	}
+	return p
 }
 
 func defaultPlanForEdition(f *facts, edition editionCompositorPlan) *plan {
-	p := defaultPlan(f, edition.choices.AvailableIDs(installerplan.Compositor))
-	p.shell = installerplan.ExistingLoginShell(f.userShell, edition.choices.AvailableIDs(installerplan.LoginShell))
-	return p
+	return defaultPlanWithEdition(f, edition)
 }
 
 func validateBrowser(choice string) error {
@@ -296,27 +321,95 @@ func validateLoginShell(choice string) error {
 	return nil
 }
 
-func applyPlanChoices(p *plan, browser, shell string) {
+func validateFileManager(choice string) error {
+	if _, ok := installerplan.ChoiceByID(installerplan.FileManager, choice); !ok {
+		return fmt.Errorf(i18n.T("unknown file manager %q; choose one of: %s"), choice, strings.Join(fileManagerChoices, ", "))
+	}
+	return nil
+}
+
+func applyPlanChoices(p *plan, browser, shell, fileManager string) {
 	if browser != "" {
 		p.browser = browser
 	}
 	if shell != "" {
 		p.shell = shell
 	}
+	if fileManager != "" {
+		p.fileManager = fileManager
+	}
 	if p.browser == "zen" {
 		p.aur = true
 	}
 }
 
+// devToolchainGroup is the catalogue group the Developer toolchain toggle owns:
+// on an existing box it stays opt-in, as it was before the shared catalogue.
+const devToolchainGroup = "developer"
+
+func (p *plan) componentOn(id string) bool {
+	if availability, ok := p.edition.Component(id); ok {
+		if availability.Locked {
+			return true
+		}
+		if availability.Component.Group == devToolchainGroup {
+			return p.devtools
+		}
+	}
+	if selected := p.components[id]; selected != nil {
+		return *selected
+	}
+	return false
+}
+
+func (p *plan) setComponent(id string, selected bool) {
+	if p.components == nil {
+		p.components = map[string]*bool{}
+	}
+	if current := p.components[id]; current != nil {
+		*current = selected
+		return
+	}
+	value := selected
+	p.components[id] = &value
+}
+
+func (p *plan) componentSelections() map[string]bool {
+	selected := make(map[string]bool, len(p.components))
+	for id, value := range p.components {
+		selected[id] = value != nil && *value
+	}
+	// Leaving the toolchain off is not a removal, so it never reaches the ledger.
+	for _, availability := range p.edition.Components() {
+		if availability.Component.Group == devToolchainGroup {
+			selected[availability.Component.ID] = true
+		}
+	}
+	return selected
+}
+
+func (p *plan) choiceEdition() installerplan.EditionPlan {
+	if p.edition.Edition == "" {
+		return installerplan.ResolveSource("Arch")
+	}
+	return p.edition
+}
+
 func choiceDropPackages(p *plan) []string {
-	browser, shell := p.browser, p.shell
+	browser, shell, fileManager := p.browser, p.shell, p.fileManager
 	if browser == "" {
 		browser = installerplan.FreshDefault(installerplan.Browser)
 	}
 	if shell == "" {
 		shell = installerplan.FreshDefault(installerplan.LoginShell)
 	}
-	return installerplan.DropPackages(browser, shell)
+	if fileManager == "" {
+		fileManager = installerplan.FreshDefault(installerplan.FileManager)
+	}
+	drop := installerplan.DropPackages(browser, shell)
+	drop = append(drop, installerplan.DropPackagesFor(installerplan.FileManager, fileManager)...)
+	drop = append(drop, p.choiceEdition().DropComponentPackages(p.componentSelections())...)
+	return uniquePackages(drop)
 }
 
 func filterChoicePackages(pkgs []string, p *plan) []string {
@@ -430,7 +523,7 @@ func newEngine(f *facts, p *plan, dry bool, ref, payloadOverride string) *engine
 	// repo trust comes before conflict removal on purpose: nothing gets
 	// uninstalled until the Ryoku package database has actually been fetched.
 	// Legacy sources go first on Arch so its full upgrade uses clean mirrors.
-	archOnly := map[string]bool{"legacy": true, "aur": true}
+	archOnly := map[string]bool{"legacy": true, "aur": true, "cachyos-layer": true}
 	sourceOnly := map[string]bool{"fonts": true, "build": true}
 	all := []estep{
 		{"legacy", i18n.T("Retiring the previous distro's package sources"), stepLegacy},
@@ -441,6 +534,7 @@ func newEngine(f *facts, p *plan, dry bool, ref, payloadOverride string) *engine
 		{"repo", i18n.T("Trusting the [ryoku] package repository"), stepRepo},
 		{"conflicts", i18n.T("Clearing conflicting shells and daemons"), stepConflicts},
 		{"packages", i18n.T("Installing the Ryoku desktop"), stepPackages},
+		{"cachyos-layer", i18n.T("Adding the CachyOS kernel and tuning"), stepCachyosLayer},
 		{"fonts", i18n.T("Installing Ryoku fonts and cursors"), stepFonts},
 		{"drivers", i18n.T("Setting up GPU drivers"), stepDrivers},
 		{"build", i18n.T("Building the Ryoku desktop from source"), stepBuild},
@@ -454,6 +548,9 @@ func newEngine(f *facts, p *plan, dry bool, ref, payloadOverride string) *engine
 	src := f.distro != nil && f.distro.fromSource
 	arch := f.distro == nil || f.distro.id == "arch"
 	for _, s := range all {
+		if s.id == "cachyos-layer" && !p.componentOn("cachyos-layer") {
+			continue
+		}
 		if !arch && archOnly[s.id] {
 			continue
 		}
@@ -1707,6 +1804,63 @@ func hardwareLanes(f *facts) []string {
 	}
 }
 
+// selectedInstallPackages names the chosen packages the edition's own package
+// sets do not carry: the file manager, the Ryoku apps and Rashin. The other
+// catalogue rows only ever remove packages from those sets.
+func selectedInstallPackages(p *plan) []string {
+	var packages []string
+	if choice, ok := installerplan.ChoiceByID(installerplan.FileManager, p.fileManager); ok {
+		packages = append(packages, choice.Packages...)
+	}
+	for _, availability := range p.choiceEdition().Components() {
+		component := availability.Component
+		if !availability.Available || !p.componentOn(component.ID) {
+			continue
+		}
+		if component.Group == "ryoku-apps" || component.Step == installerplan.ComponentRashin {
+			packages = append(packages, component.Packages...)
+		}
+	}
+	return uniquePackages(packages)
+}
+
+func translatedEditionPackages(path string, packages []string) ([]string, error) {
+	wanted := map[string]bool{}
+	for _, pkg := range packages {
+		wanted[pkg] = true
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var translated []string
+	found := map[string]bool{}
+	for lineNo, line := range strings.Split(string(data), "\n") {
+		if lineNo == 0 || strings.TrimSpace(line) == "" || strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		fields := strings.Split(line, "\t")
+		if len(fields) != 4 || !wanted[fields[0]] {
+			continue
+		}
+		found[fields[0]] = true
+		switch fields[1] {
+		case "-":
+			continue
+		case "@repo":
+			translated = append(translated, fields[0])
+		default:
+			translated = append(translated, strings.Fields(fields[1])...)
+		}
+	}
+	for pkg := range wanted {
+		if !found[pkg] {
+			return nil, fmt.Errorf("translate selected package %s: no row in %s", pkg, path)
+		}
+	}
+	return uniquePackages(translated), nil
+}
+
 func (e *engine) readEditionPackages(edition string) ([]string, error) {
 	resolver := filepath.Join(e.payload, "system", "packages", "resolve")
 	table := filepath.Join(e.payload, edition, "packages", "translations.tsv")
@@ -1743,7 +1897,11 @@ func (e *engine) readEditionPackages(edition string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve %s package plan: %w: %s", edition, err, strings.TrimSpace(string(out)))
 	}
-	return strings.Fields(string(out)), nil
+	selected, err := translatedEditionPackages(table, selectedInstallPackages(p))
+	if err != nil {
+		return nil, err
+	}
+	return uniquePackages(append(strings.Fields(string(out)), selected...)), nil
 }
 
 func stepPackages(e *engine) error {
@@ -1780,6 +1938,16 @@ func stepPackages(e *engine) error {
 			}
 		}
 	}
+	if !d.fromSource {
+		for _, pkg := range selectedInstallPackages(e.p) {
+			if pkg == "localsend-bin" || pkg == "voxtype-bin" {
+				continue
+			}
+			pkgs = append(pkgs, d.local(pkg))
+		}
+	} else if choice, ok := installerplan.ChoiceByID(installerplan.FileManager, e.p.fileManager); ok {
+		pkgs = append(pkgs, d.localAll(choice.Packages)...)
+	}
 	if e.f.ucodePkg != "" {
 		if pkg := d.local(e.f.ucodePkg); pkg != "" {
 			pkgs = append(pkgs, pkg)
@@ -1788,6 +1956,7 @@ func stepPackages(e *engine) error {
 	if e.p.devtools {
 		pkgs = append(pkgs, d.localAll(devPkgs)...)
 	}
+	pkgs = filterChoicePackages(pkgs, e.p)
 	pkgs = uniquePackages(pkgs)
 	pkgs = e.dropSatisfied(pkgs)
 	if d.id == "arch" {
@@ -1800,6 +1969,61 @@ func stepPackages(e *engine) error {
 	// -Syu, not -S: a resumed run holds the db its first attempt synced, and
 	// a publish in between replaces or prunes the files that db points at.
 	return installPackagePlan(e, d, pkgs)
+}
+
+func cachyosV3Supported() bool {
+	output, err := exec.Command("/lib/ld-linux-x86-64.so.2", "--help").CombinedOutput()
+	return err == nil && strings.Contains(string(output), "x86-64-v3 (supported")
+}
+
+func cachyosMirrorReachable(client *http.Client) bool {
+	request, err := http.NewRequest(http.MethodGet, cachyosMirrorDB, nil)
+	if err != nil {
+		return false
+	}
+	request.Header.Set("Range", "bytes=0-0")
+	response, err := client.Do(request)
+	if err != nil {
+		return false
+	}
+	response.Body.Close()
+	return response.StatusCode >= 200 && response.StatusCode < 400
+}
+
+func stepCachyosLayer(e *engine) error {
+	availability, ok := e.p.choiceEdition().Component("cachyos-layer")
+	if !ok || !availability.Available || !e.p.componentOn("cachyos-layer") {
+		return nil
+	}
+	if e.dry {
+		e.say(i18n.Tf("DRYRUN: probe %s", cachyosMirrorDB))
+	} else {
+		if !cachyosV3Supported() {
+			e.say(i18n.T("CachyOS layer skipped: this CPU lacks x86-64-v3 support. Install it later from Ryostore > CachyOS Layer."))
+			return nil
+		}
+		client := &http.Client{Timeout: 8 * time.Second}
+		if !cachyosMirrorReachable(client) {
+			e.say(i18n.T("CachyOS layer skipped: the CachyOS mirror is unreachable. Try again from Ryostore > CachyOS Layer."))
+			return nil
+		}
+	}
+	for _, helper := range []string{"ryoku-pkg-cachyos", "ryoku-pkg-multilib"} {
+		path := e.ryokuTool(helper)
+		if path == "" {
+			if e.dry {
+				path = helper
+			} else {
+				return fmt.Errorf(i18n.T("%s is missing from the installed desktop package"), helper)
+			}
+		}
+		if err := e.cmd("", nil, path); err != nil {
+			return err
+		}
+	}
+	args := []string{"pacman", "-Syu", "--needed", "--noconfirm"}
+	args = append(args, availability.Component.Packages...)
+	return e.sudo(args...)
 }
 
 func installPackagePlan(e *engine, d *distro, pkgs []string) error {
@@ -2526,7 +2750,16 @@ func stepConfigs(e *engine) error {
 }
 
 func selectedAURPackages(p *plan) []string {
-	pkgs := append([]string{}, aurPkgs...)
+	var pkgs []string
+	for _, pkg := range aurPkgs {
+		if pkg == "localsend-bin" && !p.componentOn("localsend") {
+			continue
+		}
+		if pkg == "voxtype-bin" && !p.componentOn("voxtype") {
+			continue
+		}
+		pkgs = append(pkgs, pkg)
+	}
 	if p.browser == "zen" {
 		pkgs = append(pkgs, browserPackage["zen"])
 	}
@@ -2680,12 +2913,20 @@ func (e *engine) setDefaultBrowser() error {
 		e.say(i18n.Tf("warning: could not set %s as the default browser (continuing)", e.p.browser))
 	}
 
+	if err := writeDesktopAppRole(store, "browser", browserRoleCommand(e.p.browser)); err != nil {
+		e.say(i18n.Tf("warning: could not update browser role in %s: %s", store, err))
+	}
+	return nil
+}
+
+func writeDesktopAppRole(store, role, value string) error {
 	root := map[string]any{}
 	if data, err := os.ReadFile(store); err == nil && len(strings.TrimSpace(string(data))) > 0 {
 		if err := json.Unmarshal(data, &root); err != nil {
-			e.say(i18n.Tf("warning: could not update browser role in %s (invalid JSON)", store))
-			return nil
+			return fmt.Errorf("invalid JSON: %w", err)
 		}
+	} else if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 	if root == nil {
 		root = map[string]any{}
@@ -2700,7 +2941,7 @@ func (e *engine) setDefaultBrowser() error {
 		apps = map[string]any{}
 		desktopNode["apps"] = apps
 	}
-	apps["browser"] = browserRoleCommand(e.p.browser)
+	apps[role] = value
 	data, err := json.MarshalIndent(root, "", "  ")
 	if err != nil {
 		return err
@@ -2709,6 +2950,121 @@ func (e *engine) setDefaultBrowser() error {
 		return err
 	}
 	return os.WriteFile(store, append(data, '\n'), 0o644)
+}
+
+func (e *engine) setDefaultFileManager() error {
+	desktop := fileManagerDesktop[e.p.fileManager]
+	store := filepath.Join(e.f.homeDir, ".config/ryoku/desktop.json")
+	if desktop == "" {
+		return fmt.Errorf(i18n.T("unknown file manager %q"), e.p.fileManager)
+	}
+	if e.dry {
+		e.say(i18n.Tf("DRYRUN: xdg-mime default %s inode/directory", desktop))
+		e.say(i18n.Tf("DRYRUN: write desktop.apps.files=%s to %s", e.p.fileManager, store))
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join("/usr/share/applications", desktop)); err != nil {
+		e.say(i18n.Tf("chosen file manager %s is not installed; leaving directory defaults unchanged", e.p.fileManager))
+		return nil
+	}
+	if err := e.cmd("", nil, "xdg-mime", "default", desktop, "inode/directory"); err != nil {
+		e.say(i18n.Tf("warning: could not set %s as the default file manager (continuing)", e.p.fileManager))
+	}
+	if err := writeDesktopAppRole(store, "files", e.p.fileManager); err != nil {
+		e.say(i18n.Tf("warning: could not update file manager role in %s: %s", store, err))
+	}
+	return nil
+}
+
+const ryokuHiddenDesktopEntry = "[Desktop Entry]\nHidden=true\n"
+
+func (e *engine) reconcileHiddenDesktopEntries() error {
+	hidden := map[string]bool{}
+	for _, id := range e.p.choiceEdition().HiddenDesktopIDs(e.p.componentSelections()) {
+		hidden[id] = true
+	}
+	dir := filepath.Join(e.f.homeDir, ".local/share/applications")
+	for _, availability := range e.p.choiceEdition().Components() {
+		if !availability.Available {
+			continue
+		}
+		for _, id := range availability.Component.DesktopIDs {
+			path := filepath.Join(dir, id)
+			if e.dry {
+				if hidden[id] {
+					e.say(i18n.Tf("DRYRUN: write hidden desktop entry %s", path))
+				} else {
+					e.say(i18n.Tf("DRYRUN: remove %s only if it is Ryoku's hide file", path))
+				}
+				continue
+			}
+			data, err := os.ReadFile(path)
+			if hidden[id] {
+				switch {
+				case os.IsNotExist(err):
+					if err := os.MkdirAll(dir, 0o755); err != nil {
+						return err
+					}
+					if err := os.WriteFile(path, []byte(ryokuHiddenDesktopEntry), 0o644); err != nil {
+						return err
+					}
+				case err != nil:
+					return err
+				case string(data) != ryokuHiddenDesktopEntry:
+					e.say(i18n.Tf("kept the existing user desktop override %s", path))
+				}
+				continue
+			}
+			if err == nil && string(data) == ryokuHiddenDesktopEntry {
+				if err := os.Remove(path); err != nil {
+					return err
+				}
+			} else if err != nil && !os.IsNotExist(err) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (e *engine) syncRashinMarker() error {
+	path := filepath.Join(e.f.homeDir, ".local/state/ryoku/rashin-setup-pending")
+	want := e.p.componentOn("rashin") && !hermesInstalled(e.f.homeDir)
+	if e.dry {
+		action := i18n.T("remove")
+		if want {
+			action = i18n.T("write")
+		}
+		e.say(i18n.Tf("DRYRUN: %s %s", action, path))
+		return nil
+	}
+	if !want {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, nil, 0o644)
+}
+
+// hermesInstalled mirrors Rashin's FindHermes: an existing box that already
+// has the agent gets no first-login setup window.
+func hermesInstalled(home string) bool {
+	if _, err := exec.LookPath("hermes"); err == nil {
+		return true
+	}
+	for _, candidate := range []string{
+		filepath.Join(home, ".hermes", "bin", "hermes"),
+		filepath.Join(home, ".local", "bin", "hermes"),
+	} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *engine) writeDefaultRiceMarker() error {
@@ -2730,7 +3086,16 @@ func stepPreferences(e *engine) error {
 	if err := e.writeProvisionedLedger(); err != nil {
 		return err
 	}
+	if err := e.reconcileHiddenDesktopEntries(); err != nil {
+		return err
+	}
 	if err := e.setDefaultBrowser(); err != nil {
+		return err
+	}
+	if err := e.setDefaultFileManager(); err != nil {
+		return err
+	}
+	if err := e.syncRashinMarker(); err != nil {
 		return err
 	}
 	return e.writeDefaultRiceMarker()

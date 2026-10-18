@@ -346,6 +346,10 @@ func TestFedoraCompositorsComeFromEditionTable(t *testing.T) {
 		"zsh-syntax-highlighting\tzsh-syntax-highlighting\tdesktop\tFedora package.\n" +
 		"ryoku-oh-my-zsh\tryoku-oh-my-zsh\tdesktop\tFedora package.\n" +
 		"blesh\tblesh\tdesktop\tFedora package.\n" +
+		"nautilus\tnautilus\tdesktop\tFedora package.\n" +
+		"nautilus-python\tnautilus-python\tdesktop\tFedora package.\n" +
+		"dolphin\tdolphin\toptional\tFedora package.\n" +
+		"thunar\tthunar\toptional\tFedora package.\n" +
 		"ryoku-desktop-hyprland\tryoku-desktop-hyprland\thyprland\tRyoku-owned RPM.\n" +
 		"ryoku-desktop-niri\tryoku-desktop-niri\tdesktop\tRyoku-owned RPM.\n" +
 		"ryoku-desktop-wayfire\t-\tdesktop\tFedora ships Wayfire 0.10.1; Ryoku requires 0.11.\n")

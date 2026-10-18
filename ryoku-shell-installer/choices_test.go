@@ -138,6 +138,14 @@ func TestChoiceValidationAndEnvironmentDefaults(t *testing.T) {
 	if err := validateLoginShell("nu"); err == nil || !strings.Contains(err.Error(), "fish, zsh, bash") {
 		t.Fatalf("invalid shell error = %v", err)
 	}
+	for _, fileManager := range fileManagerChoices {
+		if err := validateFileManager(fileManager); err != nil {
+			t.Errorf("validateFileManager(%q): %v", fileManager, err)
+		}
+	}
+	if err := validateFileManager("pcmanfm"); err == nil || !strings.Contains(err.Error(), "nautilus, dolphin, thunar") {
+		t.Fatalf("invalid file manager error = %v", err)
+	}
 
 	t.Setenv("RYOKU_BROWSER", "chromium")
 	if got := envOr("RYOKU_BROWSER", "firefox"); got != "chromium" {
@@ -151,6 +159,18 @@ func TestChoiceValidationAndEnvironmentDefaults(t *testing.T) {
 	if err := validateLoginShell(os.Getenv("RYOKU_LOGIN_SHELL")); err == nil {
 		t.Fatal("invalid shell from the environment must be rejected")
 	}
+	t.Setenv("RYOKU_RASHIN", "0")
+	if got, err := envToggle("RYOKU_RASHIN", true); err != nil || got {
+		t.Fatalf("Rashin env toggle = %v, %v", got, err)
+	}
+	t.Setenv("RYOKU_CACHYOS_LAYER", "yes")
+	if _, err := envToggle("RYOKU_CACHYOS_LAYER", false); err == nil {
+		t.Fatal("invalid CachyOS layer environment value was accepted")
+	}
+	without, err := parseWithout("ryotunes, ryoport,ryotunes")
+	if err != nil || strings.Join(without, ",") != "ryotunes,ryoport" {
+		t.Fatalf("parsed --without = %v, %v", without, err)
+	}
 }
 
 func TestEditionFlagsRejectUnavailableZen(t *testing.T) {
@@ -161,7 +181,7 @@ func TestEditionFlagsRejectUnavailableZen(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = validateEditionFlags("zen", "fish", plan)
+			err = validateEditionFlags(planOverrides{browser: "zen", shell: "fish", rashin: true}, plan)
 			if err == nil {
 				t.Fatal("--browser zen was accepted")
 			}
@@ -192,14 +212,16 @@ func TestShellFrontendMatchesSharedEditionPlan(t *testing.T) {
 				}
 			}
 			p := defaultPlanForEdition(&facts{userShell: "/usr/bin/zsh"}, plan)
-			if p.browser != installerplan.FreshDefault(installerplan.Browser) || p.shell != "zsh" {
-				t.Fatalf("defaults = browser %q, shell %q", p.browser, p.shell)
+			if p.browser != installerplan.FreshDefault(installerplan.Browser) || p.shell != "zsh" ||
+				p.fileManager != installerplan.FreshDefault(installerplan.FileManager) {
+				t.Fatalf("defaults = browser %q, shell %q, file manager %q", p.browser, p.shell, p.fileManager)
 			}
 			items := buildItems(&facts{}, p, plan)
 			wantByLabel := map[string]string{
-				"Compositor":  strings.Join(plan.choices.AvailableIDs(installerplan.Compositor), ","),
-				"Browser":     strings.Join(plan.choices.AvailableIDs(installerplan.Browser), ","),
-				"Login shell": strings.Join(plan.choices.AvailableIDs(installerplan.LoginShell), ","),
+				"Compositor":   strings.Join(plan.choices.AvailableIDs(installerplan.Compositor), ","),
+				"Browser":      strings.Join(plan.choices.AvailableIDs(installerplan.Browser), ","),
+				"Login shell":  strings.Join(plan.choices.AvailableIDs(installerplan.LoginShell), ","),
+				"File manager": strings.Join(plan.choices.AvailableIDs(installerplan.FileManager), ","),
 			}
 			for _, row := range items {
 				want, ok := wantByLabel[row.label]
@@ -219,9 +241,10 @@ func TestShellFrontendMatchesSharedEditionPlan(t *testing.T) {
 				t.Fatalf("missing choice rows: %v", wantByLabel)
 			}
 			gotDrops := strings.Join(choiceDropPackages(p), ",")
-			wantDrops := strings.Join(installerplan.DropPackages(p.browser, p.shell), ",")
-			if gotDrops != wantDrops {
-				t.Fatalf("choice drops = %q, want %q", gotDrops, wantDrops)
+			wantDrops := installerplan.DropPackages(p.browser, p.shell)
+			wantDrops = append(wantDrops, installerplan.DropPackagesFor(installerplan.FileManager, p.fileManager)...)
+			if gotDrops != strings.Join(wantDrops, ",") {
+				t.Fatalf("choice drops = %q, want %q", gotDrops, strings.Join(wantDrops, ","))
 			}
 		})
 	}
@@ -229,7 +252,7 @@ func TestShellFrontendMatchesSharedEditionPlan(t *testing.T) {
 
 func TestZenForcesAURAndAddsItsPackage(t *testing.T) {
 	p := &plan{browser: "firefox", shell: "fish", aur: false}
-	applyPlanChoices(p, "zen", "")
+	applyPlanChoices(p, "zen", "", "")
 	if !p.aur {
 		t.Fatal("Zen must force the AUR step on")
 	}
@@ -288,5 +311,147 @@ func TestDefaultRiceMarkerOnlyForFreshAccount(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(other, ".local/state/ryoku/default-rice-pending")); !os.IsNotExist(err) {
 		t.Fatalf("non-fresh account marker stat error = %v, want not exist", err)
+	}
+}
+
+func TestDefaultPlanPreselectsInstalledFileManager(t *testing.T) {
+	edition := sourceEditionChoices("Arch")
+	for _, current := range []string{"nautilus", "dolphin", "thunar"} {
+		p := defaultPlanForEdition(&facts{fileManager: current}, edition)
+		if p.fileManager != current {
+			t.Errorf("installed file manager %q selected %q", current, p.fileManager)
+		}
+	}
+	if got := defaultPlanForEdition(&facts{fileManager: "pcmanfm"}, edition).fileManager; got != "nautilus" {
+		t.Fatalf("unsupported file manager selected %q, want nautilus", got)
+	}
+}
+
+func TestComponentsOfferedPerEdition(t *testing.T) {
+	plans := map[string]editionCompositorPlan{
+		"arch":    sourceEditionChoices("Arch"),
+		"cachyos": sourceEditionChoices("CachyOS"),
+	}
+	for _, edition := range []string{"fedora", "void"} {
+		data, err := os.ReadFile(filepath.Join("..", edition, "packages", "translations.tsv"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		plans[edition], err = parseEditionCompositors(data)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	for name, edition := range plans {
+		t.Run(name, func(t *testing.T) {
+			p := defaultPlanForEdition(&facts{}, edition)
+			items := buildItems(&facts{}, p, edition)
+			byLabel := map[string]planItem{}
+			for _, item := range items {
+				byLabel[item.label] = item
+			}
+			for _, label := range []string{"Ryotunes", "Ryoport", "RyoManager", "Rashin"} {
+				if _, ok := byLabel[label]; !ok {
+					t.Errorf("%s row is missing", label)
+				}
+			}
+			_, hasLayer := byLabel["CachyOS kernel and tuning"]
+			if hasLayer != (name == "arch") {
+				t.Errorf("CachyOS layer row present=%v", hasLayer)
+			}
+			wantLocked := name == "fedora" || name == "void"
+			if byLabel["Rashin"].locked != wantLocked {
+				t.Errorf("Rashin locked=%v, want %v", byLabel["Rashin"].locked, wantLocked)
+			}
+		})
+	}
+}
+
+func TestDropsDeselectedComponentsAndLosingFileManagers(t *testing.T) {
+	edition := sourceEditionChoices("Arch")
+	p := defaultPlanForEdition(&facts{}, edition)
+	p.fileManager = "dolphin"
+	p.setComponent("ryotunes", false)
+	p.setComponent("ryomanager", false)
+	p.setComponent("rashin", false)
+	drops := packageSet(choiceDropPackages(p))
+	for _, pkg := range []string{"nautilus", "nautilus-python", "thunar", "ryotunes", "ryomanager", "ryoku-rashin"} {
+		if !drops[pkg] {
+			t.Errorf("missing drop %s", pkg)
+		}
+	}
+	if drops["dolphin"] {
+		t.Fatal("chosen file manager was dropped")
+	}
+}
+
+func TestHiddenDesktopEntryWriteAndSafeRemoval(t *testing.T) {
+	home := t.TempDir()
+	p := defaultPlanForEdition(&facts{}, sourceEditionChoices("Arch"))
+	p.setComponent("ryoport", false)
+	e := &engine{f: &facts{homeDir: home}, p: p}
+	if err := e.reconcileHiddenDesktopEntries(); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(home, ".local/share/applications/ryovm.desktop")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != ryokuHiddenDesktopEntry {
+		t.Fatalf("hide file = %q", data)
+	}
+
+	p.setComponent("ryoport", true)
+	if err := e.reconcileHiddenDesktopEntries(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatalf("Ryoku hide file still exists: %v", err)
+	}
+
+	custom := "[Desktop Entry]\nHidden=false\nName=My VM launcher\n"
+	if err := os.WriteFile(path, []byte(custom), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := e.reconcileHiddenDesktopEntries(); err != nil {
+		t.Fatal(err)
+	}
+	data, err = os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != custom {
+		t.Fatalf("user override changed to %q", data)
+	}
+}
+
+func TestPlanOverridesValidateAndApplyComponents(t *testing.T) {
+	edition := sourceEditionChoices("Arch")
+	overrides := planOverrides{
+		browser: "firefox", shell: "fish", fileManager: "dolphin",
+		rashin: false, cachyosLayer: true, without: []string{"ryotunes", "ryoport"},
+	}
+	if err := validateEditionFlags(overrides, edition); err != nil {
+		t.Fatal(err)
+	}
+	p := defaultPlanForEdition(&facts{}, edition)
+	applyPlanOverrides(p, overrides)
+	if p.fileManager != "dolphin" || p.componentOn("rashin") || p.componentOn("ryotunes") ||
+		p.componentOn("ryoport") || !p.componentOn("cachyos-layer") {
+		t.Fatalf("overrides were not applied: file manager=%s components=%v", p.fileManager, p.componentSelections())
+	}
+
+	for name, bad := range map[string]planOverrides{
+		"unknown component": {browser: "firefox", rashin: true, without: []string{"not-a-component"}},
+		"layer on CachyOS":  {browser: "firefox", rashin: true, cachyosLayer: true},
+	} {
+		target := edition
+		if name == "layer on CachyOS" {
+			target = sourceEditionChoices("CachyOS")
+		}
+		if err := validateEditionFlags(bad, target); err == nil {
+			t.Errorf("%s was accepted", name)
+		}
 	}
 }

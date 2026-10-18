@@ -5,6 +5,7 @@ package main
 // headless. --dry-run prints every command instead of running it.
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -39,6 +40,7 @@ type choiceOption struct {
 type planItem struct {
 	label   string
 	detail  string
+	group   string
 	on      *bool
 	locked  bool // shown but not toggleable (safety gate holds it)
 	pick    *string
@@ -72,16 +74,15 @@ type model struct {
 	ref                string
 	payload            string
 	compositor         string // --compositor pick; "" installs the default variant
-	browser            string // --browser or RYOKU_BROWSER override
-	shell              string // --shell or RYOKU_LOGIN_SHELL override
+	overrides          planOverrides
 	editionCompositors editionCompositorPlan
 	exitReboot         bool
 }
 
-func newTUIModel(dry bool, ref, payload, compositor, browser, shell string, editionCompositors editionCompositorPlan) model {
+func newTUIModel(dry bool, ref, payload, compositor string, overrides planOverrides, editionCompositors editionCompositorPlan) model {
 	return model{
 		state: "scan", dry: dry, ref: ref, payload: payload, compositor: compositor,
-		browser: browser, shell: shell, editionCompositors: editionCompositors,
+		overrides: overrides, editionCompositors: editionCompositors,
 	}
 }
 
@@ -111,6 +112,12 @@ func buildItems(f *facts, p *plan, editionPlans ...editionCompositorPlan) []plan
 	edition := sourceEditionChoices("Arch")
 	if len(editionPlans) > 0 {
 		edition = editionPlans[0]
+	}
+	p.edition = edition.choices
+	for id, selected := range edition.choices.DefaultComponents() {
+		if p.components[id] == nil {
+			p.setComponent(id, selected)
+		}
 	}
 	options := func(kind string) []choiceOption {
 		available := edition.choices.Choices(kind)
@@ -150,6 +157,35 @@ func buildItems(f *facts, p *plan, editionPlans ...editionCompositorPlan) []plan
 			pick:    &p.shell,
 			options: options(installerplan.LoginShell),
 		},
+		{
+			label:   i18n.T("File manager"),
+			pick:    &p.fileManager,
+			options: options(installerplan.FileManager),
+		},
+	}
+	if availability, ok := edition.choices.Component("rashin"); ok && availability.Available {
+		it = append(it, planItem{
+			label:  i18n.T("Rashin"),
+			detail: i18n.T("Ryoku's AI agent: Ask on Alt+Space, the Rashin window, and the bar's AI usage. It runs the Hermes agent, which installs at first login when online. Turn it off later in Ryoku Settings > Advanced > Rashin."),
+			on:     p.components["rashin"], locked: availability.Locked,
+		})
+	}
+	for _, availability := range edition.choices.Components() {
+		component := availability.Component
+		if !availability.Available || component.Step != installerplan.ComponentApps || component.Group == devToolchainGroup {
+			continue
+		}
+		it = append(it, planItem{
+			label: i18n.T(component.Label), detail: i18n.T(component.Detail),
+			group: i18n.T(component.GroupLabel), on: p.components[component.ID], locked: availability.Locked,
+		})
+	}
+	if availability, ok := edition.choices.Component("cachyos-layer"); ok && availability.Available {
+		it = append(it, planItem{
+			label:  i18n.T("CachyOS kernel and tuning"),
+			detail: i18n.T("adds the CachyOS repositories, kernel, tuning, schedulers and Proton; the Arch kernel stays installed as a boot fallback"),
+			group:  i18n.T("CachyOS layer"), on: p.components["cachyos-layer"],
+		})
 	}
 	if f.prevRun != nil {
 		it = append(it, planItem{
@@ -219,9 +255,9 @@ func buildItems(f *facts, p *plan, editionPlans ...editionCompositorPlan) []plan
 	// awww is retired: the wallpaper daemon is ryogami, a hard ryoku-desktop
 	// depend the packages step pulls, not an AUR build.
 	if f.distro == nil || f.distro.id != "fedora" {
-		aurDetail := i18n.T("Bibata cursor, LocalSend and Voxtype")
+		aurDetail := i18n.T("Bibata cursor and the selected AUR app components")
 		if p.browser == "zen" {
-			aurDetail = i18n.T("required for Zen; also installs Bibata cursor, LocalSend and Voxtype")
+			aurDetail = i18n.T("required for Zen; also builds the selected AUR app components and the Bibata cursor")
 		}
 		it = append(it, planItem{label: "AUR extras", detail: aurDetail, on: &p.aur, locked: p.browser == "zen"})
 	}
@@ -255,7 +291,11 @@ func groupPlanItems(items []planItem) []planItem {
 	var out []planItem
 	last := ""
 	for _, it := range items {
-		if g := group[it.label]; g != "" && g != last {
+		g := it.group
+		if g == "" {
+			g = group[it.label]
+		}
+		if g != "" && g != last {
 			out = append(out, planItem{label: g})
 			last = g
 		}
@@ -305,9 +345,9 @@ func (m *model) syncPlanConstraints() {
 		}
 		m.items[i].locked = m.p.browser == "zen"
 		if m.items[i].locked {
-			m.items[i].detail = i18n.T("required for Zen; also installs Bibata cursor, LocalSend and Voxtype")
+			m.items[i].detail = i18n.T("required for Zen; also builds the selected AUR app components and the Bibata cursor")
 		} else {
-			m.items[i].detail = i18n.T("Bibata cursor, LocalSend and Voxtype")
+			m.items[i].detail = i18n.T("Bibata cursor and the selected AUR app components")
 		}
 	}
 }
@@ -337,7 +377,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.compositor != "" {
 			m.p.compositor = m.compositor
 		}
-		applyPlanChoices(m.p, m.browser, m.shell)
+		applyPlanOverrides(m.p, m.overrides)
 		if m.f.distro != nil && m.f.distro.id == "fedora" {
 			m.p.aur = false
 		}
@@ -745,6 +785,7 @@ func voidEditionNotice(f *facts, plan editionCompositorPlan) []string {
 	notice = append(notice, unavailableChoiceNotices(plan, installerplan.Compositor)...)
 	notice = append(notice, unavailableChoiceNotices(plan, installerplan.Browser)...)
 	notice = append(notice, unavailableChoiceNotices(plan, installerplan.LoginShell)...)
+	notice = append(notice, unavailableChoiceNotices(plan, installerplan.FileManager)...)
 	if f.btrfsRoot {
 		notice = append(notice, i18n.T("Update the base system with ryoku update --system so it is snapshotted; XBPS has no update hooks."))
 	}
@@ -767,7 +808,8 @@ func editionNotice(f *facts, compositors editionCompositorPlan) []string {
 	}
 	notice = append(notice, unavailableChoiceNotices(compositors, installerplan.Compositor)...)
 	notice = append(notice, unavailableChoiceNotices(compositors, installerplan.Browser)...)
-	return append(notice, unavailableChoiceNotices(compositors, installerplan.LoginShell)...)
+	notice = append(notice, unavailableChoiceNotices(compositors, installerplan.LoginShell)...)
+	return append(notice, unavailableChoiceNotices(compositors, installerplan.FileManager)...)
 }
 
 func (m model) viewPlan() string {
@@ -1027,7 +1069,7 @@ func (m model) viewFailed() string {
 
 // ---- headless (--yes) ----
 
-func runHeadless(dry bool, ref, payload, compositor, browser, shell string, editionCompositors editionCompositorPlan) int {
+func runHeadless(dry bool, ref, payload, compositor string, overrides planOverrides, editionCompositors editionCompositorPlan) int {
 	fmt.Println(bold(cBrand, "ryoku-shell-install") + fg(cSub, " "+i18n.T("(headless)")))
 	f := detect()
 	if needsManjaroAck(f) {
@@ -1040,7 +1082,7 @@ func runHeadless(dry bool, ref, payload, compositor, browser, shell string, edit
 	if compositor != "" {
 		p.compositor = compositor
 	}
-	applyPlanChoices(p, browser, shell)
+	applyPlanOverrides(p, overrides)
 	if f.distro != nil && f.distro.id == "fedora" {
 		p.aur = false
 	}
@@ -1052,8 +1094,13 @@ func runHeadless(dry bool, ref, payload, compositor, browser, shell string, edit
 		fmt.Println(i18n.Tf("resuming the interrupted previous run: %d step(s) already done", len(f.prevRun.Completed)))
 	}
 	// A machine-readable plan dump keeps unattended runs auditable.
-	fmt.Printf("plan: compositor=%s browser=%s shell=%s nvidia=%v sddm=%v greeter-theme=%v networkmanager=%v remove-shells=%v aur=%v devtools=%v omarchy-cleanup=%v monitor-pins=%v azerty-fr=%v azerty-be=%v\n",
-		p.compositor, p.browser, p.shell, p.nvidia, p.switchDM, p.greeter, p.switchNet, p.rivals, p.aur, p.devtools, p.omarchy, p.monPins, p.azertyFR, p.azertyBE)
+	selectedApps := selectedComponentIDs(p, installerplan.ComponentApps)
+	fmt.Printf("plan: compositor=%s browser=%s shell=%s file-manager=%s rashin=%v ryoku-apps=%s cachyos-layer=%v components=%s without=%s nvidia=%v sddm=%v greeter-theme=%v networkmanager=%v remove-shells=%v aur=%v devtools=%v omarchy-cleanup=%v monitor-pins=%v azerty-fr=%v azerty-be=%v\n",
+		p.compositor, p.browser, p.shell, p.fileManager, p.componentOn("rashin"),
+		strings.Join(selectedComponentGroupIDs(p, "ryoku-apps"), ","), p.componentOn("cachyos-layer"),
+		strings.Join(selectedApps, ","), strings.Join(deselectedComponentIDs(p), ","),
+		p.nvidia, p.switchDM, p.greeter, p.switchNet, p.rivals, p.aur, p.devtools,
+		p.omarchy, p.monPins, p.azertyFR, p.azertyBE)
 	if notice := editionNotice(f, editionCompositors); len(notice) > 0 {
 		fmt.Println()
 		for _, line := range notice {
@@ -1085,6 +1132,39 @@ func runHeadless(dry bool, ref, payload, compositor, browser, shell string, edit
 		}
 	}
 	return 1
+}
+
+func selectedComponentIDs(p *plan, step installerplan.ComponentStep) []string {
+	var ids []string
+	for _, availability := range p.choiceEdition().Components() {
+		component := availability.Component
+		if availability.Available && component.Step == step && p.componentOn(component.ID) {
+			ids = append(ids, component.ID)
+		}
+	}
+	return ids
+}
+
+func selectedComponentGroupIDs(p *plan, group string) []string {
+	var ids []string
+	for _, availability := range p.choiceEdition().Components() {
+		component := availability.Component
+		if availability.Available && component.Group == group && p.componentOn(component.ID) {
+			ids = append(ids, component.ID)
+		}
+	}
+	return ids
+}
+
+func deselectedComponentIDs(p *plan) []string {
+	var ids []string
+	for _, availability := range p.choiceEdition().Components() {
+		component := availability.Component
+		if availability.Available && component.DefaultOn && component.Group != devToolchainGroup && !p.componentOn(component.ID) {
+			ids = append(ids, component.ID)
+		}
+	}
+	return ids
 }
 
 // ---- entry ----
@@ -1131,6 +1211,14 @@ func main() {
 	// so the catalogs are compiled in; point the loader at them before Use.
 	i18n.SetFS(catalog.FS)
 	i18n.Use("")
+	rashinDefault, err := envToggle("RYOKU_RASHIN", true)
+	if err != nil {
+		die(err.Error())
+	}
+	cachyosDefault, err := envToggle("RYOKU_CACHYOS_LAYER", false)
+	if err != nil {
+		die(err.Error())
+	}
 
 	yes := flag.Bool("yes", false, i18n.T("run non-interactively with the default plan"))
 	dry := flag.Bool("dry-run", false, i18n.T("print every command instead of running it"))
@@ -1140,7 +1228,19 @@ func main() {
 	compositor := flag.String("compositor", "", i18n.T("window manager to install (default: first available)"))
 	browser := flag.String("browser", envOr("RYOKU_BROWSER", installerplan.FreshDefault(installerplan.Browser)), i18n.T("browser to install"))
 	shell := flag.String("shell", os.Getenv("RYOKU_LOGIN_SHELL"), i18n.T("login shell"))
+	fileManager := flag.String("file-manager", os.Getenv("RYOKU_FILE_MANAGER"), i18n.T("file manager to install"))
+	rashin := flag.Bool("rashin", rashinDefault, i18n.T("install Ryoku's Rashin AI agent"))
+	cachyosLayer := flag.Bool("cachyos-layer", cachyosDefault, i18n.T("add the CachyOS kernel and tuning on plain Arch"))
+	without := flag.String("without", os.Getenv("RYOKU_WITHOUT"), i18n.T("comma-separated optional components to leave out"))
 	flag.Parse()
+	withoutIDs, err := parseWithout(*without)
+	if err != nil {
+		die(err.Error())
+	}
+	overrides := planOverrides{
+		browser: *browser, shell: *shell, fileManager: *fileManager,
+		rashin: *rashin, cachyosLayer: *cachyosLayer, without: withoutIDs,
+	}
 
 	initGlyphs()
 
@@ -1185,7 +1285,7 @@ func main() {
 	if err != nil {
 		die(err.Error())
 	}
-	if err := validateEditionFlags(*browser, *shell, editionCompositors); err != nil {
+	if err := validateEditionFlags(overrides, editionCompositors); err != nil {
 		die(err.Error())
 	}
 	comp := chooseCompositor(*compositor, editionCompositors)
@@ -1193,13 +1293,13 @@ func main() {
 		primeSudo()
 	}
 	if *yes {
-		os.Exit(runHeadless(*dry, *ref, *payload, comp, *browser, *shell, editionCompositors))
+		os.Exit(runHeadless(*dry, *ref, *payload, comp, overrides, editionCompositors))
 	}
 	if !stdoutIsTTY() {
 		die(i18n.T("unable to run interactively; re-run with --yes for the default plan"))
 	}
 
-	fm, err := tea.NewProgram(newTUIModel(*dry, *ref, *payload, comp, *browser, *shell, editionCompositors)).Run()
+	fm, err := tea.NewProgram(newTUIModel(*dry, *ref, *payload, comp, overrides, editionCompositors)).Run()
 	if err != nil {
 		die(err.Error())
 	}
@@ -1239,4 +1339,38 @@ func envOr(k, def string) string {
 		return v
 	}
 	return def
+}
+
+func envToggle(name string, fallback bool) (bool, error) {
+	value, ok := os.LookupEnv(name)
+	if !ok || value == "" {
+		return fallback, nil
+	}
+	switch value {
+	case "1":
+		return true, nil
+	case "0":
+		return false, nil
+	default:
+		return false, fmt.Errorf(i18n.T("%s must be 0 or 1"), name)
+	}
+}
+
+func parseWithout(value string) ([]string, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	var ids []string
+	seen := map[string]bool{}
+	for _, raw := range strings.Split(value, ",") {
+		id := strings.TrimSpace(raw)
+		if id == "" {
+			return nil, errors.New(i18n.T("--without must be a comma-separated list of component names"))
+		}
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
 }

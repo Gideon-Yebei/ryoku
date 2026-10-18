@@ -32,6 +32,7 @@ ddcutil	ddcutil	desktop
 desktop-file-utils	desktop-file-utils	desktop	
 dkms	dkms	desktop	
 docker	moby-engine	desktop	
+dolphin	dolphin	optional	
 dosfstools	dosfstools	system	
 dualsensectl	dualsensectl	optional	Ryoku-owned RPM.
 edk2-ovmf	edk2-ovmf	desktop	
@@ -227,6 +228,7 @@ swtpm	swtpm	optional
 syntax-highlighting	kf6-syntax-highlighting	desktop	
 tesseract	tesseract	desktop	
 tesseract-data-eng	tesseract-langpack-eng	desktop	
+thunar	thunar	optional	
 tigervnc	tigervnc	optional	
 translate-shell	translate-shell	desktop	
 ttf-firacode-nerd	ttf-firacode-nerd	desktop	Ryoku-owned RPM.

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **The script installer now uses the ISO install catalogue.** It offers the
+  file manager, Rashin, Ryoku apps, required edition components, and the
+  optional CachyOS layer on plain Arch. Unattended runs can make the same
+  choices with flags or environment variables, and omitted packages stay
+  omitted on later updates.
 - **The browser step accepts None.** A machine that brings its own browser
   installs none of the three, and the default-browser step leaves the desktop
   role unset instead of pointing it at an absent package.

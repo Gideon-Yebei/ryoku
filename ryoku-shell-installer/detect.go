@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"ryoku-i18n"
+	installerplan "ryoku-installerplan"
 )
 
 type facts struct {
@@ -64,6 +65,7 @@ type facts struct {
 	kbOptions        string
 	kbSource         string // config the keyboard setup came from
 	userShell        string
+	fileManager      string
 	ryokuOnBox       bool // ryoku-desktop already installed
 	hostname         string
 	username         string
@@ -168,6 +170,21 @@ func has(name string) bool {
 	return err == nil
 }
 
+func installedFileManager() string {
+	for _, choice := range installerplan.Choices(installerplan.FileManager) {
+		if choice.Executable == "" {
+			continue
+		}
+		if info, err := os.Stat(choice.Executable); err == nil && !info.IsDir() {
+			return choice.ID
+		}
+		if _, err := exec.LookPath(filepath.Base(choice.Executable)); err == nil {
+			return choice.ID
+		}
+	}
+	return ""
+}
+
 func pacmanHas(pkg string) bool { return installed(pkg) }
 
 func unitEnabled(scope, unit string) bool {
@@ -260,6 +277,7 @@ func detect() *facts {
 	}
 	f.hostname, _ = os.Hostname()
 	f.userShell = os.Getenv("SHELL")
+	f.fileManager = installedFileManager()
 
 	// repo reachability probe; the install needs the network anyway.
 	f.filteredDNS = ryokuDNSFiltered(net.LookupIP)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"ryoku-i18n"
 	installerplan "ryoku-installerplan"
@@ -14,6 +15,15 @@ import (
 type editionCompositorPlan struct {
 	edition string
 	choices installerplan.EditionPlan
+}
+
+type planOverrides struct {
+	browser      string
+	shell        string
+	fileManager  string
+	rashin       bool
+	cachyosLayer bool
+	without      []string
 }
 
 func compositorLabel(name string) string {
@@ -54,20 +64,100 @@ func validateEditionChoice(kind, id string, plan editionCompositorPlan) error {
 		availability.Choice.Label, id, plan.edition, availability.Reason)
 }
 
-func validateEditionFlags(browser, shell string, plan editionCompositorPlan) error {
-	if err := validateBrowser(browser); err != nil {
+func validateEditionFlags(overrides planOverrides, plan editionCompositorPlan) error {
+	if err := validateBrowser(overrides.browser); err != nil {
 		return err
 	}
-	if err := validateEditionChoice(installerplan.Browser, browser, plan); err != nil {
+	if err := validateEditionChoice(installerplan.Browser, overrides.browser, plan); err != nil {
 		return err
 	}
-	if shell == "" {
-		return nil
+	if overrides.shell != "" {
+		if err := validateLoginShell(overrides.shell); err != nil {
+			return err
+		}
+		if err := validateEditionChoice(installerplan.LoginShell, overrides.shell, plan); err != nil {
+			return err
+		}
 	}
-	if err := validateLoginShell(shell); err != nil {
+	if overrides.fileManager != "" {
+		if err := validateFileManager(overrides.fileManager); err != nil {
+			return err
+		}
+		if err := validateEditionChoice(installerplan.FileManager, overrides.fileManager, plan); err != nil {
+			return err
+		}
+	}
+	if err := validateComponentFlag("rashin", overrides.rashin, plan); err != nil {
 		return err
 	}
-	return validateEditionChoice(installerplan.LoginShell, shell, plan)
+	if overrides.cachyosLayer {
+		if err := validateComponentFlag("cachyos-layer", true, plan); err != nil {
+			return err
+		}
+	}
+	for _, id := range overrides.without {
+		if err := validateComponentFlag(id, false, plan); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateComponentFlag(id string, selected bool, plan editionCompositorPlan) error {
+	if _, ok := installerplan.ComponentByID(id); !ok {
+		var available []string
+		for _, component := range plan.choices.Components() {
+			if component.Available && !component.Locked {
+				available = append(available, component.Component.ID)
+			}
+		}
+		return fmt.Errorf(i18n.T("unknown component %q; choose one of: %s"), id, strings.Join(available, ", "))
+	}
+	availability, ok := plan.choices.Component(id)
+	if !ok || !availability.Available {
+		reason := i18n.T("not shipped on this edition")
+		if ok && availability.Reason != "" {
+			reason = availability.Reason
+		}
+		return fmt.Errorf(i18n.T("component %q is unavailable on %s: %s"), id, plan.edition, reason)
+	}
+	if !selected && availability.Locked {
+		return fmt.Errorf(i18n.T("component %q is required on %s: %s"), id, plan.edition, availability.Reason)
+	}
+	return nil
+}
+
+func applyPlanOverrides(p *plan, overrides planOverrides) {
+	applyPlanChoices(p, overrides.browser, overrides.shell, overrides.fileManager)
+	p.setComponent("rashin", overrides.rashin)
+	if overrides.cachyosLayer {
+		p.setComponent("cachyos-layer", true)
+	}
+	for _, id := range overrides.without {
+		p.setComponent(id, false)
+	}
+}
+
+func sourceEditionForHost(d *distro) string {
+	if d == nil {
+		return "Arch"
+	}
+	if d.id != "arch" {
+		return d.name
+	}
+	data, err := os.ReadFile("/etc/os-release")
+	if err != nil {
+		return d.name
+	}
+	id, _, _ := parseOSRelease(string(data))
+	switch strings.ToLower(id) {
+	case "arch":
+		return "Arch"
+	case "cachyos":
+		return "CachyOS"
+	default:
+		return id
+	}
 }
 
 func loadEditionCompositors(client httpDoer, d *distro, ref, payload string) (editionCompositorPlan, error) {
@@ -75,7 +165,7 @@ func loadEditionCompositors(client httpDoer, d *distro, ref, payload string) (ed
 		return sourceEditionChoices("Arch"), nil
 	}
 	if d.id != "fedora" && d.id != "void" {
-		return sourceEditionChoices(d.name), nil
+		return sourceEditionChoices(sourceEditionForHost(d)), nil
 	}
 	if payload != "" {
 		path := filepath.Join(payload, d.id, "packages", "translations.tsv")

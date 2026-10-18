@@ -59,19 +59,15 @@ func resolvedPlan(t *testing.T, edition string) EditionPlan {
 
 func TestEditionChoicesDefaultsAndDrops(t *testing.T) {
 	for _, test := range []struct {
-		edition     string
-		browsers    string
-		shells      string
-		compositors string
+		edition      string
+		browsers     string
+		shells       string
+		fileManagers string
+		compositors  string
 	}{
-		// None installs nothing, so it is available on every edition: the
-		// availability check walks a choice's packages and there are none to miss
-		// from an edition table. The void and fedora rows were blank, which the
-		// assertion below skips, so neither edition's browser list was checked at
-		// all; they are filled in here.
-		{edition: "arch", browsers: "firefox,chromium,zen,none", shells: "fish,zsh,bash", compositors: "hyprland,niri,wayfire"},
-		{edition: "void", browsers: "firefox,chromium,none", shells: "fish,zsh,bash", compositors: "niri"},
-		{edition: "fedora", browsers: "firefox,chromium,none", shells: "fish,zsh,bash", compositors: "hyprland,niri"},
+		{edition: "arch", browsers: "firefox,chromium,zen,none", shells: "fish,zsh,bash", fileManagers: "nautilus,dolphin,thunar", compositors: "hyprland,niri,wayfire"},
+		{edition: "void", browsers: "firefox,chromium,none", shells: "fish,zsh,bash", fileManagers: "nautilus,dolphin,thunar", compositors: "niri"},
+		{edition: "fedora", browsers: "firefox,chromium,none", shells: "fish,zsh,bash", fileManagers: "nautilus,dolphin,thunar", compositors: "hyprland,niri"},
 	} {
 		t.Run(test.edition, func(t *testing.T) {
 			plan := resolvedPlan(t, test.edition)
@@ -80,6 +76,9 @@ func TestEditionChoicesDefaultsAndDrops(t *testing.T) {
 			}
 			if got := strings.Join(plan.AvailableIDs(LoginShell), ","); got != test.shells {
 				t.Fatalf("shells = %q, want %q", got, test.shells)
+			}
+			if got := strings.Join(plan.AvailableIDs(FileManager), ","); got != test.fileManagers {
+				t.Fatalf("file managers = %q, want %q", got, test.fileManagers)
 			}
 			if got := strings.Join(plan.AvailableIDs(Compositor), ","); got != test.compositors {
 				t.Fatalf("compositors = %q, want %q", got, test.compositors)
@@ -90,7 +89,10 @@ func TestEditionChoicesDefaultsAndDrops(t *testing.T) {
 			if got := FreshDefault(LoginShell); got != "fish" {
 				t.Fatalf("fresh shell = %q, want fish", got)
 			}
-			for _, kind := range []string{Browser, LoginShell} {
+			if got := FreshDefault(FileManager); got != "nautilus" {
+				t.Fatalf("fresh file manager = %q, want nautilus", got)
+			}
+			for _, kind := range []string{Browser, LoginShell, FileManager} {
 				id := FreshDefault(kind)
 				availability, ok := plan.Lookup(kind, id)
 				if !ok || !availability.Available {
@@ -105,6 +107,12 @@ func TestEditionChoicesDefaultsAndDrops(t *testing.T) {
 			}
 			if got := ExistingLoginShell("/usr/bin/nu", plan.AvailableIDs(LoginShell)); got != "fish" {
 				t.Fatalf("unsupported existing shell = %q, want fish", got)
+			}
+			if got := ExistingFileManager("/usr/bin/dolphin", plan.AvailableIDs(FileManager)); got != "dolphin" {
+				t.Fatalf("supported existing file manager = %q, want dolphin", got)
+			}
+			if got := ExistingFileManager("/usr/bin/pcmanfm", plan.AvailableIDs(FileManager)); got != "nautilus" {
+				t.Fatalf("unsupported existing file manager = %q, want nautilus", got)
 			}
 			wantDrops := "chromium,zen-browser-bin,zsh,zsh-autosuggestions,zsh-history-substring-search,zsh-syntax-highlighting,ryoku-oh-my-zsh,blesh"
 			if got := strings.Join(DropPackages("firefox", "fish"), ","); got != wantDrops {
@@ -159,15 +167,17 @@ func TestBashResolverReadsTheSameManifest(t *testing.T) {
 ` +
 				`source "$HELPER"
 ` +
-				`RYOKU_BROWSER= RYOKU_LOGIN_SHELL= RYOKU_COMPOSITOR= RYOKU_DROP_PACKAGES=
+				`RYOKU_BROWSER= RYOKU_LOGIN_SHELL= RYOKU_FILE_MANAGER= RYOKU_COMPOSITOR= RYOKU_DROP_PACKAGES=
 ` +
 				`ryoku_choice_apply_fresh "$EDITION" "$TABLE"
 ` +
-				`printf 'browser=%s\nshell=%s\ndrops=%s\n' "$RYOKU_BROWSER" "$RYOKU_LOGIN_SHELL" "$RYOKU_DROP_PACKAGES"
+				`printf 'browser=%s\nshell=%s\nfiles=%s\ndrops=%s\n' "$RYOKU_BROWSER" "$RYOKU_LOGIN_SHELL" "$RYOKU_FILE_MANAGER" "$RYOKU_DROP_PACKAGES"
 ` +
 				`printf 'browsers='; for id in "${RYOKU_BROWSER_CHOICES[@]}"; do [[ ${RYOKU_CHOICE_AVAILABLE[browser:$id]} == 1 ]] && printf '%s,' "$id"; done; printf '\n'
 ` +
 				`printf 'shells='; for id in "${RYOKU_LOGIN_SHELL_CHOICES[@]}"; do [[ ${RYOKU_CHOICE_AVAILABLE[login-shell:$id]} == 1 ]] && printf '%s,' "$id"; done; printf '\n'
+` +
+				`printf 'files='; for id in "${RYOKU_FILE_MANAGER_CHOICES[@]}"; do [[ ${RYOKU_CHOICE_AVAILABLE[file-manager:$id]} == 1 ]] && printf '%s,' "$id"; done; printf '\n'
 ` +
 				`printf 'compositors='; for id in "${RYOKU_COMPOSITOR_CHOICES[@]}"; do [[ ${RYOKU_CHOICE_AVAILABLE[compositor:$id]} == 1 ]] && printf '%s,' "$id"; done; printf '\n'
 `
@@ -182,9 +192,11 @@ func TestBashResolverReadsTheSameManifest(t *testing.T) {
 			if err != nil {
 				t.Fatalf("bash resolver: %v\n%s", err, output)
 			}
-			want := "browser=firefox\nshell=fish\ndrops=" + strings.Join(DropPackages("firefox", "fish"), ",") + "\n" +
+			drop := append(DropPackages("firefox", "fish"), DropPackagesFor(FileManager, "nautilus")...)
+			want := "browser=firefox\nshell=fish\nfiles=nautilus\ndrops=" + strings.Join(drop, ",") + "\n" +
 				"browsers=" + strings.Join(plan.AvailableIDs(Browser), ",") + ",\n" +
 				"shells=" + strings.Join(plan.AvailableIDs(LoginShell), ",") + ",\n" +
+				"files=" + strings.Join(plan.AvailableIDs(FileManager), ",") + ",\n" +
 				"compositors=" + strings.Join(plan.AvailableIDs(Compositor), ",") + ",\n"
 			if string(output) != want {
 				t.Fatalf("bash plan:\n%s\nwant:\n%s", output, want)
@@ -208,7 +220,7 @@ func TestBashResolverRejectsUnavailableBrowser(t *testing.T) {
 			script := `set -euo pipefail
 die() { printf "$1\n" "${@:2}" >&2; exit 1; }
 source "$HELPER"
-RYOKU_BROWSER=zen RYOKU_LOGIN_SHELL=fish RYOKU_COMPOSITOR= RYOKU_DROP_PACKAGES=
+RYOKU_BROWSER=zen RYOKU_LOGIN_SHELL=fish RYOKU_FILE_MANAGER=nautilus RYOKU_COMPOSITOR= RYOKU_DROP_PACKAGES=
 ryoku_choice_apply_fresh "$EDITION" "$TABLE"
 `
 			cmd := exec.Command("bash", "-c", script)
@@ -229,5 +241,111 @@ ryoku_choice_apply_fresh "$EDITION" "$TABLE"
 				t.Fatalf("unavailable browser error = %q", message)
 			}
 		})
+	}
+}
+
+func TestComponentAvailabilityByEdition(t *testing.T) {
+	for _, test := range []struct {
+		edition      string
+		aurAvailable bool
+		cachyosLayer bool
+		rashinLocked bool
+	}{
+		{edition: "arch", aurAvailable: true, cachyosLayer: true},
+		{edition: "cachyos", aurAvailable: true},
+		{edition: "void", rashinLocked: true},
+		{edition: "fedora", rashinLocked: true},
+	} {
+		t.Run(test.edition, func(t *testing.T) {
+			var plan EditionPlan
+			if test.edition == "cachyos" {
+				plan = ResolveSource("cachyos")
+			} else {
+				plan = resolvedPlan(t, test.edition)
+			}
+			for _, id := range []string{"ryotunes", "ryoport", "ryomanager", "node"} {
+				availability, ok := plan.Component(id)
+				if !ok || !availability.Available {
+					t.Errorf("%s availability = %+v, found %v", id, availability, ok)
+				}
+			}
+			for _, id := range []string{"localsend", "voxtype"} {
+				availability, ok := plan.Component(id)
+				if !ok || availability.Available != test.aurAvailable {
+					t.Errorf("%s availability = %+v, want available %v", id, availability, test.aurAvailable)
+				}
+			}
+			layer, ok := plan.Component("cachyos-layer")
+			if !ok || layer.Available != test.cachyosLayer {
+				t.Errorf("cachyos layer = %+v, want available %v", layer, test.cachyosLayer)
+			}
+			if test.cachyosLayer && (!layer.Component.NeedsNetwork || layer.Component.DefaultOn) {
+				t.Errorf("cachyos layer flags = network:%v default:%v", layer.Component.NeedsNetwork, layer.Component.DefaultOn)
+			}
+			rashin, ok := plan.Component("rashin")
+			if !ok || !rashin.Available || rashin.Locked != test.rashinLocked {
+				t.Errorf("rashin availability = %+v, want locked %v", rashin, test.rashinLocked)
+			}
+			if rashin.Locked && rashin.Reason != "included with the desktop package on this edition" {
+				t.Errorf("locked Rashin reason = %q", rashin.Reason)
+			}
+			terminal, ok := plan.Component("terminal")
+			if !ok || !terminal.Available || !terminal.Locked ||
+				terminal.Reason != "the Ryoku terminal role: the launcher, Settings, and open in terminal use it" {
+				t.Errorf("required terminal row = %+v", terminal)
+			}
+		})
+	}
+}
+
+func TestComponentDropAndHideRules(t *testing.T) {
+	contains := func(values []string, want string) bool {
+		for _, value := range values {
+			if value == want {
+				return true
+			}
+		}
+		return false
+	}
+
+	arch := ResolveSource("arch")
+	arch.components = append(arch.components, ComponentAvailability{
+		Component: Component{
+			ID: "default-off-payload", DefaultOn: false,
+			Packages: []string{"not-installed"}, DesktopIDs: []string{"not-installed.desktop"},
+		},
+		Available: true,
+	})
+	selected := arch.DefaultComponents()
+	selected["ryoport"] = false
+	selected["ryomanager"] = false
+	selected["rashin"] = false
+	drop := arch.DropComponentPackages(selected)
+	for _, want := range []string{"ryomanager", "ryoku-rashin"} {
+		if !contains(drop, want) {
+			t.Errorf("drop packages %v missing %s", drop, want)
+		}
+	}
+	for _, absent := range []string{"linux-cachyos", "not-installed"} {
+		if contains(drop, absent) {
+			t.Errorf("default-off package %s appears in drops %v", absent, drop)
+		}
+	}
+	if got := strings.Join(arch.HiddenDesktopIDs(selected), ","); got != "ryovm.desktop" {
+		t.Fatalf("hidden desktop ids = %q, want ryovm.desktop", got)
+	}
+
+	void := resolvedPlan(t, "void")
+	voidSelected := void.DefaultComponents()
+	voidSelected["rashin"] = false
+	if contains(void.DropComponentPackages(voidSelected), "ryoku-rashin") {
+		t.Fatal("locked Void Rashin was dropped")
+	}
+
+	if got, want := strings.Join(DropPackagesFor(FileManager, "nautilus"), ","), "dolphin,thunar"; got != want {
+		t.Fatalf("nautilus file-manager drops = %q, want %q", got, want)
+	}
+	if got, want := strings.Join(DropPackagesFor(FileManager, "dolphin"), ","), "nautilus,nautilus-python,thunar"; got != want {
+		t.Fatalf("dolphin file-manager drops = %q, want %q", got, want)
 	}
 }

@@ -10,10 +10,13 @@ import (
 )
 
 const (
-	Browser    = "browser"
-	LoginShell = "login-shell"
-	Compositor = "compositor"
+	Browser     = "browser"
+	LoginShell  = "login-shell"
+	FileManager = "file-manager"
+	Compositor  = "compositor"
 )
+
+var choiceKinds = []string{Browser, LoginShell, FileManager, Compositor}
 
 //go:embed choices.tsv
 var manifestData []byte
@@ -42,8 +45,9 @@ type Availability struct {
 }
 
 type EditionPlan struct {
-	Edition string
-	choices map[string][]Availability
+	Edition    string
+	choices    map[string][]Availability
+	components []ComponentAvailability
 }
 
 type definition struct {
@@ -134,7 +138,7 @@ func parseManifest(data []byte) (definition, error) {
 	if !seenHeader {
 		return definition{}, errors.New("installer choices have no header")
 	}
-	for _, kind := range []string{Browser, LoginShell, Compositor} {
+	for _, kind := range choiceKinds {
 		if len(def.choices[kind]) == 0 {
 			return definition{}, fmt.Errorf("installer choices define no %s entries", kind)
 		}
@@ -217,13 +221,32 @@ func ExistingLoginShell(current string, available []string) string {
 	return fallback
 }
 
+func ExistingFileManager(current string, available []string) string {
+	def, err := loadDefinition()
+	if err != nil {
+		panic(err)
+	}
+	fallback := def.policies[FileManager+":fresh"]
+	if def.policies[FileManager+":existing"] != "keep-supported-else-nautilus" {
+		return fallback
+	}
+	current = filepath.Base(current)
+	for _, id := range available {
+		if id == current {
+			return current
+		}
+	}
+	return fallback
+}
+
 func ResolveSource(edition string) EditionPlan {
-	plan := EditionPlan{Edition: edition, choices: map[string][]Availability{}}
-	for _, kind := range []string{Browser, LoginShell, Compositor} {
+	plan := EditionPlan{Edition: canonicalEdition(edition), choices: map[string][]Availability{}}
+	for _, kind := range choiceKinds {
 		for _, choice := range Choices(kind) {
 			plan.choices[kind] = append(plan.choices[kind], Availability{Choice: choice, Available: true})
 		}
 	}
+	plan.components = resolveComponents(plan.Edition, nil)
 	return plan
 }
 
@@ -258,7 +281,7 @@ func ResolveEdition(data []byte) (EditionPlan, error) {
 		return EditionPlan{}, errors.New("package table has no header")
 	}
 	plan := EditionPlan{Edition: edition, choices: map[string][]Availability{}}
-	for _, kind := range []string{Browser, LoginShell, Compositor} {
+	for _, kind := range choiceKinds {
 		for _, choice := range Choices(kind) {
 			availability := Availability{Choice: choice, Available: true}
 			for _, pkg := range choice.Packages {
@@ -280,6 +303,7 @@ func ResolveEdition(data []byte) (EditionPlan, error) {
 			return EditionPlan{}, fmt.Errorf("the %s edition table publishes no %s choices", edition, kind)
 		}
 	}
+	plan.components = resolveComponents(edition, rows)
 	return plan, nil
 }
 

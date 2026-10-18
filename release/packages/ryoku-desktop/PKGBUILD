@@ -226,6 +226,8 @@ optdepends=(
   'neovim: the shipped editor'
   'nautilus: graphical file manager'
   'nautilus-python: Ryoku stash actions in the Nautilus right-click menu'
+  'dolphin: file manager the installer can pick instead of Nautilus'
+  'thunar: file manager the installer can pick instead of Nautilus'
   'ryotunes: the Ryoku music app the now-playing widget follows'
   'ryomanager: RyoManager, the system monitor and task manager'
   'waifu2x-ncnn-vulkan: AI upscale for ryoshot Beautify HD and ryowalls Enhance'
