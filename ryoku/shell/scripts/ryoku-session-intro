@@ -59,7 +59,9 @@ consume_default_rice() {
 		log_intro "could not apply default rice '$slug'; keeping the marker"
 		return 1
 	fi
-	if ! ryogami wallpaper random; then
+	if [[ -z $(jq -r '.assets.wallpaper // empty' \
+		"${XDG_CONFIG_HOME:-$HOME/.config}/ryoku/rices/$slug/rice.json" 2>/dev/null) ]] &&
+		! ryogami wallpaper random; then
 		log_intro "default rice '$slug' applied but no seeded wallpaper could be selected"
 	fi
 	if ! rm -f -- "$marker"; then

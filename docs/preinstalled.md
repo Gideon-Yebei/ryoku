@@ -65,6 +65,10 @@ upgrade never leaves the shell QML running against a stale plugin.
 
 `ryoshot` (the screenshot studio) and the launcher live inside `ryoku-shell`.
 
+The desktop package also includes two ready-to-apply rices: **Default** and
+**NOC**. Each carries its own wallpaper, preview, shell look, and Fastfetch
+style.
+
 ## Core system and boot
 
 The bones. Kernel, initramfs, the encrypted-Btrfs boot chain, and snapshots.

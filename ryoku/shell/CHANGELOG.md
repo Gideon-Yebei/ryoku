@@ -18,6 +18,9 @@
   until you turn them on). The Hub auditions a cue through `sounds.preview`
   (`ipc/sounds.go`, `ipc/powersounds.go`, `ipc/devicesounds.go`,
   `quickshell/shell/services/Notifs.qml`).
+- **Default and NOC ship as rices with their wallpapers.** A fresh login
+  applies Default and keeps its wallpaper instead of picking a random one
+  (`../assets/rices/`, `scripts/ryoku-session-intro`).
 
 ### Fixed
 - **Ryogami keeps the current wallpaper when it optimises the file.** Outputs,
