@@ -52,6 +52,12 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **`ryoku update` no longer warns about a removed compositor provider.**
+  Materialize preserves a switched-away compositor's config tree so it can be
+  restored later, but after its variant package was removed it still tried to
+  repair missing or stale generated files and printed a provider-not-found note.
+  Trees without their `ryoku-wm-<name>` binary are now left untouched; installed
+  providers still report real render failures (`internal/updater/materialize.go`).
 - **`ryoku update --help` prints help instead of updating the machine.** Any
   option update did not know used to fall through into a full run: the password
   prompt, the config re-laid, the desktop restarted. `-h` and `--help` now

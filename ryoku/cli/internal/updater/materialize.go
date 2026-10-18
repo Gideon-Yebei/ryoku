@@ -116,6 +116,13 @@ var applyProvider = func(name, store string) error {
 	return err
 }
 
+// providerInstalled reports whether a laid-down tree still has its provider
+// binary. Switched-away trees stay in place after their variant is removed, but
+// without the binary there is nothing to render. A var so tests stub the lookup.
+var providerInstalled = func(name string) bool {
+	return wm.OpenNamed(name).Available()
+}
+
 // applyGenerated completes every laid-down provider tree. Packages ship the
 // static half, while each provider owns files rendered from the neutral store.
 // A missing generated file can make the target reject its config at login, and
@@ -142,6 +149,9 @@ func applyGenerated(configHome string) {
 		dir := wm.ConfigDir(name)
 		if dir == "" || !sys.Exists(filepath.Join(configHome, dir)) {
 			continue // tree not laid down: nothing to complete
+		}
+		if !providerInstalled(name) {
+			continue // switched-away tree has no renderer
 		}
 		missing := false
 		authored := false

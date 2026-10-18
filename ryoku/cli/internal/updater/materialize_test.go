@@ -675,15 +675,17 @@ func TestApplyGeneratedCompletesLaidTrees(t *testing.T) {
 		}
 		return home
 	}
+	uninstalled := ""
 	run := func(t *testing.T, home string) []string {
 		t.Helper()
 		var calls []string
-		old := applyProvider
+		old, oldInstalled := applyProvider, providerInstalled
 		applyProvider = func(name, store string) error {
 			calls = append(calls, name)
 			return nil
 		}
-		t.Cleanup(func() { applyProvider = old })
+		providerInstalled = func(name string) bool { return name != uninstalled }
+		t.Cleanup(func() { applyProvider, providerInstalled = old, oldInstalled })
 		applyGenerated(home)
 		return calls
 	}
@@ -713,6 +715,10 @@ func TestApplyGeneratedCompletesLaidTrees(t *testing.T) {
 	// (#331): a missing store must never skip the render.
 	if got := run(t, lay(t, false, incomplete)); len(got) != 1 || got[0] != incomplete {
 		t.Fatalf("a laid tree with no store must still render its generated defaults, got %v", got)
+	}
+	uninstalled = incomplete
+	if got := run(t, lay(t, true, incomplete)); len(got) != 0 {
+		t.Fatalf("a laid tree whose provider is uninstalled must be skipped, got %v", got)
 	}
 }
 
@@ -755,13 +761,10 @@ func TestMaterializeRefreshesProviderGeneratedBaseline(t *testing.T) {
 	writeFile(t, filepath.Join(dest, "ryoku", "desktop.json"), "{}\n")
 
 	var calls []string
-	available := true
-	old := applyProvider
+	installed := true
+	oldApply, oldInstalled := applyProvider, providerInstalled
 	applyProvider = func(name, store string) error {
 		calls = append(calls, name)
-		if !available {
-			return os.ErrNotExist
-		}
 		current, err := os.ReadFile(filepath.Join(base, entry))
 		if err != nil {
 			return err
@@ -771,7 +774,8 @@ func TestMaterializeRefreshesProviderGeneratedBaseline(t *testing.T) {
 		writeFile(t, filepath.Join(dest, overlayRel), body)
 		return nil
 	}
-	t.Cleanup(func() { applyProvider = old })
+	providerInstalled = func(name string) bool { return installed }
+	t.Cleanup(func() { applyProvider, providerInstalled = oldApply, oldInstalled })
 
 	if err := Materialize(); err != nil {
 		t.Fatalf("materialize raw baseline: %v", err)
@@ -830,13 +834,13 @@ func TestMaterializeRefreshesProviderGeneratedBaseline(t *testing.T) {
 	oldRender := wm.GeneratedConfigBaselineMarker(provider, []byte("# older baseline\n")) + "\n# provider render\n"
 	writeFile(t, filepath.Join(dest, overlayRel), oldRender)
 	writeFile(t, filepath.Join(dest, entry), oldRender)
-	available = false
+	installed = false
 	calls = nil
 	if err := Materialize(); err != nil {
 		t.Fatalf("materialize without provider binary: %v", err)
 	}
-	if len(calls) != 1 || calls[0] != provider {
-		t.Fatalf("unavailable provider calls = %v, want one best-effort apply", calls)
+	if len(calls) != 0 {
+		t.Fatalf("an uninstalled provider with a stale render must be skipped, got apply calls %v", calls)
 	}
 	got, err := os.ReadFile(filepath.Join(dest, entry))
 	if err != nil {
