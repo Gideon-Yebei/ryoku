@@ -5,32 +5,42 @@ import (
 	"testing"
 )
 
-// The browser, login-shell, and apps steps are the installer's product choices:
-// one browser, one account shell, and a keep/remove table whose required rows
-// refuse to toggle. Every losing package reaches the backend in one drop list.
+// The product steps choose one browser, login shell, and file manager, then
+// collect the shared optional components. Locked rows refuse to toggle and all
+// losing packages reach the backend through one drop list.
 
 func TestProductStepsExistInOrder(t *testing.T) {
-	f := steps()
+	f := stepsForVariant("plain")
 	b := flowIndex(f, "browser")
 	s := flowIndex(f, "login-shell")
+	files := flowIndex(f, "file-manager")
+	rashin := flowIndex(f, "rashin")
+	cachyos := flowIndex(f, "cachyos")
 	a := flowIndex(f, "apps")
-	r := flowIndex(f, "review")
-	if b < 0 || s < 0 || a < 0 || r < 0 {
-		t.Fatalf("browser/login-shell/apps/review steps missing: %d %d %d %d", b, s, a, r)
+	review := flowIndex(f, "review")
+	if b < 0 || s < 0 || files < 0 || rashin < 0 || cachyos < 0 || a < 0 || review < 0 {
+		t.Fatalf("product steps missing: browser=%d shell=%d files=%d rashin=%d cachyos=%d apps=%d review=%d",
+			b, s, files, rashin, cachyos, a, review)
 	}
-	if s != b+1 || !(s < a && a < r) {
-		t.Fatalf("steps out of order: browser=%d login-shell=%d apps=%d review=%d", b, s, a, r)
+	if !(b < s && s < files && files < rashin && rashin < cachyos && cachyos < a && a < review) {
+		t.Fatalf("product steps out of order: browser=%d shell=%d files=%d rashin=%d cachyos=%d apps=%d review=%d",
+			b, s, files, rashin, cachyos, a, review)
 	}
-	if f[b].kind != kSelect || f[s].kind != kSelect || f[a].kind != kApps {
-		t.Fatalf("wrong kinds: browser=%v login-shell=%v apps=%v", f[b].kind, f[s].kind, f[a].kind)
+	if f[b].kind != kSelect || f[s].kind != kSelect || f[files].kind != kSelect ||
+		f[rashin].kind != kConfirm || f[cachyos].kind != kConfirm || f[a].kind != kApps {
+		t.Fatal("product step kinds changed")
 	}
-	if !f[b].numbered || !f[s].numbered {
-		t.Fatal("browser and login-shell choices must be numbered")
+	if !f[b].numbered || !f[s].numbered || !f[files].numbered {
+		t.Fatal("browser, login-shell, and file-manager choices must be numbered")
 	}
 	m := newModel()
-	if m.picks["browser"] != "firefox" || m.picks["login-shell"] != "fish" {
-		t.Fatalf("product defaults = browser %q, shell %q; want firefox, fish",
-			m.picks["browser"], m.picks["login-shell"])
+	if m.picks["browser"] != "firefox" || m.picks["login-shell"] != "fish" ||
+		m.picks["file-manager"] != "nautilus" || m.picks["rashin"] != "1" || m.picks["cachyos"] != "0" {
+		t.Fatalf("product defaults = %#v", m.picks)
+	}
+	void := stepsForVariant(variantVoid)
+	if flowIndex(void, "cachyos") >= 0 || stepByKey(t, void, "rashin").kind != kNotice {
+		t.Fatal("Void must omit CachyOS and show Rashin as included")
 	}
 }
 
@@ -76,6 +86,42 @@ func TestLoginShellListOrderAndAppOwnership(t *testing.T) {
 	}
 }
 
+func TestFileManagerListOrderAndRecommendation(t *testing.T) {
+	managers := fileManagers()
+	want := []string{"nautilus", "dolphin", "thunar"}
+	if len(managers) != len(want) {
+		t.Fatalf("file managers = %v, want %v", managers, want)
+	}
+	for i, id := range want {
+		if managers[i].key != id {
+			t.Errorf("file manager %d = %q, want %q", i, managers[i].key, id)
+		}
+	}
+	if !strings.Contains(managers[0].hint, "Recommended") ||
+		!strings.Contains(strings.ToLower(managers[0].hint), "stash") {
+		t.Errorf("Nautilus recommendation = %q", managers[0].hint)
+	}
+}
+
+func TestAppsUseSharedComponentCatalogue(t *testing.T) {
+	rows := appRowsForVariant("plain")
+	if len(rows) < 3 || rows[0].ID != "ryotunes" || rows[1].ID != "ryoport" || rows[2].ID != "ryomanager" {
+		t.Fatalf("Ryoku apps are not first: %+v", rows)
+	}
+	for _, row := range rows {
+		switch row.ID {
+		case "files", "stash-menu", "rashin", "cachyos-layer":
+			t.Errorf("step-owned component %q remains in Apps & tools", row.ID)
+		}
+	}
+	for _, id := range []string{"terminal", "editor", "monitor"} {
+		row, ok := appRowByID(id)
+		if !ok || row.Req == "" {
+			t.Errorf("required app %q = %+v, found %v", id, row, ok)
+		}
+	}
+}
+
 func TestRequiredRowsAreDefaultOn(t *testing.T) {
 	for _, r := range appRows() {
 		if r.Req != "" && !r.Def {
@@ -92,7 +138,17 @@ func TestAppsToggleSkipsRequired(t *testing.T) {
 	if m.keep == nil {
 		t.Fatal("loadStep did not seed the keep map")
 	}
-	m.alsel = appsRowIdx(m.appsRows(), 0) // the first app row is a required one
+	rows := m.appsRows()
+	m.alsel = -1
+	for i, r := range rows {
+		if ar, _ := appRowByID(r.id); r.kind == "app" && ar.Req != "" {
+			m.alsel = i
+			break
+		}
+	}
+	if m.alsel < 0 {
+		t.Fatal("no required row in Apps & tools")
+	}
 	m.appsKey("space")
 	if !m.keep[m.appsRows()[m.alsel].id] {
 		t.Fatal("a required row toggled off")
@@ -101,7 +157,6 @@ func TestAppsToggleSkipsRequired(t *testing.T) {
 		t.Error("refusing the toggle must explain itself")
 	}
 	// Walk to the first removable row; a clean toggle clears the notice.
-	rows := m.appsRows()
 	for i, r := range rows {
 		if r.kind == "app" {
 			if ar, _ := appRowByID(r.id); ar.Req == "" {
@@ -125,7 +180,7 @@ func TestDeselectDoesNotTouchRequiredPackages(t *testing.T) {
 	for _, r := range appRows() {
 		keep[r.ID] = false // user tries to drop everything
 	}
-	d := deselectedPkgs(keep)
+	d := installerChoicesForVariant("plain").DropComponentPackages(keep)
 	set := map[string]bool{}
 	for _, p := range d {
 		set[p] = true
@@ -142,19 +197,51 @@ func TestDeselectDoesNotTouchRequiredPackages(t *testing.T) {
 	}
 }
 
-func TestRashinIsOptionalOnArchOnly(t *testing.T) {
-	row, ok := appRowByID("rashin")
-	if !ok || !row.Def || row.Req != "" {
-		t.Fatalf("rashin row = %+v (found %v), want a removable row ticked by default", row, ok)
+func TestRashinIsASeparateEditionAwareChoice(t *testing.T) {
+	arch := installerChoicesForVariant("plain")
+	rashin, ok := arch.Component("rashin")
+	if !ok || !rashin.Available || rashin.Locked || !rashin.Component.DefaultOn {
+		t.Fatalf("Arch Rashin component = %+v, found %v", rashin, ok)
 	}
-	keep := appDefaults()
-	keep["rashin"] = false
-	if got := strings.Join(deselectedPkgs(keep), ","); got != "ryoku-rashin" {
-		t.Fatalf("unticking Rashin drops %q, want ryoku-rashin", got)
+	selected := arch.DefaultComponents()
+	selected["rashin"] = false
+	if got := strings.Join(arch.DropComponentPackages(selected), ","); !strings.Contains(got, "ryoku-rashin") {
+		t.Fatalf("turning off Rashin did not drop ryoku-rashin: %q", got)
 	}
-	// Void's desktop package still requires ryoku-rashin, so it is not offered.
-	if _, ok := appRowByIDForVariant(variantVoid, "rashin"); ok {
-		t.Fatal("the Void installer offers a Rashin row its desktop package cannot honour")
+	void := installerChoicesForVariant(variantVoid)
+	rashin, ok = void.Component("rashin")
+	if !ok || !rashin.Available || !rashin.Locked || rashin.Reason == "" {
+		t.Fatalf("Void Rashin component = %+v, found %v", rashin, ok)
+	}
+}
+
+func TestRashinAndCachyOSStepBehaviour(t *testing.T) {
+	flow := stepsForVariant("plain")
+	rashin := model{
+		variant: "plain", flow: flow, idx: flowIndex(flow, "rashin"),
+		state: "wizard", picks: map[string]string{"rashin": "1"},
+	}
+	rashin.loadStep()
+	if !rashin.yes {
+		t.Fatal("Rashin does not default to Yes")
+	}
+	next, _ := rashin.onKey("enter")
+	rashin = next.(model)
+	if rashin.picks["rashin"] != "1" || rashin.cur().key != "cachyos" {
+		t.Fatalf("Rashin choice did not advance: pick=%q step=%q", rashin.picks["rashin"], rashin.cur().key)
+	}
+
+	rashin.netOnline = false
+	rashin.loadStep()
+	next, _ = rashin.onKey("y")
+	cachyos := next.(model)
+	if cachyos.yes {
+		t.Fatal("offline CachyOS layer could be enabled")
+	}
+	next, _ = cachyos.onKey("enter")
+	cachyos = next.(model)
+	if cachyos.picks["cachyos"] != "0" || cachyos.cur().key != "apps" {
+		t.Fatalf("offline CachyOS choice did not stay off and advance: pick=%q step=%q", cachyos.picks["cachyos"], cachyos.cur().key)
 	}
 }
 
@@ -178,8 +265,8 @@ func TestAppsResetRestoresDefaults(t *testing.T) {
 	}
 }
 
-// installEnv is the handoff contract: both choices always carry their picks,
-// and RYOKU_DROP_PACKAGES names deselected apps and every losing product stack.
+// installEnv carries every shared choice and folds losing packages into one
+// drop list. Desktop-only payloads use the separate hide list.
 func TestInstallEnvCarriesProductChoicesAndDrops(t *testing.T) {
 	envHas := func(env []string, want string) bool {
 		for _, e := range env {
@@ -209,16 +296,41 @@ func TestInstallEnvCarriesProductChoicesAndDrops(t *testing.T) {
 	}
 
 	m := newModel()
+	m.variant = "plain"
 	m.diskDev, m.pwHash = "/dev/vda", "x"
 	m.picks["disk"] = "whole"
 	env := m.installEnv()
-	if !envHas(env, "RYOKU_BROWSER=firefox") || !envHas(env, "RYOKU_LOGIN_SHELL=fish") {
-		t.Fatalf("default browser/shell missing from %v", env)
+	for _, want := range []string{
+		"RYOKU_BROWSER=firefox", "RYOKU_LOGIN_SHELL=fish",
+		"RYOKU_FILE_MANAGER=nautilus", "RYOKU_RASHIN=1",
+		"RYOKU_CACHYOS_LAYER=0",
+	} {
+		if !envHas(env, want) {
+			t.Errorf("default environment missing %q: %v", want, env)
+		}
+	}
+	if _, ok := envValue(env, "RYOKU_HIDE_APPS"); ok {
+		t.Fatal("default app selection emitted a hide list")
 	}
 	drops, ok := envValue(env, "RYOKU_DROP_PACKAGES")
-	wantDefault := "chromium,zen-browser-bin,zsh,zsh-autosuggestions,zsh-history-substring-search,zsh-syntax-highlighting,ryoku-oh-my-zsh,blesh"
-	if !ok || drops != wantDefault {
-		t.Fatalf("default drop list = %q (ok=%v), want %q", drops, ok, wantDefault)
+	if !ok {
+		t.Fatal("default environment has no drop list")
+	}
+	defaultSet := asSet(drops)
+	for _, want := range []string{
+		"chromium", "zen-browser-bin", "zsh", "blesh", "dolphin", "thunar",
+	} {
+		if !defaultSet[want] {
+			t.Errorf("default drop list %q missing %s", drops, want)
+		}
+	}
+	for _, absent := range []string{
+		"firefox", "fish", "nautilus", "nautilus-python", "ryoku-rashin",
+		"linux-cachyos", "cachyos-settings", "proton-cachyos-native",
+	} {
+		if defaultSet[absent] {
+			t.Errorf("default drop list %q contains package %s", drops, absent)
+		}
 	}
 
 	for _, tc := range []struct {
@@ -257,9 +369,12 @@ func TestInstallEnvCarriesProductChoicesAndDrops(t *testing.T) {
 
 	m.picks["browser"] = "chromium"
 	m.picks["login-shell"] = "zsh"
+	m.picks["file-manager"] = "dolphin"
+	m.picks["rashin"] = "0"
 	m.keep = appDefaults()
 	m.keep["docker"] = false
 	m.keep["flatpak"] = false
+	m.keep["ryoport"] = false
 	env = m.installEnv()
 	if !envHas(env, "RYOKU_BROWSER=chromium") {
 		t.Error("the chosen browser did not reach the env")
@@ -269,7 +384,7 @@ func TestInstallEnvCarriesProductChoicesAndDrops(t *testing.T) {
 		t.Fatal("deselections must emit a drop list")
 	}
 	set := asSet(csv)
-	for _, want := range []string{"docker", "flatpak", "firefox", "zen-browser-bin", "fish", "blesh"} {
+	for _, want := range []string{"docker", "flatpak", "firefox", "zen-browser-bin", "fish", "blesh", "nautilus", "nautilus-python", "ryoku-rashin"} {
 		if !set[want] {
 			t.Errorf("drop list %q missing %s", csv, want)
 		}
@@ -279,14 +394,58 @@ func TestInstallEnvCarriesProductChoicesAndDrops(t *testing.T) {
 			t.Errorf("chosen product package %s appears in %q", keep, csv)
 		}
 	}
+	if !envHas(env, "RYOKU_FILE_MANAGER=dolphin") || !envHas(env, "RYOKU_RASHIN=0") {
+		t.Errorf("updated file-manager/Rashin choices missing from %v", env)
+	}
+	if hidden, ok := envValue(env, "RYOKU_HIDE_APPS"); !ok || hidden != "ryovm.desktop" {
+		t.Errorf("hidden apps = %q (ok=%v), want ryovm.desktop", hidden, ok)
+	}
 }
 
-func TestReviewNamesBrowserAndLoginShell(t *testing.T) {
+func TestEditionOnlyEnvironmentVariables(t *testing.T) {
+	has := func(env []string, want string) bool {
+		for _, value := range env {
+			if value == want {
+				return true
+			}
+		}
+		return false
+	}
+	hasPrefix := func(env []string, prefix string) bool {
+		for _, value := range env {
+			if strings.HasPrefix(value, prefix) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, variant := range []string{variantCachyOS, variantVoid} {
+		m := model{variant: variant, picks: map[string]string{"disk": "whole", "rashin": "0"}}
+		env := m.installEnv()
+		if hasPrefix(env, "RYOKU_CACHYOS_LAYER=") {
+			t.Errorf("%s emitted plain-Arch CachyOS layer variable: %v", variant, env)
+		}
+		if variant == variantVoid && !has(env, "RYOKU_RASHIN=1") {
+			t.Errorf("Void did not force required Rashin on: %v", env)
+		}
+	}
+}
+
+func TestReviewNamesProductChoices(t *testing.T) {
 	m := reviewModel()
+	m.variant = "plain"
 	m.picks["browser"] = "chromium"
 	m.picks["login-shell"] = "zsh"
+	m.picks["file-manager"] = "dolphin"
+	m.picks["rashin"] = "1"
+	m.picks["cachyos"] = "0"
+	m.keep = appDefaultsForVariant("plain")
+	m.keep["ryoport"] = false
 	body := stripSGR(m.reviewBody(100))
-	for _, want := range []string{"browser", "Chromium", "shell", "Zsh"} {
+	for _, want := range []string{
+		"browser", "Chromium", "shell", "Zsh", "files", "Dolphin",
+		"Rashin", "minus ryoport", "CachyOS", "No",
+	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("Review does not show %q:\n%s", want, body)
 		}

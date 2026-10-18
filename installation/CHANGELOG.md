@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Added
+- **The installers ask which apps to keep.** The Arch, CachyOS and Void ISOs
+  pick a file manager (Nautilus recommended), ask about Rashin with a short
+  note that its Hermes agent installs at the first login, and list Ryotunes,
+  Ryoport and RyoManager with the other apps and terminal tools. The Arch ISO
+  also offers the CachyOS kernel and tuning while a network connection is up.
+  Anything left out is recorded so updates do not bring it back
+  (`installerplan/components.tsv`, `tui/main.go`, `backend/lib/deploy.sh`,
+  `backend/lib/cachyos.sh`).
+
 ### Fixed
 - **The Void live medium can join Wi-Fi.** Its NetworkManager drop-in pinned
   iwd while nothing started iwd, so the installer never saw a network. The live

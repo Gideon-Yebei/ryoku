@@ -1223,15 +1223,32 @@ func (m model) installEnv() []string {
 	comp := m.picks["compositor"]
 	env = append(env, "RYOKU_COMPOSITOR="+comp, "RYOKU_COMPOSITOR_CONFIG_DIR="+wm.ConfigDir(comp),
 		"RYOKU_COMPOSITOR_GPU_PIN="+wm.GpuPinFile(comp))
-	// Product choices reach the backend as one drop list: every package removed
-	// in Apps & tools, the two browsers that lost, and the two unchosen shell
-	// stacks. The backend filters this list from every package source and records
-	// it in the provisioning ledger.
+	// Product choices reach the backend as one drop list. It contains each
+	// unselected stack from the shared single-choice and component catalogues.
 	br := def(m.picks["browser"], installerplan.FreshDefault(installerplan.Browser))
 	sh := def(m.picks["login-shell"], installerplan.FreshDefault(installerplan.LoginShell))
-	drop := deselectedPkgsForVariant(m.variant, m.selectedApps())
+	fm := def(m.picks["file-manager"], installerplan.FreshDefault(installerplan.FileManager))
+	plan := installerChoicesForVariant(m.variant)
+	selected := m.componentSelections()
+	rashin := "0"
+	if selected["rashin"] {
+		rashin = "1"
+	}
+	drop := plan.DropComponentPackages(selected)
 	drop = append(drop, installerplan.DropPackages(br, sh)...)
-	env = append(env, "RYOKU_BROWSER="+br, "RYOKU_LOGIN_SHELL="+sh)
+	drop = append(drop, installerplan.DropPackagesFor(installerplan.FileManager, fm)...)
+	env = append(env,
+		"RYOKU_BROWSER="+br,
+		"RYOKU_LOGIN_SHELL="+sh,
+		"RYOKU_FILE_MANAGER="+fm,
+		"RYOKU_RASHIN="+rashin,
+	)
+	if m.variant == "plain" {
+		env = append(env, "RYOKU_CACHYOS_LAYER="+def(m.picks["cachyos"], "0"))
+	}
+	if hidden := plan.HiddenDesktopIDs(selected); len(hidden) > 0 {
+		env = append(env, "RYOKU_HIDE_APPS="+strings.Join(hidden, ","))
+	}
 	if len(drop) > 0 {
 		env = append(env, "RYOKU_DROP_PACKAGES="+strings.Join(drop, ","))
 	}

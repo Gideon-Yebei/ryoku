@@ -25,7 +25,7 @@ func TestTUIFrontendMatchesSharedEditionPlan(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			for _, kind := range []string{installerplan.Browser, installerplan.LoginShell, installerplan.Compositor} {
+			for _, kind := range []string{installerplan.Browser, installerplan.LoginShell, installerplan.FileManager, installerplan.Compositor} {
 				items := choiceItems(kind, plan, true)
 				got := make([]string, 0, len(items))
 				for _, item := range items {
@@ -35,7 +35,9 @@ func TestTUIFrontendMatchesSharedEditionPlan(t *testing.T) {
 					t.Errorf("%s choices = %q, want %q", kind, strings.Join(got, ","), want)
 				}
 			}
-			if installerplan.FreshDefault(installerplan.Browser) != "firefox" || installerplan.FreshDefault(installerplan.LoginShell) != "fish" {
+			if installerplan.FreshDefault(installerplan.Browser) != "firefox" ||
+				installerplan.FreshDefault(installerplan.LoginShell) != "fish" ||
+				installerplan.FreshDefault(installerplan.FileManager) != "nautilus" {
 				t.Fatal("fresh-install defaults changed")
 			}
 			wantDrops := "chromium,zen-browser-bin,zsh,zsh-autosuggestions,zsh-history-substring-search,zsh-syntax-highlighting,ryoku-oh-my-zsh,blesh"

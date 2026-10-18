@@ -530,9 +530,22 @@ func unavailableChoiceNotices(plan installerplan.EditionPlan, kind string) []str
 }
 
 func stepsForVariant(variant string) []step {
+	edition := installerChoicesForVariant(variant)
 	browserDesc := []string{i18n.T("Ryoku ships three browsers; pick the one you want, or none."), i18n.T("It becomes the default and the launcher's browser role.")}
 	if n := shippedBrowserCount(variant); n != shippedBrowserCount("plain") {
 		browserDesc[0] = i18n.Tf("Ryoku ships %d browsers on this edition; pick the one you want, or none.", n)
+	}
+	rashinKind := kConfirm
+	rashinDesc := []string{
+		i18n.T("Rashin is Ryoku's AI agent: Ask on Alt+Space,"),
+		i18n.T("the Rashin window and the bar's AI usage."),
+		i18n.T("It runs the Hermes agent, which installs at your"),
+		i18n.T("first login when you are online."),
+		i18n.T("Turn it off later in Ryoku Settings > Advanced."),
+	}
+	if availability, ok := edition.Component("rashin"); ok && availability.Locked {
+		rashinKind = kNotice
+		rashinDesc = append(rashinDesc, i18n.T("On this edition it ships with the desktop package."))
 	}
 	all := []step{
 		{key: "keyboard", title: i18n.T("Keyboard layout"), kind: kSelect, items: keymaps(),
@@ -553,6 +566,9 @@ func stepsForVariant(variant string) []step {
 			desc: browserDesc},
 		{key: "login-shell", title: i18n.T("Login shell"), kind: kSelect, items: loginShellsForVariant(variant), numbered: true,
 			desc: []string{i18n.T("Choose the shell that opens in terminals."), i18n.T("Shared command-line tools stay available with every choice.")}},
+		{key: "file-manager", title: i18n.T("File manager"), kind: kSelect, items: fileManagersForVariant(variant), numbered: true,
+			desc: []string{i18n.T("Choose the app that opens folders and files.")}},
+		{key: "rashin", title: i18n.T("Rashin"), kind: rashinKind, desc: rashinDesc},
 		{key: "apps", title: i18n.T("Apps & tools"), kind: kApps,
 			desc: []string{i18n.T("Space toggles · every app Ryoku ships, keep or remove."), i18n.T("Required rows back a desktop feature and cannot be removed.")}},
 		{key: "diskpick", title: i18n.T("Target disk"), kind: kSelect, items: disks(), numbered: true,
@@ -570,6 +586,21 @@ func stepsForVariant(variant string) []step {
 			desc: []string{i18n.T("Encrypt the root with LUKS?"), i18n.T("You type its passphrase at every boot.")}},
 		{key: "review", title: i18n.T("Review"), kind: kConfirm,
 			desc: []string{i18n.T("Last safe point, nothing written yet.")}},
+	}
+	if variant == "plain" {
+		index := flowIndex(all, "apps")
+		cachyos := step{key: "cachyos", title: i18n.T("CachyOS layer"), kind: kConfirm,
+			desc: []string{
+				i18n.T("Adds the CachyOS repositories and kernel."),
+				i18n.T("The Arch kernel stays as a boot fallback."),
+				i18n.T("Also installs system tuning, sched-ext"),
+				i18n.T("schedulers, ananicy-cpp and CachyOS Proton."),
+				i18n.T("Needs a network connection. If the mirror is"),
+				i18n.T("down, setup goes on; add it later in Ryostore."),
+			}}
+		all = append(all, step{})
+		copy(all[index+1:], all[index:])
+		all[index] = cachyos
 	}
 	// On the graphical relaunch (keymapRelaunch), the keyboard layout is already
 	// chosen and cage runs under it; drop the step so the wizard resumes at locale,
@@ -595,7 +626,7 @@ func editionNotice(variant string) (step, bool) {
 		i18n.T("Use ryoku update --system for base-system updates."),
 		i18n.T("XBPS has no update hooks; this keeps updates snapshotted."),
 	}
-	for _, kind := range []string{installerplan.Compositor, installerplan.Browser, installerplan.LoginShell} {
+	for _, kind := range []string{installerplan.Compositor, installerplan.Browser, installerplan.LoginShell, installerplan.FileManager} {
 		lines = append(lines, unavailableChoiceNotices(edition, kind)...)
 	}
 	return step{key: "void-notice", title: i18n.T("Ryoku on Void"), kind: kNotice, desc: lines}, true
@@ -1019,6 +1050,9 @@ func newModel() model {
 	m.picks["compositor"] = installerplan.FreshSelection(installerplan.Compositor, edition.AvailableIDs(installerplan.Compositor))
 	m.picks["browser"] = installerplan.FreshDefault(installerplan.Browser)
 	m.picks["login-shell"] = installerplan.FreshDefault(installerplan.LoginShell)
+	m.picks["file-manager"] = installerplan.FreshDefault(installerplan.FileManager)
+	m.picks["rashin"] = "1"
+	m.picks["cachyos"] = "0"
 	m.netOnline = netOnline()
 	m.loadStep()
 	return m
@@ -1141,6 +1175,15 @@ func (m *model) loadStep() {
 		m.input, m.yes = "", false
 		m.inputErr, m.encStage, m.pass1, m.encErr = "", 0, "", ""
 		m.wipeStage, m.eraseInput = 0, ""
+		if s.key == "rashin" {
+			m.yes = def(m.picks["rashin"], "1") == "1"
+		}
+		if s.key == "cachyos" {
+			m.yes = m.netOnline && m.picks["cachyos"] == "1"
+			if !m.netOnline {
+				m.picks["cachyos"] = "0"
+			}
+		}
 		if s.key == "review" {
 			m.netOnline = netOnline() // re-probe: Review needs it only on a non-offline image
 		}
@@ -1488,6 +1531,14 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 			m.editInput(k, &m.input)
 		}
 	case kConfirm:
+		if s.key == "cachyos" && !m.netOnline {
+			m.yes = false
+			if k == "enter" {
+				m.picks["cachyos"] = "0"
+				m.advance()
+			}
+			return m, nil
+		}
 		if s.key == "encryption" && m.encStage > 0 { // passphrase entry
 			if k == "esc" {
 				m.encStage, m.input, m.encErr = 0, "", ""
@@ -1549,6 +1600,15 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 		case "n":
 			m.yes = false
 		case "enter":
+			if s.key == "rashin" || s.key == "cachyos" {
+				value := "0"
+				if m.yes {
+					value = "1"
+				}
+				m.picks[s.key] = value
+				m.advance()
+				return m, nil
+			}
 			if s.key == "encryption" {
 				if m.yes {
 					m.encStage, m.input, m.encErr = 1, "", "" // collect a passphrase
@@ -2854,6 +2914,9 @@ func (m model) viewWizard() string {
 		for _, d := range s.desc {
 			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
 		}
+		if s.key == "cachyos" && !m.netOnline {
+			c.WriteString(fg(cYell, i18n.T("No network connection. This option stays off.")) + "\n")
+		}
 		if s.key == "diskpick" && m.diskHint != "" {
 			c.WriteString("\n" + sty().Foreground(cYell).Width(inner).Render("⚠ "+m.diskHint) + "\n")
 		}
@@ -3334,8 +3397,10 @@ func (m model) helpBody() string {
 // Nerd-font icons per step (gated on `nerd`; plain markers otherwise).
 var stepIcon = map[string]string{
 	"keyboard": "", "locale": "", "timezone": "", "network": "",
-	"hardware": "", "profile": "", "gpu": "", "diskpick": "",
-	"disk": "", "partitions": "", "hostname": "", "username": "",
+	"hardware": "", "profile": "", "gpu": "", "compositor": "",
+	"browser": "", "login-shell": "", "file-manager": "", "rashin": "",
+	"cachyos": "", "apps": "", "diskpick": "", "disk": "",
+	"partitions": "", "hostname": "", "username": "",
 	"password": "", "encryption": "", "review": "",
 }
 
@@ -3475,6 +3540,13 @@ func (m model) reviewBody(w int) string {
 	if m.hwBIOS {
 		firmware = i18n.T("Legacy BIOS")
 	}
+	rashin := i18n.T("Yes")
+	if def(m.picks["rashin"], "1") != "1" {
+		rashin = i18n.T("No")
+	}
+	if availability, ok := installerChoicesForVariant(m.variant).Component("rashin"); ok && availability.Locked {
+		rashin = i18n.T("Included")
+	}
 	lines := []string{
 		bold(cBrand, i18n.T("Review, then confirm to install")), "",
 		fg(cRed, i18n.Tf("⚠ this writes the layout below to %s", m.diskDev)), "",
@@ -3482,15 +3554,27 @@ func (m model) reviewBody(w int) string {
 		row(i18n.T("time zone"), m.picks["timezone"]), row(i18n.T("profile"), m.picks["profile"]),
 		row(i18n.T("firmware"), firmware),
 		row(i18n.T("wm"), compositorLabel(m.picks["compositor"])), row(i18n.T("browser"), browserLabel(m.picks["browser"])),
-		row(i18n.T("shell"), loginShellLabel(m.picks["login-shell"])), row(i18n.T("apps"), m.appsReviewCell()),
+		row(i18n.T("shell"), loginShellLabel(m.picks["login-shell"])),
+		row(i18n.T("files"), fileManagerLabel(m.picks["file-manager"])),
+		row(i18n.T("Rashin"), rashin),
+		row(i18n.T("apps"), m.appsReviewCell()),
+	}
+	if m.variant == "plain" {
+		cachyos := i18n.T("No")
+		if m.picks["cachyos"] == "1" {
+			cachyos = i18n.T("Yes")
+		}
+		lines = append(lines, row(i18n.T("CachyOS"), cachyos))
+	}
+	lines = append(lines,
 		row(i18n.T("disk"), m.diskDev),
-		fg(cSub, fmt.Sprintf("%-11s", i18n.T("strategy"))) + stratCell,
+		fg(cSub, fmt.Sprintf("%-11s", i18n.T("strategy")))+stratCell,
 		row(i18n.T("hostname"), m.picks["hostname"]),
 		row(i18n.T("user"), m.picks["username"]), row(i18n.T("password"), m.picks["password"]),
 		row(i18n.T("encryption"), m.picks["encryption"]), "",
-		fg(cSub, i18n.T("layout     ")) + fg(cText, i18n.Tf("%s %s · root %dG · swap %s", bootKind, esp, m.availRoot()-m.swapG, swap)),
-		fg(cSub, i18n.T("subvols    ")) + fg(cText, subs),
-	}
+		fg(cSub, i18n.T("layout     "))+fg(cText, i18n.Tf("%s %s · root %dG · swap %s", bootKind, esp, m.availRoot()-m.swapG, swap)),
+		fg(cSub, i18n.T("subvols    "))+fg(cText, subs),
+	)
 	if len(m.kept) > 0 {
 		lines = append(lines, fg(cSub, i18n.T("kept       "))+fg(cYell, i18n.Tf("%d existing partition(s)", len(m.kept))))
 	}

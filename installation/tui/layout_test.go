@@ -110,7 +110,7 @@ func TestChromeMatchesGrid(t *testing.T) {
 	banner := func(w, h int) bool {
 		return strings.Contains(wizardAt("review", w, h).fittedFrame(), "▀")
 	}
-	if !banner(80, 40) {
+	if !banner(80, 44) {
 		t.Error("a tall grid must keep the block banner")
 	}
 	if banner(80, 24) {
