@@ -42,17 +42,13 @@ func TestReduxInstalledPresetAndSwitching(t *testing.T) {
 	if err := voxtypeRmModel(reduxPresetKey); err == nil {
 		t.Fatal("allowed deleting shared Redux model")
 	}
-	dir := filepath.Join(configHome(), "systemd/user/voxtype.service.d")
-	os.MkdirAll(dir, 0700)
-	old := filepath.Join(dir, "local-parakeet-redux.conf")
-	os.WriteFile(old, []byte("[Unit]\nRequires=voxtype-redux.service\n[Service]\nExecStart=/usr/bin/voxtype --config %h/.config/voxtype/redux-adapter.toml daemon\n"), 0600)
+	if reduxInstalled() {
+		t.Fatal("Redux counted as installed without the Hub's receipt")
+	}
 	if err := configureReduxService(true, true); err != nil {
 		t.Fatal(err)
 	}
-	if !fileExists(old+".pre-hub") || fileExists(old) {
-		t.Fatal("old forced profile was not migrated")
-	}
-	current := filepath.Join(dir, "ryoku-redux.conf")
+	current := filepath.Join(configHome(), "systemd/user/voxtype.service.d/ryoku-redux.conf")
 	if !strings.Contains(readFileString(current), "Requires=voxtype-redux.service") {
 		t.Fatal("missing worker dependency")
 	}

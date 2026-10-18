@@ -185,15 +185,8 @@ func voxtypeSet(arg string) error {
 	if !ok {
 		return fmt.Errorf("unknown preset: %s", req.Preset)
 	}
-	if p.Key == reduxPresetKey {
-		if !reduxInstalled() {
-			return fmt.Errorf("install Redux and its adapter from the model card first")
-		}
-		if !fileExists(reduxReceiptPath()) {
-			if err := runReduxSetup("adopt"); err != nil {
-				return err
-			}
-		}
+	if p.Key == reduxPresetKey && !reduxInstalled() {
+		return fmt.Errorf("install Redux and its adapter from the model card first")
 	}
 	openaiKey := req.OpenAIKey
 	if openaiKey == "" {
@@ -258,7 +251,7 @@ func voxtypeDownload(key string) error {
 	}
 	if p.Key == reduxPresetKey {
 		if reduxInstalled() {
-			return runReduxSetup("adopt")
+			return nil
 		}
 		return runReduxSetup("install")
 	}

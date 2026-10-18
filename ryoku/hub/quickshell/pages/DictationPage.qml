@@ -45,9 +45,18 @@ Item {
     property string busyError: ""
     property string notice: ""    // one-shot info banner, e.g. after a download
     // streamed download percent, -1 while indeterminate (voxtype emits progress
-    // to stdout; a newline-terminated percent lights the determinate track, and
-    // otherwise the heartbeat dot carries the wait).
+    // to stdout; a newline-terminated percent lights the determinate track).
     property real dlPercent: -1
+    // the step a multi-step install is on (Redux builds its runtime before the
+    // model downloads), worded here from the installer's `stage: <step>` lines.
+    property string dlStage: ""
+    readonly property var stageWords: ({
+        "fetch": I18n.tr("  \u00b7  fetching the source\u2026"),
+        "configure": I18n.tr("  \u00b7  preparing the build\u2026"),
+        "build": I18n.tr("  \u00b7  building the speech runtime\u2026"),
+        "download": I18n.tr("  \u00b7  downloading the model\u2026"),
+        "install": I18n.tr("  \u00b7  installing\u2026")
+    })
 
     readonly property var sel: {
         for (var i = 0; i < pg.presets.length; i++)
@@ -128,6 +137,7 @@ Item {
         pg.busyError = "";
         pg.notice = "";
         pg.dlPercent = -1;
+        pg.dlStage = "";
         pg.cancelRequested = false;
         pg.installError = "";
         pg.downloading = key;
@@ -211,7 +221,12 @@ Item {
         stdout: SplitParser {
             splitMarker: "\n"
             onRead: (line) => {
-                var m = String(line).match(/(\d+(?:\.\d+)?)\s*%/);
+                var text = String(line);
+                if (text.startsWith("stage: ")) {
+                    pg.dlStage = text.slice(7).trim();
+                    return;
+                }
+                var m = text.match(/(\d+(?:\.\d+)?)\s*%/);
                 if (m)
                     pg.dlPercent = Math.max(0, Math.min(100, parseFloat(m[1])));
             }
@@ -225,6 +240,7 @@ Item {
             var canceled = pg.cancelRequested;
             pg.downloading = "";
             pg.dlPercent = -1;
+            pg.dlStage = "";
             pg.cancelRequested = false;
             if (canceled) {
                 pg.notice = I18n.tr("Installation canceled. Your selected model is unchanged.");
@@ -506,7 +522,7 @@ Item {
                                         text: I18n.tr(card.modelData.language)
                                             + "  \u00b7  " + I18n.tr(card.modelData.speed)
                                             + "  \u00b7  " + card.modelData.size
-                                            + (card.busy ? I18n.tr("  \u00b7  installing\u2026")
+                                            + (card.busy ? (pg.stageWords[pg.dlStage] || I18n.tr("  \u00b7  installing\u2026"))
                                                 : (card.modelData.cloud ? ""
                                                     : (card.modelData.present ? I18n.tr("  \u00b7  downloaded") : I18n.tr("  \u00b7  not downloaded"))))
                                         color: (card.busy || (!card.modelData.cloud && !card.modelData.present)) ? Tokens.ink : Tokens.inkFaint

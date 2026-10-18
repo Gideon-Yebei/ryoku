@@ -75,11 +75,6 @@ func runReduxSetup(action string) error {
 func reduxReceiptPath() string { return filepath.Join(dataHome(), "voxtype-redux", "hub-install.json") }
 
 func removeRedux() error {
-	if !fileExists(reduxReceiptPath()) {
-		if err := runReduxSetup("adopt"); err != nil {
-			return err
-		}
-	}
 	if err := runReduxSetup("check-remove"); err != nil {
 		return err
 	}
