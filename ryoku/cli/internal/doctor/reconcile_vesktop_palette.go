@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -72,11 +73,57 @@ func reconcileVesktopPalette(checkOnly bool) recResult {
 	if _, err := os.Stat(vesktopPaletteInstaller); err != nil {
 		return warnRes(i18n.T("Vesktop palette setup helper is unavailable; update ryoku-palette-bridge"))
 	}
+	capabilities, err := exec.Command("bash", vesktopPaletteInstaller, "--capabilities").Output()
+	if err != nil || strings.TrimSpace(string(capabilities)) != "vesktop-preserve-quickcss-v1" {
+		return warnRes(i18n.T("Vesktop palette setup is outdated; update ryoku-palette-bridge before repairing its registration"))
+	}
 	if checkOnly {
 		return wouldRes(i18n.T("Vesktop palette rendering replaces custom QuickCSS")).withFix("ryoku doctor")
 	}
 	if out, err := exec.Command("bash", vesktopPaletteInstaller, "--vesktop").CombinedOutput(); err != nil {
 		return failRes(i18n.T("could not migrate Vesktop palette registration: %v (%s)"), err, strings.TrimSpace(string(out)))
 	}
+	if !preservingVesktopPalette(sys.ConfigHome(), sys.Xdg("XDG_STATE_HOME", ".local/state")) {
+		return failRes(i18n.T("Vesktop palette setup still writes directly to QuickCSS; update ryoku-palette-bridge and rerun ryoku doctor"))
+	}
 	return fixedRes(i18n.T("Vesktop palette updates now preserve custom QuickCSS and imports"))
+}
+
+func preservingVesktopPalette(config, state string) bool {
+	root := filepath.Join(state, "ryoku/palette-bridge/vesktop")
+	installed, err := os.ReadFile(filepath.Join(root, "quickcss.sh"))
+	if err != nil || len(installed) == 0 {
+		return false
+	}
+	packaged, err := os.ReadFile(filepath.Join(filepath.Dir(vesktopPaletteInstaller), "vesktop/quickcss.sh"))
+	if err != nil || !bytes.Equal(installed, packaged) {
+		return false
+	}
+	raw, err := os.ReadFile(filepath.Join(config, "ryoku/user_edits/matugen/apps.toml"))
+	if err != nil {
+		return false
+	}
+	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'" }
+	hook := "bash " + quote(filepath.Join(root, "quickcss.sh")) + " " + quote(filepath.Join(config, "vesktop/settings/quickCss.css")) + " " + quote(filepath.Join(root, "palette.css"))
+	active, output, post := false, false, false
+	for _, line := range strings.Split(string(raw), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "[") {
+			if active {
+				break
+			}
+			active = line == "[templates.vesktop]"
+			continue
+		}
+		if active {
+			output = output || line == `output_path = "`+filepath.Join(root, "palette.css")+`"`
+			if strings.HasPrefix(line, "post_hook = ") {
+				var decoded string
+				if json.Unmarshal([]byte(strings.TrimPrefix(line, "post_hook = ")), &decoded) == nil {
+					post = decoded == hook
+				}
+			}
+		}
+	}
+	return output && post
 }

@@ -25,6 +25,7 @@ usage() {
 
 while (( $# )); do
   case "$1" in
+    --capabilities) printf 'vesktop-preserve-quickcss-v1\n'; exit 0 ;;
     --all) want_spotify=true; want_vesktop=true; want_zen=true ;;
     --spotify) want_spotify=true ;;
     --vesktop) want_vesktop=true ;;
