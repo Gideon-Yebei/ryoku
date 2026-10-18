@@ -13,6 +13,11 @@
   `backend/lib/cachyos.sh`).
 
 ### Fixed
+- **The install-steps rail fits a short console.** With the new questions the
+  step list outgrew an 80x24 console, and the clamp cut off the header and the
+  step's title. The rail now scrolls around the current step and counts the
+  steps above and below it, and answered yes/no steps read "yes" or "no"
+  instead of 1 or 0 (`tui/main.go`).
 - **The Void live medium can join Wi-Fi.** Its NetworkManager drop-in pinned
   iwd while nothing started iwd, so the installer never saw a network. The live
   image now supervises `iwd` (`void/iso/post-setup.sh`), the drop-in carries the

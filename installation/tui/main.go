@@ -2522,6 +2522,7 @@ type fitLevel struct {
 	smallHeader bool // one-line wordmark instead of the three-row block banner
 	tightCard   bool // no vertical card padding, no spacer rows, no key hints
 	noRail      bool // drop the install-steps rail and give the width to the card
+	railRows    int  // 0 lists every step; otherwise the rail shows this many rows around the current step
 }
 
 // fitLevels: richest first, height chrome only. fittedFrame walks these until the
@@ -2690,6 +2691,12 @@ func (m model) fittedFrame() string {
 		if w, h := frameBox(frame); (w <= m.w && h <= m.h) || i == len(fitLevels)-1 {
 			break
 		}
+	}
+	// The rail grows with the step list and can outgrow a short grid on its own.
+	// Scroll it around the current step before clamping cuts the card's title off.
+	if _, h := frameBox(frame); !noRail && h > m.h {
+		m.fit.railRows = max(m.activeTotal()-(h-m.h), 3)
+		frame = build()
 	}
 	// Last resort: even the leanest level can be too tall for a truly tiny grid, and
 	// a frame wider or taller than the terminal is what wraps and shears the whole
@@ -3427,13 +3434,16 @@ func (m model) activePos() int { // 0-based index among active steps
 func (m model) rail() string {
 	const inner = 18
 	num := m.cur().key == "review" // number steps so 1-9 can jump to edit them
-	lines := []string{fg(cSub, i18n.T("install steps")), ""}
-	n := 0
+	var steps []string
+	cur, n := 0, 0
 	for i, s := range m.flow {
 		if !m.stepActive(i) {
 			continue
 		}
 		n++
+		if i <= m.idx {
+			cur = n - 1
+		}
 		g := ""
 		if nerd {
 			g = stepIcon[s.key]
@@ -3452,17 +3462,39 @@ func (m model) rail() string {
 		case i < m.idx:
 			l := lead(cGreen, gCheck+" ") + fg(cText, s.key)
 			if v := m.picks[s.key]; v != "" && !num {
+				if s.kind == kConfirm {
+					v = map[string]string{"1": i18n.T("yes"), "0": i18n.T("no")}[v]
+				}
 				l += " " + fg(cDim, truncW(v, 14-len(s.key)))
 			}
-			lines = append(lines, l)
+			steps = append(steps, l)
 		case i == m.idx && (m.state == "wizard" || m.state == "transition"):
-			lines = append(lines, lead(cBrand, gCurStep)+bold(cBrand, s.key))
+			steps = append(steps, lead(cBrand, gCurStep)+bold(cBrand, s.key))
 		default:
-			lines = append(lines, lead(cDim, gPend+" ")+fg(cDim, s.key))
+			steps = append(steps, lead(cDim, gPend+" ")+fg(cDim, s.key))
 		}
 	}
+	lines := append([]string{fg(cSub, i18n.T("install steps")), ""}, windowRail(steps, cur, m.fit.railRows)...)
 	return sty().Border(border()).BorderForeground(cDim).Padding(0, 1).
 		Render(padLines(strings.Join(lines, "\n"), inner))
+}
+
+// windowRail keeps at most rows step lines, scrolled so the current step stays
+// in view, and turns the first or last visible row into a count of the steps cut
+// off at that end.
+func windowRail(steps []string, cur, rows int) []string {
+	if rows <= 0 || len(steps) <= rows {
+		return steps
+	}
+	start := clamp(cur-rows/2, 0, len(steps)-rows)
+	out := append([]string(nil), steps[start:start+rows]...)
+	if start > 0 {
+		out[0] = fg(cDim, i18n.Tf("↑ %d more", start+1))
+	}
+	if end := start + rows; end < len(steps) {
+		out[rows-1] = fg(cDim, i18n.Tf("↓ %d more", len(steps)-end+1))
+	}
+	return out
 }
 
 func inputBox(val, placeholder string, pw bool) string {
