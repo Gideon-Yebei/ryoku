@@ -47,7 +47,7 @@ func watchPaletteContext(ctx context.Context, path string, reload func() error) 
 			if wd >= 0 {
 				_, _ = syscall.InotifyRmWatch(fd, uint32(wd))
 			}
-			wd, err = syscall.InotifyAddWatch(fd, dir, syscall.IN_CLOSE_WRITE|syscall.IN_MOVED_TO|syscall.IN_MOVE_SELF|syscall.IN_DELETE_SELF)
+			wd, err = syscall.InotifyAddWatch(fd, dir, syscall.IN_CLOSE_WRITE|syscall.IN_MOVED_TO|syscall.IN_DELETE|syscall.IN_MOVED_FROM|syscall.IN_MOVE_SELF|syscall.IN_DELETE_SELF)
 			if err != nil {
 				if !errors.Is(err, syscall.ENOENT) {
 					return err

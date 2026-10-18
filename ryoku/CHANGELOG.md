@@ -8,6 +8,14 @@
   after the first update (`palette-bridge/vesktop/quickcss.sh`).
 
 ### Added
+- **Ryogami offers opt-in Spotify styling and palette bridge controls.**
+  Integrations > Palette bridge adds neutral Spotify styling, accent strength,
+  surface brightness, separate sidebar/player/card tint, independent button,
+  progress and link accents, neutral text and colour-wash controls in collapsible
+  groups. The original palette
+  mapping stays the default; preferences repaint the running client without
+  an app restart. The page also offers explicit per-app setup/removal, service
+  controls, status and palette health checks (`shell/ryogami/`, `palette-bridge/`).
 - **Ryoku Settings has a per-compositor window size.** Full page remains the
   default on Hyprland and Wayfire; niri keeps its normal column unless Custom
   is chosen. Custom centres a percentage-based size without shrinking below

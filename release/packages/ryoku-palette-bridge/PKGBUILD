@@ -29,6 +29,9 @@ build() {
 
 check() {
   cd "$_repo/ryoku/palette-bridge"
+  if command -v node >/dev/null; then
+    node tests/spicetify-palette.test.js
+  fi
   bash tests/install-integrations.test.sh
   bash tests/vesktop-quickcss.test.sh
   bash tests/install.test.sh
