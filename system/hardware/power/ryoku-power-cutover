@@ -1711,24 +1711,36 @@ stop_pids() {
   return 1
 }
 
-login1_inhibitor_owned() {
-  local pid=$1 uid=$2 who=$3 what=$4 json
-  if [[ $init_system == systemd ]]; then
-    json="$(systemd-inhibit --list --json=short 2>/dev/null || true)"
-    [[ $json == *"\"pid\":$pid"* && $json == *"\"uid\":$uid"* &&
-       $json == *"\"who\":\"$who\""* ]]
-    return
-  fi
+# Fedora 44 ships systemd 259, whose systemd-inhibit has no --json; there, as
+# under elogind, login1 is asked over D-Bus instead.
+inhibitor_list_has_json() {
+  [[ $init_system == systemd && "$("$host_bin" pkgmgr 2>/dev/null)" != dnf ]]
+}
+
+login1_block_inhibitor_pids() {
+  local uid=$1 who=$2 what=$3 json
   command -v busctl >/dev/null 2>&1 || return 1
   command -v jq >/dev/null 2>&1 || return 1
   json="$(busctl --json=short call \
     org.freedesktop.login1 /org/freedesktop/login1 \
     org.freedesktop.login1.Manager ListInhibitors 2>/dev/null)" || return 1
-  jq -e --argjson pid "$pid" --argjson uid "$uid" \
-    --arg who "$who" --arg what "$what" \
-    'any(.data[0][]; .[5] == $pid and .[4] == $uid and .[1] == $who
-      and .[3] == "block" and ((.[0] | split(":")) | index($what)))' \
-    >/dev/null <<<"$json"
+  jq -r --argjson uid "$uid" --arg who "$who" --arg what "$what" \
+    '.data[0][] | select(.[4] == $uid and .[1] == $who and .[3] == "block"
+      and ((.[0] | split(":")) | index($what))) | .[5]' <<<"$json"
+}
+
+login1_inhibitor_owned() {
+  local pid=$1 uid=$2 who=$3 what=$4 owner json
+  if inhibitor_list_has_json; then
+    json="$(systemd-inhibit --list --json=short 2>/dev/null || true)"
+    [[ $json == *"\"pid\":$pid"* && $json == *"\"uid\":$uid"* &&
+       $json == *"\"who\":\"$who\""* ]]
+    return
+  fi
+  while read -r owner; do
+    [[ $owner == "$pid" ]] && return 0
+  done < <(login1_block_inhibitor_pids "$uid" "$who" "$what")
+  return 1
 }
 
 stop_clamshell_owner() {
@@ -2154,12 +2166,16 @@ legacy_clamshell_inhibitor_owned() {
   fi
   cgroup="$(systemctl --user show "$unit" -p ControlGroup --value 2>/dev/null)" || return 1
   [[ -n $cgroup ]] || return 1
-  json="$(systemd-inhibit --list --json=short 2>/dev/null)" || return 1
-  mapfile -t pids < <(jq -r --argjson uid "$uid" '
-    .[] | select(.uid == $uid and .who == "ryoku-clamshell"
-      and .mode == "block"
-      and ((.what | split(":")) | index("handle-lid-switch"))) | .pid
-  ' <<<"$json")
+  if inhibitor_list_has_json; then
+    json="$(systemd-inhibit --list --json=short 2>/dev/null)" || return 1
+    mapfile -t pids < <(jq -r --argjson uid "$uid" '
+      .[] | select(.uid == $uid and .who == "ryoku-clamshell"
+        and .mode == "block"
+        and ((.what | split(":")) | index("handle-lid-switch"))) | .pid
+    ' <<<"$json")
+  else
+    mapfile -t pids < <(login1_block_inhibitor_pids "$uid" ryoku-clamshell handle-lid-switch)
+  fi
   for pid in "${pids[@]}"; do
     [[ $pid =~ ^[0-9]+$ && -r /proc/$pid/cgroup ]] || continue
     grep -Fq "$cgroup" "/proc/$pid/cgroup" && return 0

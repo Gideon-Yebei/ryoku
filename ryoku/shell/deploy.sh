@@ -266,7 +266,7 @@ trap 'piece_end failed; exit 130' INT TERM
 
 start_power_cutover_guard() {
   if [ -d /run/systemd/system ]; then
-    local json uid
+    local json uid inhibitors who inhibitor_uid what rest
     for command in systemd-inhibit jq systemctl systemd-run; do
       command -v "$command" >/dev/null 2>&1 || {
         say "cannot cut over lid policy: $command is unavailable" >&2
@@ -284,12 +284,23 @@ start_power_cutover_guard() {
     fi
     uid="$(id -u)"
     for _ in {1..60}; do
-      json="$(systemd-inhibit --list --json=short 2>/dev/null || true)"
-      if jq -e --argjson uid "$uid" \
-        'any(.[]; .uid == $uid and .who == "ryoku-session-cutover"
-          and .mode == "block" and ((.what | split(":")) | index("sleep")))' \
-        >/dev/null <<<"$json"; then
-        return 0
+      # Fedora 44 ships systemd 259, whose systemd-inhibit has no --json.
+      if [[ $package_manager == dnf ]]; then
+        inhibitors="$(systemd-inhibit --list --no-legend --no-pager 2>/dev/null || true)"
+        while read -r who inhibitor_uid _ _ _ what rest; do
+          if [[ $who == ryoku-session-cutover && $inhibitor_uid == "$uid" &&
+                :$what: == *:sleep:* && $rest =~ (^|[[:space:]])block$ ]]; then
+            return 0
+          fi
+        done <<<"$inhibitors"
+      else
+        json="$(systemd-inhibit --list --json=short 2>/dev/null || true)"
+        if jq -e --argjson uid "$uid" \
+          'any(.[]; .uid == $uid and .who == "ryoku-session-cutover"
+            and .mode == "block" and ((.what | split(":")) | index("sleep")))' \
+          >/dev/null <<<"$json"; then
+          return 0
+        fi
       fi
       sleep 0.05
     done
