@@ -774,6 +774,12 @@ if command -v sudo >/dev/null 2>&1; then
     sudo install -Dm"$3" "$1" "$2" || true
   }
   _priv_install "$here/../cli/ryoku-host" /usr/bin/ryoku-host 755
+  # `ryoku-host svc` and the doctor read the manifest ryoku-desktop ships; a
+  # Fedora checkout box has no such package. Void lays it with its runit tree.
+  if [[ $package_manager == dnf ]]; then
+    _priv_install "$repo_root/system/services/manifest.tsv" \
+      /usr/share/ryoku/services.tsv 644
+  fi
   if [[ $package_manager == xbps ]]; then
     _priv_install "$repo_root/void/packages/translations.tsv" \
       /usr/share/ryoku/packages/void.tsv 644
