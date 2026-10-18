@@ -166,7 +166,7 @@ func buildItems(f *facts, p *plan, editionPlans ...editionCompositorPlan) []plan
 	if availability, ok := edition.choices.Component("rashin"); ok && availability.Available {
 		it = append(it, planItem{
 			label:  i18n.T("Rashin"),
-			detail: i18n.T("Ryoku's AI agent: Ask on Alt+Space, the Rashin window, and the bar's AI usage. It runs the Hermes agent, which installs at first login when online. Turn it off later in Ryoku Settings > Advanced > Rashin."),
+			detail: i18n.T("Ryoku's AI agent: Ask on Alt+Space, the Rashin window, and the bar's AI usage. It runs the Hermes agent, which installs at first login when online. Turn it off later on the Rashin page of Ryoku Settings."),
 			on:     p.components["rashin"], locked: availability.Locked,
 		})
 	}

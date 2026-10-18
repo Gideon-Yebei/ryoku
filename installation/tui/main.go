@@ -541,7 +541,8 @@ func stepsForVariant(variant string) []step {
 		i18n.T("the Rashin window and the bar's AI usage."),
 		i18n.T("It runs the Hermes agent, which installs at your"),
 		i18n.T("first login when you are online."),
-		i18n.T("Turn it off later in Ryoku Settings > Advanced."),
+		i18n.T("Turn it off later on the Rashin page"),
+		i18n.T("of Ryoku Settings."),
 	}
 	if availability, ok := edition.Component("rashin"); ok && availability.Locked {
 		rashinKind = kNotice
