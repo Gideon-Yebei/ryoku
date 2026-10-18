@@ -125,3 +125,14 @@ runtime variants into one bar, and adds Ryoku settings and per-display
 controls. Quickshell Rise is released under the MIT License; that license is
 compatible with Ryoku's GPL-3 distribution, and the upstream license ships
 unchanged beside the port.
+
+The Redux dictation adapter (ryoku/hub/backend/assets/redux/adapter.py) is
+voxtype-redux-adapter v0.2.0 by Sipper1236
+(https://github.com/Sipper1236/voxtype-redux-adapter), shipped unmodified
+inside ryoku-hub and installed with the Redux model from the Hub's Dictation
+page. It is released under the MIT License, which ships beside it and in the
+notice the installer writes; that license is compatible with Ryoku's GPL-3
+distribution. The installer builds parakeet.cpp by the parakeet.cpp authors
+(https://github.com/mudler/parakeet.cpp, MIT) with its ggml submodule on the
+user's machine and downloads Moondream's Parakeet Redux weights, derived from
+NVIDIA Parakeet TDT 0.6B v3 (CC-BY-4.0); neither ships in a Ryoku package.
