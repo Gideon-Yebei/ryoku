@@ -5,6 +5,7 @@ import Ryoku.Ui.Singletons as Clock
 ShellRoot {
     id: root
     property var keyboard: ({numLock: false})
+    property var sddm: ({fingerprintHint: false})
     property var config: ({})
     property int phase: 0
     FileView { id: store; path: Quickshell.env("XDG_CONFIG_HOME") + "/ryoku/shell.json"; blockLoading: true; atomicWrites: true }

@@ -127,7 +127,11 @@ Rectangle {
         onTriggered: {
             var d = new Date()
             root.curH = d.getHours(); root.curM = d.getMinutes(); root.curS = d.getSeconds(); root.curMS = d.getMilliseconds()
-            if (d.toDateString() !== root.curDate.toDateString()) root.curDate = d
+            if (d.getFullYear() !== root.curDate.getFullYear()
+                    || d.getMonth() !== root.curDate.getMonth()
+                    || d.getDate() !== root.curDate.getDate()) {
+                root.curDate = d
+            }
         }
     }
 

@@ -22,6 +22,9 @@ ShellRoot {
         onTriggered: {
             if (!theme.item) { console.error("FAIL: theme did not load"); Qt.quit(); return; }
             if (root.phase === 0) {
+                if (theme.item.curDate === undefined) {
+                    console.error("FAIL: theme has no reactive curDate property"); Qt.quit(); return;
+                }
                 theme.item.curDate = root.yesterday;
                 if (!root.hasText(theme.item, root.day(root.yesterday))) {
                     console.error("FAIL: date label does not follow curDate"); Qt.quit(); return;
