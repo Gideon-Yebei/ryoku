@@ -12,8 +12,12 @@ chmod 0600 "$css"
 write_palette() {
   printf '/* ryoku-palette-bridge:begin */\n:root { --accent-2: %s; }\n/* ryoku-palette-bridge:end */\n' "$1" > "$palette"
 }
+original_inode=$(stat -c %i "$css")
 write_palette '#112233'
 bash "$helper" "$css" "$palette"
+[[ $(stat -c %i "$css") == "$original_inode" ]] || {
+  printf 'FAIL: palette update replaced the file watched by Vesktop\n' >&2; exit 1
+}
 write_palette '#aabbcc'
 bash "$helper" "$css" "$palette"
 bash "$helper" "$css" "$palette"

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+- **Vesktop keeps following wallpaper changes.** Palette updates preserve the
+  QuickCSS file inode so Vencord's file watcher continues receiving changes
+  after the first update (`palette-bridge/vesktop/quickcss.sh`).
+
 ### Added
 - **Ryoku Settings has a per-compositor window size.** Full page remains the
   default on Hyprland and Wayfire; niri keeps its normal column unless Custom
