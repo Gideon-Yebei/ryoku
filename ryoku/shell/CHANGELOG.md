@@ -59,6 +59,12 @@
   style is gone (`barstyles/python/`).
 
 ### Changed
+- **Fresh Ryogami profiles start with a new picker setup.** Slices open wider
+  with the Ash flip and wobble, the picker uses 1.2x scale and faster
+  filtering, overview blur starts at 45 px, new images are optimised with the
+  quality preset, and wallpaper transitions run for 900 ms. Small screens get a
+  scaled version of the slice sizes
+  (`ryogami/daemon/settings_schema_table.go`).
 - **Python follows Serpantinum's newer liquid-glass work.** Hover, lift and
   ripple lenses on inputs, the tray, notifications and the dock, glass corner
   fillets where the bar meets the screen, glass power and media buttons, white
