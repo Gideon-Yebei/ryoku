@@ -116,6 +116,11 @@
   Hermes's model, and connecting an agent now says it routes that agent's models
   through Prowl (`quickshell/pages/RashinPage.qml`).
 ### Fixed
+- **Saving a rice keeps its wallpaper after Ryogami optimises the image.**
+  Capture follows Ryogami's current wallpaper when the recorded file was
+  replaced by its WebP copy, and says so when it finds none. Applying a rice
+  whose wallpaper already sits in the wallpaper folder no longer copies it
+  again (`backend/rice.go`).
 - **Animation controls keep their names and copy inside each card.** Motion feel
   chips wrap before the starting-point hint, curve notes use the room beside the
   editor, and Advanced rows move their controls below the animation name when a
