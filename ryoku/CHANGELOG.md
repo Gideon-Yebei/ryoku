@@ -233,6 +233,10 @@
   `hub/quickshell/schema/DesktopScenePage.js`, `shell/ipc/control.go`).
 
 ### Fixed
+- **Wallpaper app colours recover when the palette cache is replaced.** The
+  palette bridge reattaches after its cache directory or an ancestor is moved,
+  deleted, or recreated, and reads the current palette as soon as it attaches.
+  A first palette written during startup is picked up without another change.
 - **The palette bridge waits for the first login instead of restart-looping at
   boot.** It starts without a palette, reports it unavailable until one is
   written, and watches for the cache directory to appear

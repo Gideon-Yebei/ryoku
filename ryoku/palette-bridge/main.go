@@ -15,7 +15,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"unsafe"
 )
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -184,49 +183,6 @@ func (h *paletteHub) eventsHandler(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		case <-r.Context().Done():
 			return
-		}
-	}
-}
-
-func watchPalette(path string, reload func() error) error {
-	fd, err := syscall.InotifyInit1(syscall.IN_CLOEXEC)
-	if err != nil {
-		return err
-	}
-	defer syscall.Close(fd)
-	dir, name := filepath.Dir(path), filepath.Base(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	_, err = syscall.InotifyAddWatch(fd, dir, syscall.IN_CLOSE_WRITE|syscall.IN_MOVED_TO)
-	if err != nil {
-		return err
-	}
-
-	buffer := make([]byte, syscall.SizeofInotifyEvent+4096)
-	for {
-		n, err := syscall.Read(fd, buffer)
-		if err != nil {
-			if errors.Is(err, syscall.EINTR) {
-				continue
-			}
-			return err
-		}
-		changed := false
-		for offset := 0; offset+syscall.SizeofInotifyEvent <= n; {
-			event := (*syscall.InotifyEvent)(unsafe.Pointer(&buffer[offset]))
-			start := offset + syscall.SizeofInotifyEvent
-			end := start + int(event.Len)
-			eventName := string(bytes.TrimRight(buffer[start:end], "\x00"))
-			offset = end
-			if eventName == name {
-				changed = true
-			}
-		}
-		if changed {
-			if err := reload(); err != nil {
-				log.Printf("palette update ignored: %v", err)
-			}
 		}
 	}
 }
