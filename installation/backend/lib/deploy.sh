@@ -127,9 +127,19 @@ ryoku_repo_keyring() {
 # loudly instead of booting a half-configured box.
 ryoku_deploy_packages() {
   local -a pkgs=(ryoku-keyring ryoku-desktop "ryoku-desktop-$RYOKU_COMPOSITOR")
-  # Rashin is an optional app in [ryoku], not a desktop dependency: it comes in
-  # here unless Apps & tools unticked it.
-  ryoku_drop_pkg ryoku-rashin || pkgs+=(ryoku-rashin)
+  local package
+  # These apps are fresh-install defaults but remain independently removable.
+  for package in ryoku-rashin ryotunes ryomanager; do
+    ryoku_drop_pkg "$package" || pkgs+=("$package")
+  done
+  # The base set already carries Nautilus. Repeating the selected packages here
+  # is harmless under --needed and also brings in Dolphin or Thunar when chosen.
+  local -a file_packages=()
+  local file_key="file-manager:$RYOKU_FILE_MANAGER"
+  IFS=, read -ra file_packages <<<"${RYOKU_CHOICE_PACKAGES[$file_key]}"
+  for package in "${file_packages[@]}"; do
+    ryoku_drop_pkg "$package" || pkgs+=("$package")
+  done
   local aura="$RYOKU_REPO/system/hardware/input/ryoku-hw-asus-aura"
   if [[ -x $aura ]] && "$aura"; then
     if [[ -z ${RYOKU_DRYRUN:-} ]] && arch-chroot /mnt pacman -Qq tlp >/dev/null 2>&1; then
@@ -335,6 +345,84 @@ ryoku_deploy_seed() {
 default
 EOF
   run "$RYOKU_TARGET_CHROOT" /mnt chown "$u:$u" "$state/default-rice-pending"
+  local rashin_marker="/mnt$state/rashin-setup-pending"
+  if [[ ${RYOKU_RASHIN:-1} == 1 ]]; then
+    write_file "$rashin_marker" <<'EOF'
+pending
+EOF
+    run "$RYOKU_TARGET_CHROOT" /mnt chown "$u:$u" "$state/rashin-setup-pending"
+  else
+    run rm -f "$rashin_marker"
+  fi
+  ryoku_seed_hidden_apps "$u"
+}
+
+ryoku_seed_hidden_apps() {
+  local u=$1 id path
+  local appdir="/mnt/home/$u/.local/share/applications"
+  [[ -n ${RYOKU_HIDE_APPS:-} ]] || return 0
+  run "$RYOKU_TARGET_CHROOT" /mnt install -d -o "$u" -g "$u" \
+    "/home/$u/.local/share" "/home/$u/.local/share/applications"
+  local -a ids=()
+  IFS=, read -ra ids <<<"$RYOKU_HIDE_APPS"
+  for id in "${ids[@]}"; do
+    path="$appdir/$id"
+    write_file "$path" <<'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+    run "$RYOKU_TARGET_CHROOT" /mnt chown "$u:$u" "/home/$u/.local/share/applications/$id"
+    log 'hidden app: %s for %s' "$id" "$u"
+  done
+}
+
+# Set the selected file manager in both places desktop applications read:
+# xdg-mime owns inode/directory, while the neutral desktop store owns the files
+# launcher role. Install-time only, like ryoku_default_browser.
+ryoku_default_file_manager() {
+  local u=$RYOKU_USERNAME choice=${RYOKU_FILE_MANAGER:-nautilus}
+  local desktop command store next d
+  case $choice in
+    nautilus)
+      command=nautilus
+      for d in org.gnome.Nautilus.desktop nautilus.desktop; do
+        [[ -f /mnt/usr/share/applications/$d ]] && { desktop=$d; break; }
+      done
+      ;;
+    dolphin) command=dolphin; desktop=org.kde.dolphin.desktop ;;
+    thunar) command=thunar; desktop=thunar.desktop ;;
+  esac
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log 'DRYRUN: set %s as the default file manager (inode/directory + desktop.apps.files) for %s if installed' "$choice" "$u"
+    return 0
+  fi
+  if [[ -z ${desktop:-} || ! -f /mnt/usr/share/applications/$desktop ]]; then
+    log 'default file manager: %s is not installed; leaving the role unchanged' "$choice"
+    return 0
+  fi
+  if "$RYOKU_TARGET_CHROOT" /mnt runuser -u "$u" -- \
+    env "HOME=/home/$u" "USER=$u" "LOGNAME=$u" \
+    xdg-mime default "$desktop" inode/directory 2>/dev/null; then
+    log 'default file manager: set %s (%s) for %s' "$choice" "$desktop" "$u"
+  else
+    log 'default file manager: warning, could not set %s for %s (continuing)' "$choice" "$u"
+  fi
+  store="/mnt/home/$u/.config/ryoku/desktop.json"
+  if command -v jq >/dev/null 2>&1; then
+    if [[ -s $store ]]; then
+      next=$(jq --arg files "$command" '. * {desktop:{apps:{files:$files}}}' "$store") || next=
+    else
+      mkdir -p "$(dirname "$store")"
+      next=$(jq -n --arg files "$command" '{desktop:{apps:{files:$files}}}') || next=
+    fi
+    if [[ -n $next ]]; then
+      printf '%s\n' "$next" >"$store"
+      chown "$u:$u" "$store" 2>/dev/null || true
+      log 'file-manager role: desktop.apps.files -> %s' "$command"
+    else
+      log 'file-manager role: skip (could not merge %s)' "$store"
+    fi
+  fi
 }
 
 # seed_provisioned: the installer's drop list is recorded in the doctor's

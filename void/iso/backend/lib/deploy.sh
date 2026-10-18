@@ -11,6 +11,19 @@ void_desktop_install() {
   local -a packages=()
   mapfile -t packages < <(void_resolve "${args[@]}")
   packages+=(ryoku-keyring ryoku-desktop "ryoku-desktop-$RYOKU_COMPOSITOR")
+  local source target package
+  local -a sources=(ryotunes ryomanager) file_sources=()
+  local file_key="file-manager:$RYOKU_FILE_MANAGER"
+  IFS=, read -ra file_sources <<<"${RYOKU_CHOICE_PACKAGES[$file_key]}"
+  sources+=("${file_sources[@]}")
+  for source in "${sources[@]}"; do
+    ryoku_drop_pkg "$source" && continue
+    target=${RYOKU_CHOICE_TARGET[$source]-}
+    [[ -n $target && $target != - ]] \
+      || die 'Void package translation is missing for selected package %s' "$source"
+    [[ $target != @repo ]] || target=$source
+    for package in $target; do packages+=("$package"); done
+  done
   mapfile -t packages < <(printf '%s\n' "${packages[@]}" | awk 'NF && !seen[$0]++')
   void_keep_uninstalled_packages packages
 

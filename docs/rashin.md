@@ -22,10 +22,11 @@ It is:
   need `ryoku-rashin`, so the compositor registers no chord for them while it
   is absent and Kit's Keys tab lists them as not installed. Kit opens with
   Super+K and puts Keys, Commands, Phone, Dev tools, and Typing test behind one
-  search field. Unticking Rashin in the installer's Apps & tools or `sudo
+  search field. Answering No to the installer's Rashin question or `sudo
   pacman -R ryoku-rashin` reach the same state; the doctor delivers it once and
-  never puts it back. The Fedora and Void desktops still require it, so there
-  the switch only stops and starts the agent.
+  never puts it back. Answering Yes leaves a first-login note that opens the
+  Hermes setup once the machine is online. The Fedora and Void desktops still
+  require it, so there the switch only stops and starts the agent.
 - **Local.** The daemon binds `127.0.0.1` only. WebSocket upgrades verify the
   Origin host is localhost. Mutating routes reject cross-origin browser calls
   and simple requests that could skip a CORS preflight. No auth is needed

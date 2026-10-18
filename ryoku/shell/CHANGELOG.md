@@ -21,6 +21,9 @@
 - **Default and NOC ship as rices with their wallpapers.** A fresh login
   applies Default and keeps its wallpaper instead of picking a random one
   (`../assets/rices/`, `scripts/ryoku-session-intro`).
+- **The first login opens Rashin's Hermes setup.** When the installer left
+  Rashin on, the first login with an internet connection opens the setup
+  terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
 - **Ryogami keeps the current wallpaper when it optimises the file.** Outputs,

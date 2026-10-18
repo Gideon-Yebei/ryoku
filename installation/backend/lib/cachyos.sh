@@ -155,3 +155,66 @@ ryoku_cachyos_keyring() {
   fi
   log "cachyos: keyring populate failed (cachyos-keyring absent?); a later -Syu can 'pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com'"
 }
+
+# Optional CachyOS layer for the plain Arch variant. It keeps Arch userland and
+# the stock kernel, adding only the v3 kernel/tuning repository used by the
+# Ryostore bundle.
+ryoku_cachyos_layer() {
+  [[ ${RYOKU_VARIANT:-plain} == plain && ${RYOKU_CACHYOS_LAYER:-0} == 1 ]] || return 0
+  RYOKU_CACHYOS_LAYER_ACTIVE=0
+  export RYOKU_CACHYOS_LAYER_ACTIVE
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log 'DRYRUN: check the target CPU for x86-64-v3 and the CachyOS mirror for reachability, enable [cachyos-v3] and multilib with the shipped helpers, then run pacman -Syu for linux-cachyos linux-cachyos-headers cachyos-settings ananicy-cpp cachyos-ananicy-rules scx-scheds proton-cachyos-native'
+    RYOKU_CACHYOS_LAYER_ACTIVE=1
+    export RYOKU_CACHYOS_LAYER_ACTIVE
+    return 0
+  fi
+  if ! arch-chroot /mnt sh -c \
+    "/lib/ld-linux-x86-64.so.2 --help 2>/dev/null | grep -q 'x86-64-v3 (supported'"; then
+    log 'CachyOS layer: this CPU does not support x86-64-v3; skipping the layer'
+    return 0
+  fi
+  local mirror_probe=https://mirror.cachyos.org/repo/x86_64_v3/cachyos-v3/cachyos-v3.db
+  if ! curl -fsSI --connect-timeout 5 --max-time 10 -o /dev/null "$mirror_probe"; then
+    log 'CachyOS layer: the CachyOS mirror is unreachable; skipping the layer. Add it later from Ryostore > CachyOS Layer.'
+    return 0
+  fi
+
+  if ! ryoku_cachyos_layer_helper ryoku-pkg-cachyos ||
+    ! ryoku_cachyos_layer_helper ryoku-pkg-multilib; then
+    log 'CachyOS layer: could not add the CachyOS or multilib repository; skipping the layer. Add it later from Ryostore > CachyOS Layer.'
+    return 0
+  fi
+
+  local -a packages=(
+    linux-cachyos linux-cachyos-headers cachyos-settings ananicy-cpp
+    cachyos-ananicy-rules scx-scheds proton-cachyos-native
+  )
+  log 'CachyOS layer: installing %s' "${packages[*]}"
+  if ! run arch-chroot /mnt pacman -Syu --needed --noconfirm --noprogressbar "${packages[@]}"; then
+    log 'CachyOS layer: its packages did not install; the install goes on without it. Add it later from Ryostore > CachyOS Layer.'
+    return 0
+  fi
+  RYOKU_CACHYOS_LAYER_ACTIVE=1
+  export RYOKU_CACHYOS_LAYER_ACTIVE
+}
+
+# The helpers ship with the desktop; the payload copy covers a target that does
+# not carry them yet. A failure returns non-zero so the caller can skip.
+ryoku_cachyos_layer_helper() {
+  local name=$1 source="$RYOKU_REPO/system/extras/$1" target="/root/$1" rc=0
+  if [[ -x /mnt/usr/bin/$name ]]; then
+    run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp "/usr/bin/$name"
+    return
+  fi
+  if [[ ! -x $source ]]; then
+    log 'CachyOS layer: helper %s is missing' "$source"
+    return 1
+  fi
+  if ! run cp "$source" "/mnt$target" || ! run chmod 755 "/mnt$target"; then
+    return 1
+  fi
+  run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp "$target" || rc=$?
+  run rm -f "/mnt$target"
+  return "$rc"
+}

@@ -90,10 +90,10 @@ mapfile -t PKGS < <(
   # The desktop set plus the hardware-only ASUS Aura provider: the target
   # installer selects asusctl only on a matching laptop. All compositor
   # variants bake because the TUI offers each one and an offline install has no
-  # network to fetch a missing variant. ryoku-rashin is an optional app the
-  # installer adds unless it was unticked, so it bakes too.
+  # network to fetch a missing variant. The fresh-install apps bake beside
+  # ryoku-rashin. The optional CachyOS layer remains network-only on plain.
   printf '%s\n' ryoku-keyring ryoku-desktop ryoku-desktop-hyprland ryoku-desktop-niri ryoku-desktop-wayfire asusctl \
-    ryoku-rashin
+    ryoku-rashin ryotunes ryomanager
 )
 # dedupe, keep order.
 mapfile -t PKGS < <(printf '%s\n' "${PKGS[@]}" | without_replaced | awk '!seen[$0]++')
