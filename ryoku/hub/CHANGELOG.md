@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- **General can choose the icon theme.** The picker lists installed icon themes
+  by their own names, leaves cursor-only and hidden themes out, and applies the
+  choice together to GNOME settings, GTK 3/4, Qt 6, KDE apps and the Ryoku
+  shell (`quickshell/pages/IconThemeSettings.qml`, `backend/icon_theme.go`).
 - **General has a Sounds tab.** Turn the desktop's sounds on or off, set
   their volume, and for each one (notifications, charger plugged and
   unplugged, low and full battery, USB devices, screenshots, volume keys) play

@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- **Icon-theme choices survive updates.** Materialize reapplies the Hub's
+  remembered icon theme after refreshing the shipped GTK and Qt configs, before
+  recording their final hashes, so the choice neither resets nor becomes a
+  frozen whole-file fork (`internal/updater/materialize.go`).
 - **Every dnf transaction on Fedora gets a snapshot pair.** The `ryoku` RPM
   ships a libdnf5 actions hook (`fedora/system/snapshots/`) that takes a snapper
   pre/post pair around each `dnf` run, the way snap-pac does for pacman.

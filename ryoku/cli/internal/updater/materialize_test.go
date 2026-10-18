@@ -850,3 +850,155 @@ func TestMaterializeRefreshesProviderGeneratedBaseline(t *testing.T) {
 		t.Fatal("unavailable provider changed the stale render")
 	}
 }
+
+func writeIconProjectionBase(t *testing.T, base, gtkTheme, qtStyle string) {
+	t.Helper()
+	writeFile(t, filepath.Join(base, "gtk-3.0/settings.ini"),
+		"[Settings]\ngtk-theme-name="+gtkTheme+"\ngtk-icon-theme-name=Default\n")
+	writeFile(t, filepath.Join(base, "gtk-4.0/settings.ini"),
+		"[Settings]\ngtk-theme-name="+gtkTheme+"\ngtk-icon-theme-name=Default\n")
+	writeFile(t, filepath.Join(base, "qt6ct/qt6ct.conf"),
+		"[Appearance]\nstyle="+qtStyle+"\nicon_theme=Default\n")
+}
+
+func writeTestIconProjection(t *testing.T, configHome, theme string) {
+	t.Helper()
+	for rel, projection := range iconThemeProjections {
+		path := filepath.Join(configHome, rel)
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(string(body), "\n")
+		section := ""
+		changed := false
+		for i, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+				section = strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, "["), "]"))
+				continue
+			}
+			if section != projection.section {
+				continue
+			}
+			key, _, ok := strings.Cut(trimmed, "=")
+			if !ok || strings.TrimSpace(key) != projection.key {
+				continue
+			}
+			eq := strings.Index(line, "=")
+			lines[i] = line[:eq+1] + theme
+			changed = true
+			break
+		}
+		if !changed {
+			t.Fatalf("%s has no %s key", rel, projection.key)
+		}
+		if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func stubIconThemeReapply(t *testing.T) {
+	t.Helper()
+	old := reapplyIconTheme
+	reapplyIconTheme = func(configHome string) error {
+		body, err := os.ReadFile(filepath.Join(configHome, "ryoku", "icon-theme"))
+		if os.IsNotExist(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		writeTestIconProjection(t, configHome, strings.TrimSpace(string(body)))
+		return nil
+	}
+	t.Cleanup(func() { reapplyIconTheme = old })
+}
+
+func TestMaterializeIgnoresHubIconProjectionBetweenUpdates(t *testing.T) {
+	base, dest := t.TempDir(), t.TempDir()
+	t.Setenv("RYOKU_CONFIG_BASE", base)
+	t.Setenv("XDG_CONFIG_HOME", dest)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	stubIconThemeReapply(t)
+
+	writeIconProjectionBase(t, base, "First", "Fusion")
+	writeFile(t, filepath.Join(dest, "ryoku", "icon-theme"), "Papirus\n")
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	writeFile(t, filepath.Join(dest, "ryoku", "icon-theme"), "Papirus-Dark\n")
+	writeTestIconProjection(t, dest, "Papirus-Dark")
+	writeIconProjectionBase(t, base, "Second", "Breeze")
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+
+	for rel := range iconThemeProjections {
+		if sys.Exists(filepath.Join(sys.UserEditsDir(), rel)) {
+			t.Errorf("%s icon projection became a user fork", rel)
+		}
+		wantFile(t, filepath.Join(dest, rel), "Papirus-Dark")
+	}
+	wantFile(t, filepath.Join(dest, "gtk-3.0/settings.ini"), "gtk-theme-name=Second")
+	wantFile(t, filepath.Join(dest, "gtk-4.0/settings.ini"), "gtk-theme-name=Second")
+	wantFile(t, filepath.Join(dest, "qt6ct/qt6ct.conf"), "style=Breeze")
+}
+
+func TestMaterializeStillForksOtherEditsWithIconState(t *testing.T) {
+	base, dest := t.TempDir(), t.TempDir()
+	t.Setenv("RYOKU_CONFIG_BASE", base)
+	t.Setenv("XDG_CONFIG_HOME", dest)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	stubIconThemeReapply(t)
+
+	writeIconProjectionBase(t, base, "First", "Fusion")
+	writeFile(t, filepath.Join(dest, "ryoku", "icon-theme"), "Papirus-Dark\n")
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+	gtk3 := filepath.Join(dest, "gtk-3.0/settings.ini")
+	body, err := os.ReadFile(gtk3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body = bytes.Replace(body, []byte("gtk-theme-name=First"), []byte("gtk-theme-name=HandEdited"), 1)
+	if err := os.WriteFile(gtk3, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+	fork := filepath.Join(sys.UserEditsDir(), "gtk-3.0/settings.ini")
+	wantFile(t, fork, "gtk-theme-name=HandEdited")
+	wantFile(t, filepath.Join(dest, "gtk-3.0/settings.ini"), "gtk-theme-name=HandEdited")
+	wantFile(t, filepath.Join(dest, "gtk-3.0/settings.ini"), "gtk-icon-theme-name=Papirus-Dark")
+}
+
+func TestMaterializeAcceptsFirstIconPickAfterRawManifest(t *testing.T) {
+	base, dest := t.TempDir(), t.TempDir()
+	t.Setenv("RYOKU_CONFIG_BASE", base)
+	t.Setenv("XDG_CONFIG_HOME", dest)
+	t.Setenv("XDG_STATE_HOME", t.TempDir())
+	stubIconThemeReapply(t)
+
+	writeIconProjectionBase(t, base, "First", "Fusion")
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(dest, "ryoku", "icon-theme"), "Papirus-Dark\n")
+	writeTestIconProjection(t, dest, "Papirus-Dark")
+
+	if err := Materialize(); err != nil {
+		t.Fatal(err)
+	}
+	for rel := range iconThemeProjections {
+		if sys.Exists(filepath.Join(sys.UserEditsDir(), rel)) {
+			t.Errorf("%s first icon pick became a user fork", rel)
+		}
+		wantFile(t, filepath.Join(dest, rel), "Papirus-Dark")
+	}
+}
