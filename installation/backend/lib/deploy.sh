@@ -355,6 +355,29 @@ EOF
     run rm -f "$rashin_marker"
   fi
   ryoku_seed_hidden_apps "$u"
+  ryoku_seed_launcher_overrides "$u"
+}
+
+# The neovim package's nvim.desktop and Ryoku's ryoku-nvim.desktop both say
+# Neovim, so launchers listed it twice. Same ledgered override the doctor's
+# duplicate-launcher reconciler writes, laid now so the first login is clean.
+ryoku_seed_launcher_overrides() {
+  local u=$1 apps=/mnt/usr/share/applications
+  local appdir="/home/$u/.local/share/applications" state="/home/$u/.local/state/ryoku"
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log 'DRYRUN: hide the neovim package launcher for %s (ryoku-nvim.desktop replaces it)' "$u"
+    return 0
+  fi
+  [[ -f $apps/nvim.desktop && -f $apps/ryoku-nvim.desktop ]] || return 0
+  [[ ! -e /mnt$appdir/nvim.desktop ]] || return 0
+  run "$RYOKU_TARGET_CHROOT" /mnt install -d -o "$u" -g "$u" \
+    "/home/$u/.local/share" "$appdir" "$state"
+  awk '/^\[/ { group = $0; print; if (group == "[Desktop Entry]") print "NoDisplay=true"; next }
+    group == "[Desktop Entry]" && /^NoDisplay=/ { next } { print }' \
+    "$apps/nvim.desktop" >"/mnt$appdir/nvim.desktop"
+  printf 'nvim.desktop\n' >>"/mnt$state/launcher-overrides"
+  run "$RYOKU_TARGET_CHROOT" /mnt chown "$u:$u" "$appdir/nvim.desktop" "$state/launcher-overrides"
+  log 'hid the duplicate Neovim launcher for %s' "$u"
 }
 
 ryoku_seed_hidden_apps() {

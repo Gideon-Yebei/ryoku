@@ -56,6 +56,13 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **Neovim shows up once in the launcher.** Ryoku's `ryoku-nvim.desktop` and
+  the neovim package's `nvim.desktop` both say Neovim, so every launcher and app
+  grid listed it twice. The doctor writes a user-level copy of the package's
+  entry with `NoDisplay=true` (MIME handling keeps working) and ledgers it, so
+  a user who deletes it keeps the package's entry; fresh ISO installs get the
+  same copy at install time (`internal/doctor/reconcile_launcher_duplicates.go`,
+  `installation/backend/lib/deploy.sh`).
 - **`ryoku update` no longer warns about a removed compositor provider.**
   Materialize preserves a switched-away compositor's config tree so it can be
   restored later, but after its variant package was removed it still tried to
