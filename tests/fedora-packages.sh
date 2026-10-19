@@ -256,11 +256,6 @@ for spec_pkg in "${!spec_names[@]}"; do
 		mapping=${row_fedora[$arch_dep]}
 		[[ $mapping != - ]] || continue
 		for expected_dep in $mapping; do
-			# Arch pins Rashin to the desktop; here the desktop requires Rashin,
-			# so the pin runs the other way and a reverse edge would be a cycle.
-			if [[ $spec_pkg == ryoku-rashin && $expected_dep == ryoku-desktop ]]; then
-				continue
-			fi
 			[[ -n ${hard[$expected_dep]:-}${provided[$expected_dep]:-} ]] \
 				|| fail "$spec_pkg spec misses translated dependency $expected_dep (from $arch_dep)"
 		done

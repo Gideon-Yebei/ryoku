@@ -530,23 +530,9 @@ func unavailableChoiceNotices(plan installerplan.EditionPlan, kind string) []str
 }
 
 func stepsForVariant(variant string) []step {
-	edition := installerChoicesForVariant(variant)
 	browserDesc := []string{i18n.T("Ryoku ships three browsers; pick the one you want, or none."), i18n.T("It becomes the default and the launcher's browser role.")}
 	if n := shippedBrowserCount(variant); n != shippedBrowserCount("plain") {
 		browserDesc[0] = i18n.Tf("Ryoku ships %d browsers on this edition; pick the one you want, or none.", n)
-	}
-	rashinKind := kConfirm
-	rashinDesc := []string{
-		i18n.T("Rashin is Ryoku's AI agent: Ask on Alt+Space,"),
-		i18n.T("the Rashin window and the bar's AI usage."),
-		i18n.T("It runs the Hermes agent, which installs at your"),
-		i18n.T("first login when you are online."),
-		i18n.T("Turn it off later on the Rashin page"),
-		i18n.T("of Ryoku Settings."),
-	}
-	if availability, ok := edition.Component("rashin"); ok && availability.Locked {
-		rashinKind = kNotice
-		rashinDesc = append(rashinDesc, i18n.T("On this edition it ships with the desktop package."))
 	}
 	all := []step{
 		{key: "keyboard", title: i18n.T("Keyboard layout"), kind: kSelect, items: keymaps(),
@@ -569,7 +555,14 @@ func stepsForVariant(variant string) []step {
 			desc: []string{i18n.T("Choose the shell that opens in terminals."), i18n.T("Shared command-line tools stay available with every choice.")}},
 		{key: "file-manager", title: i18n.T("File manager"), kind: kSelect, items: fileManagersForVariant(variant), numbered: true,
 			desc: []string{i18n.T("Choose the app that opens folders and files.")}},
-		{key: "rashin", title: i18n.T("Rashin"), kind: rashinKind, desc: rashinDesc},
+		{key: "rashin", title: i18n.T("Rashin"), kind: kConfirm, desc: []string{
+			i18n.T("Rashin is Ryoku's AI agent: Ask on Alt+Space,"),
+			i18n.T("the Rashin window and the bar's AI usage."),
+			i18n.T("It runs the Hermes agent, which installs at your"),
+			i18n.T("first login when you are online."),
+			i18n.T("Turn it off later on the Rashin page"),
+			i18n.T("of Ryoku Settings."),
+		}},
 		{key: "apps", title: i18n.T("Apps & tools"), kind: kApps,
 			desc: []string{i18n.T("Space toggles · every app Ryoku ships, keep or remove."), i18n.T("Required rows back a desktop feature and cannot be removed.")}},
 		{key: "diskpick", title: i18n.T("Target disk"), kind: kSelect, items: disks(), numbered: true,
@@ -3576,9 +3569,6 @@ func (m model) reviewBody(w int) string {
 	rashin := i18n.T("Yes")
 	if def(m.picks["rashin"], "1") != "1" {
 		rashin = i18n.T("No")
-	}
-	if availability, ok := installerChoicesForVariant(m.variant).Component("rashin"); ok && availability.Locked {
-		rashin = i18n.T("Included")
 	}
 	lines := []string{
 		bold(cBrand, i18n.T("Review, then confirm to install")), "",

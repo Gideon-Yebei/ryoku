@@ -9,7 +9,7 @@ license="GPL-3.0-or-later"
 homepage="https://ryoku.dev"
 hostmakedepends="go cmake ninja pkg-config"
 makedepends="gtk+3-devel libwebkit2gtk41-devel"
-depends="uv nodejs gcc prowl gtk+3 libwebkit2gtk41 python3"
+depends="ryoku-desktop>=${version} uv nodejs gcc prowl gtk+3 libwebkit2gtk41 python3"
 distfiles="https://repo.ryoku.dev/sources/ryoku-${version}.tar.gz"
 checksum=SKIP
 wrksrc="ryoku-${version}"

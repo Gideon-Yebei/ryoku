@@ -125,11 +125,6 @@ export RYOKU_DROP_PACKAGES
 edition=Arch
 [[ $RYOKU_VARIANT != cachyos ]] || edition=CachyOS
 ryoku_choice_apply_fresh "$edition"
-if [[ $RYOKU_RASHIN == 0 ]]; then
-  _ryoku_append_drop ryoku-rashin
-else
-  _ryoku_remove_drop ryoku-rashin
-fi
 if [[ $RYOKU_CACHYOS_LAYER == 1 && $RYOKU_VARIANT != plain ]]; then
   log 'CachyOS layer: ignored for the %s install variant' "$RYOKU_VARIANT"
   RYOKU_CACHYOS_LAYER=0

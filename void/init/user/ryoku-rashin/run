@@ -6,6 +6,7 @@ exec 2>&1
 load_session_env
 BIN=${RYOKU_BIN_DIR:-/usr/bin}
 _here=$(dirname "$0")
+require_bin "$BIN/ryoku-rashin" || exec sv down .
 
 if [ -d "$_here/../ryoku-prowl" ]; then
 	sv up "$_here/../ryoku-prowl" >/dev/null 2>&1 || true

@@ -44,16 +44,14 @@
 - **Credits name the Kit and Phone sources.** ii-p3drovfx now credits Kit and
   Phone as well, and Monkeytype is listed for the typing test's words and sounds
   (`quickshell/pages/CreditsPage.qml`, `../../NOTICE`).
-- **The Rashin switch owns the package.** On Arch, switching Rashin off on its
-  page now stops the agent and removes `ryoku-rashin` through the host seam
-  (the polkit prompt, no terminal), and switching it on installs the package
-  when it is absent and starts the agent with the desktop. Both directions
-  re-author the compositor config, so the Ask bar and Rashin window shortcuts
-  leave and return with the package, and record the choice in the provisioning
-  ledger so the doctor never delivers Rashin a second time. On Fedora and Void
-  the desktop still requires the package, so the switch stops and starts the
-  agent and the card says so (`ryoku-hub rashin status|on|off`,
-  `quickshell/pages/RashinPage.qml`).
+- **The Rashin switch owns the package.** On every edition, switching Rashin
+  off on its page now stops the agent and removes `ryoku-rashin` through the
+  host seam (the polkit prompt, no terminal), and switching it on installs the
+  package when it is absent and starts the agent with the desktop. Both
+  directions re-author the compositor config, so the Ask bar and Rashin window
+  shortcuts leave and return with the package, and record the choice in the
+  provisioning ledger so the doctor never delivers Rashin a second time
+  (`ryoku-hub rashin status|on|off`, `quickshell/pages/RashinPage.qml`).
 - **Keybinds can be removed and restored.** Each shipped shortcut has a control
   that switches its action off without hiding the row, then restores it in one
   press (`quickshell/pages/KeybindsPage.qml`).

@@ -213,11 +213,16 @@
   ensures `ryogami` instead of `awww` when it puts the wallpaper daemon back.
 
 ### Changed
-- **`ryoku-desktop` no longer requires Rashin on Arch.** `ryoku-rashin` moves
-  from `depends` to `optdepends`, so `sudo pacman -R ryoku-rashin` removes
+- **`ryoku-desktop` no longer requires Rashin on any edition.** On Arch
+  `ryoku-rashin` moves from `depends` to `optdepends`, and the Fedora and Void
+  desktops drop their hard requirement, so removing `ryoku-rashin` removes
   every AI piece without touching the desktop. The version pin moves into
-  `ryoku-rashin`, which now depends on the matching `ryoku-desktop`, so the
-  two still never run from different releases.
+  `ryoku-rashin`, which now depends on the matching `ryoku-desktop` on all
+  three, so the two still never run from different releases. On Void the
+  `ryoku-rashin` runit service, which ships with the desktop, parks itself
+  when the package is absent instead of restarting every second
+  (`../fedora/packages/rpm/`, `../void/packages/srcpkgs/`,
+  `../void/init/user/ryoku-rashin/run`).
 - **`ryoku-rashin` carries every AI piece.** The AI usage collectors
   (`claude-usage`, `codex-usage`, `opencode-usage`), their `ryoku-ai-usage`
   timer and service, and the `rashin-app` companion window move from

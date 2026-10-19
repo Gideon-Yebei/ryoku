@@ -278,11 +278,6 @@ for template in "$SRCPKGS"/*/template; do
 			if [[ $template_pkg == limine-snapper-sync && $expected_dep == libnotify ]]; then
 				continue
 			fi
-			# Arch pins Rashin to the desktop; here the desktop requires Rashin,
-			# so the pin runs the other way and a reverse edge would be a cycle.
-			if [[ $template_pkg == ryoku-rashin && $expected_dep == ryoku-desktop ]]; then
-				continue
-			fi
 			[[ -n ${template_depends[$expected_dep]:-} ]] \
 				|| fail "$template_pkg template misses translated dependency $expected_dep (from $arch_dep)"
 		done

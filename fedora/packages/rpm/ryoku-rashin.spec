@@ -15,6 +15,7 @@ BuildRequires:  webkit2gtk4.1-devel
 BuildRequires:  cmake
 BuildRequires:  ninja-build
 BuildRequires:  gcc-c++
+Requires:       ryoku-desktop = %{version}-%{release}
 Requires:       uv
 Requires:       nodejs24
 Requires:       gcc

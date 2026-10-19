@@ -359,9 +359,8 @@ func TestComponentsOfferedPerEdition(t *testing.T) {
 			if hasLayer != (name == "arch") {
 				t.Errorf("CachyOS layer row present=%v", hasLayer)
 			}
-			wantLocked := name == "fedora" || name == "void"
-			if byLabel["Rashin"].locked != wantLocked {
-				t.Errorf("Rashin locked=%v, want %v", byLabel["Rashin"].locked, wantLocked)
+			if byLabel["Rashin"].locked {
+				t.Errorf("Rashin is locked on %s", name)
 			}
 		})
 	}

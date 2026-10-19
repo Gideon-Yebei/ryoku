@@ -27,5 +27,5 @@ go	Go toolchain	developer	Developer toolchains	go	-	on	apps	false	*	-	-	-
 node	Node.js + npm	developer	Developer toolchains	nodejs,npm	-	on	apps	false	*	-	-	-
 pytools	Python pip + pipx	developer	Developer toolchains	python-pip,python-pipx	-	on	apps	false	*	-	-	-
 mise	mise	developer	Developer toolchains	mise	-	on	apps	false	*	-	-	language and version manager
-rashin	Rashin	rashin	Rashin	ryoku-rashin	-	on	rashin	false	*	void,fedora	included with the desktop package on this edition	Ryoku's AI agent
+rashin	Rashin	rashin	Rashin	ryoku-rashin	-	on	rashin	false	*	-	-	Ryoku's AI agent
 cachyos-layer	CachyOS kernel and tuning	cachyos-layer	CachyOS layer	linux-cachyos,linux-cachyos-headers,cachyos-settings,ananicy-cpp,cachyos-ananicy-rules,scx-scheds,proton-cachyos-native	-	off	cachyos-layer	true	arch	-	-	CachyOS repositories, kernel, tuning, schedulers, and Proton

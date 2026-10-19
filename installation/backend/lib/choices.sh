@@ -215,6 +215,11 @@ ryoku_choice_apply_fresh() {
       for package in "${packages[@]}"; do _ryoku_append_drop "$package"; done
     done < <(_ryoku_choice_ids "$kind")
   done
+  if [[ $RYOKU_RASHIN == 0 ]]; then
+    _ryoku_append_drop ryoku-rashin
+  else
+    _ryoku_remove_drop ryoku-rashin
+  fi
   export RYOKU_BROWSER RYOKU_LOGIN_SHELL RYOKU_FILE_MANAGER
   export RYOKU_RASHIN RYOKU_HIDE_APPS RYOKU_CACHYOS_LAYER RYOKU_DROP_PACKAGES
 }

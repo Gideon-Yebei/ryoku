@@ -17,6 +17,12 @@
   off ran `systemctl`, which the Void live medium does not have, so the
   installer dropped to a shell instead. They run plain `reboot` and `poweroff`
   now, which systemd and runit both provide (`tui/system.go`).
+- **Rashin is a real choice on Void.** The Void ISO showed Rashin as included
+  and its backend ignored a No, because the Void desktop package required it.
+  The question works the same on every edition now: No leaves `ryoku-rashin`
+  out and records it so updates do not bring it back
+  (`installerplan/components.tsv`, `backend/lib/choices.sh`,
+  `../void/iso/backend/ryoku-install`).
 - **The install-steps rail fits a short console.** With the new questions the
   step list outgrew an 80x24 console, and the clamp cut off the header and the
   step's title. The rail now scrolls around the current step and counts the

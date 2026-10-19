@@ -263,8 +263,8 @@ grep -qF 'linux-cachyos linux-cachyos-headers cachyos-settings' <<<"$out" \
 grep -qF '/CachyOS Linux' <<<"$out" \
   || fail "plain CachyOS layer did not add the CachyOS kernel boot entry"
 
-# Void applies the same file-manager/apps/hidden-marker contract while keeping
-# Rashin required and ignoring the CachyOS-only switch.
+# Void applies the same file-manager/apps/hidden-marker/Rashin contract and
+# ignores the CachyOS-only switch.
 void_out=$tmp/void.out
 install_dryrun_run void "$void_out" \
   RYOKU_DISK_STRATEGY=whole RYOKU_FIRMWARE_MODE=uefi \
@@ -273,8 +273,6 @@ install_dryrun_run void "$void_out" \
   RYOKU_RASHIN=0 RYOKU_CACHYOS_LAYER=1 RYOKU_HIDE_APPS=ryovm.desktop \
   || fail "Void install-choice dry run exited nonzero: $(<"$void_out")"
 out=$(<"$void_out")
-grep -qF 'Rashin is required by the Void desktop; ignoring RYOKU_RASHIN=0' <<<"$out" \
-  || fail "Void did not narrate its required Rashin policy"
 grep -qF 'CachyOS layer is not available on Void' <<<"$out" \
   || fail "Void did not ignore the CachyOS layer"
 grep -qF 'DRYRUN: set thunar as the default file manager (inode/directory + desktop.apps.files)' <<<"$out" \
@@ -283,8 +281,26 @@ grep -qF 'ryotunes' <<<"$out" && grep -qF 'ryomanager' <<<"$out" && grep -qF 'Th
   || fail "Void desktop transaction missed ryotunes, ryomanager, or Thunar"
 grep -qF '/home/ryoku/.local/share/applications/ryovm.desktop' <<<"$out" \
   || fail "Void did not narrate the hidden Ryoport launcher"
-grep -qF 'rashin-setup-pending' <<<"$out" \
-  || fail "Void did not leave its required Rashin first-login marker"
+transactions=$(grep -F 'xbps-install -r /mnt' <<<"$out")
+grep -qw 'ryoku-rashin' <<<"$transactions" \
+  && fail "Void installed ryoku-rashin with RYOKU_RASHIN=0"
+ledger="$(grep -F 'DRYRUN: seed /mnt/home/ryoku/.local/state/ryoku/provisioned with the dropped packages' <<<"$out" | tail -n1)"
+[[ " ${ledger//[()]/ } " == *" ryoku-rashin "* ]] || fail "Void Rashin-off ledger is missing ryoku-rashin: $ledger"
+grep -qF 'DRYRUN: write /mnt/home/ryoku/.local/state/ryoku/rashin-setup-pending:' <<<"$out" \
+  && fail "Void RYOKU_RASHIN=0 wrote the Rashin setup marker"
+
+# Void's desktop package does not pull Rashin in; the installer names it.
+install_dryrun_run void "$void_out" \
+  RYOKU_DISK_STRATEGY=whole RYOKU_FIRMWARE_MODE=uefi \
+  RYOKU_COMPOSITOR=niri RYOKU_COMPOSITOR_CONFIG_DIR=niri \
+  RYOKU_COMPOSITOR_GPU_PIN=gpu.kdl \
+  || fail "Void default dry run exited nonzero: $(<"$void_out")"
+out=$(<"$void_out")
+transactions=$(grep -F 'xbps-install -r /mnt' <<<"$out")
+grep -qw 'ryoku-rashin' <<<"$transactions" \
+  || fail "Void did not install ryoku-rashin by default"
+grep -qF 'DRYRUN: write /mnt/home/ryoku/.local/state/ryoku/rashin-setup-pending:' <<<"$out" \
+  || fail "Void did not leave the Rashin first-login marker"
 
 echo "install-dryrun-matrix: browser/shell/app-choice checks passed"
 echo "install-dryrun-matrix: all checks passed"

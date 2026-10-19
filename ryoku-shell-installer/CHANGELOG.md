@@ -66,6 +66,9 @@
   steps, so a stuck stable install can be finished on unstable.
 
 ### Fixed
+- **Rashin can be left out on Void and Fedora.** The Rashin row was locked on
+  there because the desktop package required it. It is a normal choice on
+  every edition now, and `--rashin=false` works everywhere.
 - **Carried keyboard settings now reach every compositor and the system
   keymap.** The installer merges the salvaged layout, variant, and options into
   the neutral desktop store before materialization, while keeping a later Hub

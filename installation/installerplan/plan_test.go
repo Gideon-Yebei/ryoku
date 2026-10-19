@@ -249,12 +249,11 @@ func TestComponentAvailabilityByEdition(t *testing.T) {
 		edition      string
 		aurAvailable bool
 		cachyosLayer bool
-		rashinLocked bool
 	}{
 		{edition: "arch", aurAvailable: true, cachyosLayer: true},
 		{edition: "cachyos", aurAvailable: true},
-		{edition: "void", rashinLocked: true},
-		{edition: "fedora", rashinLocked: true},
+		{edition: "void"},
+		{edition: "fedora"},
 	} {
 		t.Run(test.edition, func(t *testing.T) {
 			var plan EditionPlan
@@ -283,11 +282,8 @@ func TestComponentAvailabilityByEdition(t *testing.T) {
 				t.Errorf("cachyos layer flags = network:%v default:%v", layer.Component.NeedsNetwork, layer.Component.DefaultOn)
 			}
 			rashin, ok := plan.Component("rashin")
-			if !ok || !rashin.Available || rashin.Locked != test.rashinLocked {
-				t.Errorf("rashin availability = %+v, want locked %v", rashin, test.rashinLocked)
-			}
-			if rashin.Locked && rashin.Reason != "included with the desktop package on this edition" {
-				t.Errorf("locked Rashin reason = %q", rashin.Reason)
+			if !ok || !rashin.Available || rashin.Locked || !rashin.Component.DefaultOn {
+				t.Errorf("rashin availability = %+v, want an available, unlocked, default-on choice", rashin)
 			}
 			terminal, ok := plan.Component("terminal")
 			if !ok || !terminal.Available || !terminal.Locked ||
@@ -335,11 +331,13 @@ func TestComponentDropAndHideRules(t *testing.T) {
 		t.Fatalf("hidden desktop ids = %q, want ryovm.desktop", got)
 	}
 
-	void := resolvedPlan(t, "void")
-	voidSelected := void.DefaultComponents()
-	voidSelected["rashin"] = false
-	if contains(void.DropComponentPackages(voidSelected), "ryoku-rashin") {
-		t.Fatal("locked Void Rashin was dropped")
+	for _, edition := range []string{"void", "fedora"} {
+		plan := resolvedPlan(t, edition)
+		planSelected := plan.DefaultComponents()
+		planSelected["rashin"] = false
+		if !contains(plan.DropComponentPackages(planSelected), "ryoku-rashin") {
+			t.Fatalf("%s kept ryoku-rashin after Rashin was turned off", edition)
+		}
 	}
 
 	if got, want := strings.Join(DropPackagesFor(FileManager, "nautilus"), ","), "dolphin,thunar"; got != want {

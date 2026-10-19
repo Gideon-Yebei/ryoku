@@ -22,7 +22,6 @@ Requires(post): ryoku = %{version}-%{release}
 Requires:       ryoku-shell = %{version}-%{release}
 Requires:       ryogami = %{version}-%{release}
 Requires:       ryoku-hub = %{version}-%{release}
-Requires:       ryoku-rashin = %{version}-%{release}
 Requires:       ryoku-blobs = %{version}-%{release}
 Requires:       ryoku-extras = %{version}-%{release}
 Requires:       sddm-theme-ryoku = %{version}-%{release}
@@ -121,6 +120,7 @@ Suggests:       dolphin
 Suggests:       thunar
 Suggests:       ryotunes
 Suggests:       ryomanager
+Suggests:       ryoku-rashin
 Suggests:       waifu2x-ncnn-vulkan
 Suggests:       pavucontrol
 Suggests:       songrec

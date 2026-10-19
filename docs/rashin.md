@@ -13,20 +13,19 @@ Advanced.
 
 It is:
 
-- **Optional.** On Arch, `ryoku-rashin` is installed by default but is not a
-  desktop dependency. The switch on Ryoku Hub's Rashin page owns it: off stops
-  the agent and removes the package, on installs it again and starts it with
-  the desktop. Every AI piece goes with the package (the agent, the Rashin
+- **Optional.** On every edition `ryoku-rashin` is installed by default but is
+  not a desktop dependency. The switch on Ryoku Hub's Rashin page owns it: off
+  stops the agent and removes the package, on installs it again and starts it
+  with the desktop. Every AI piece goes with the package (the agent, the Rashin
   window, the bar's AI usage collectors) and so do its shortcuts: the Ask bar
   (Alt+Space) and the Rashin window (Super+Alt+Space) are catalogue binds that
   need `ryoku-rashin`, so the compositor registers no chord for them while it
   is absent and Kit's Keys tab lists them as not installed. Kit opens with
   Super+K and puts Keys, Commands, Phone, Dev tools, and Typing test behind one
-  search field. Answering No to the installer's Rashin question or `sudo
-  pacman -R ryoku-rashin` reach the same state; the doctor delivers it once and
-  never puts it back. Answering Yes leaves a first-login note that opens the
-  Hermes setup once the machine is online. The Fedora and Void desktops still
-  require it, so there the switch only stops and starts the agent.
+  search field. Answering No to the installer's Rashin question or removing the
+  package with the system's package manager reach the same state; the doctor
+  delivers it once and never puts it back. Answering Yes leaves a first-login
+  note that opens the Hermes setup once the machine is online.
 - **Local.** The daemon binds `127.0.0.1` only. WebSocket upgrades verify the
   Origin host is localhost. Mutating routes reject cross-origin browser calls
   and simple requests that could skip a CORS preflight. No auth is needed

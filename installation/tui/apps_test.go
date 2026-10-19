@@ -39,8 +39,8 @@ func TestProductStepsExistInOrder(t *testing.T) {
 		t.Fatalf("product defaults = %#v", m.picks)
 	}
 	void := stepsForVariant(variantVoid)
-	if flowIndex(void, "cachyos") >= 0 || stepByKey(t, void, "rashin").kind != kNotice {
-		t.Fatal("Void must omit CachyOS and show Rashin as included")
+	if flowIndex(void, "cachyos") >= 0 || stepByKey(t, void, "rashin").kind != kConfirm {
+		t.Fatal("Void must omit CachyOS and ask about Rashin")
 	}
 }
 
@@ -197,21 +197,18 @@ func TestDeselectDoesNotTouchRequiredPackages(t *testing.T) {
 	}
 }
 
-func TestRashinIsASeparateEditionAwareChoice(t *testing.T) {
-	arch := installerChoicesForVariant("plain")
-	rashin, ok := arch.Component("rashin")
-	if !ok || !rashin.Available || rashin.Locked || !rashin.Component.DefaultOn {
-		t.Fatalf("Arch Rashin component = %+v, found %v", rashin, ok)
-	}
-	selected := arch.DefaultComponents()
-	selected["rashin"] = false
-	if got := strings.Join(arch.DropComponentPackages(selected), ","); !strings.Contains(got, "ryoku-rashin") {
-		t.Fatalf("turning off Rashin did not drop ryoku-rashin: %q", got)
-	}
-	void := installerChoicesForVariant(variantVoid)
-	rashin, ok = void.Component("rashin")
-	if !ok || !rashin.Available || !rashin.Locked || rashin.Reason == "" {
-		t.Fatalf("Void Rashin component = %+v, found %v", rashin, ok)
+func TestRashinIsAChoiceOnEveryEdition(t *testing.T) {
+	for _, variant := range []string{"plain", variantCachyOS, variantVoid} {
+		plan := installerChoicesForVariant(variant)
+		rashin, ok := plan.Component("rashin")
+		if !ok || !rashin.Available || rashin.Locked || !rashin.Component.DefaultOn {
+			t.Fatalf("%s Rashin component = %+v, found %v", variant, rashin, ok)
+		}
+		selected := plan.DefaultComponents()
+		selected["rashin"] = false
+		if got := strings.Join(plan.DropComponentPackages(selected), ","); !strings.Contains(got, "ryoku-rashin") {
+			t.Fatalf("%s: turning off Rashin did not drop ryoku-rashin: %q", variant, got)
+		}
 	}
 }
 
@@ -425,8 +422,8 @@ func TestEditionOnlyEnvironmentVariables(t *testing.T) {
 		if hasPrefix(env, "RYOKU_CACHYOS_LAYER=") {
 			t.Errorf("%s emitted plain-Arch CachyOS layer variable: %v", variant, env)
 		}
-		if variant == variantVoid && !has(env, "RYOKU_RASHIN=1") {
-			t.Errorf("Void did not force required Rashin on: %v", env)
+		if !has(env, "RYOKU_RASHIN=0") {
+			t.Errorf("%s did not pass the Rashin choice through: %v", variant, env)
 		}
 	}
 }
