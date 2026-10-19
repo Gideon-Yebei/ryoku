@@ -19,8 +19,9 @@
   (`ipc/sounds.go`, `ipc/powersounds.go`, `ipc/devicesounds.go`,
   `quickshell/shell/services/Notifs.qml`).
 - **Default and NOC ship as rices with their wallpapers.** A fresh login
-  applies Default and keeps its wallpaper instead of picking a random one
-  (`../assets/rices/`, `scripts/ryoku-session-intro`).
+  applies Default and keeps its wallpaper instead of picking a random one, and
+  both readouts name the distribution they run on, so Void says "a hand-built
+  Void desktop" (`../assets/rices/`, `scripts/ryoku-session-intro`).
 - **The first login opens Rashin's Hermes setup.** When the installer left
   Rashin on, the first login with an internet connection opens the setup
   terminal once (`scripts/ryoku-session-intro`).
