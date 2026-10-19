@@ -308,7 +308,7 @@ prepare_spec_sources() {
       expected=${checksums[$local_name]:-}
       [[ -n $expected ]] \
         || die "$package: no verified checksum for URL source $local_name in $manifest"
-      curl --fail --location --retry 3 --proto '=https' \
+      curl --fail --location --retry 6 --retry-delay 10 --retry-max-time 180 --proto '=https' \
         "$download_url" --output "$source_dir/$local_name.part"
       actual=$(sha256sum "$source_dir/$local_name.part")
       actual=${actual%% *}
