@@ -16,6 +16,7 @@ import (
 	"ryoku-cli/internal/updater"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -391,6 +392,9 @@ type finding struct {
 }
 
 func runReconcilers(checkOnly bool) []finding {
+	fetchFedoraReleaseStatus := doctorFedoraReleaseStatus
+	doctorFedoraReleaseStatus = sync.OnceValues(fetchFedoraReleaseStatus)
+	defer func() { doctorFedoraReleaseStatus = fetchFedoraReleaseStatus }()
 	var out []finding
 	for _, r := range reconcilers() {
 		out = append(out, finding{name: r.name, res: r.run(checkOnly)})
@@ -1354,10 +1358,23 @@ func dnfRepoConfigPath() string {
 	return "/etc/yum.repos.d/ryoku.repo"
 }
 
+const dnfRepoKeyPath = "/etc/pki/rpm-gpg/RPM-GPG-KEY-ryoku"
+
 func dnfRepoConfig(channel string) string {
-	return fmt.Sprintf("[ryoku]\nname=Ryoku\nbaseurl=%s\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ryoku\n",
-		host.RepoURLFor(host.DNF, channel))
+	return fmt.Sprintf("[ryoku]\nname=Ryoku\nbaseurl=%s\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=file://%s\n",
+		host.RepoURLFor(host.DNF, channel), dnfRepoKeyPath)
 }
+
+// dnfRestoreChannel is the channel the installer or `ryoku track` recorded, so
+// a restored repository does not move a testing box onto stable.
+func dnfRestoreChannel() string {
+	if channel := sys.ReadChannelIntent(); host.RepoURLFor(host.DNF, channel) != "" {
+		return channel
+	}
+	return sys.ChannelStable
+}
+
+var dnfRepoKeyPresent = func() bool { return sys.Exists(dnfRepoKeyPath) }
 
 var writeDNFRepoConfig = func(path, contents string) error {
 	return writeRootFile(path, contents, "0644")
@@ -1370,11 +1387,17 @@ func reconcileFedoraRyokuChannel(checkOnly bool) recResult {
 	app := host.Default()
 	repository, err := app.RepoURL()
 	if err != nil || repository == "" {
+		// The key is not packaged on Fedora; only the installer fetches and
+		// verifies it. A repository that names a missing key never loads.
+		if !dnfRepoKeyPresent() {
+			return warnRes(i18n.T("ryoku-desktop is installed but the signed Ryoku RPM repository and its release key %s are missing; updates will not arrive"), dnfRepoKeyPath).
+				withFix(i18n.T("re-run the Ryoku shell installer, which verifies and imports the release key"))
+		}
 		if checkOnly {
 			return wouldRes(i18n.T("ryoku-desktop is installed but the signed Ryoku RPM repository is not configured; updates will not arrive")).
 				withFix("ryoku doctor")
 		}
-		if err := writeDNFRepoConfig(dnfRepoConfigPath(), dnfRepoConfig(sys.ChannelStable)); err != nil {
+		if err := writeDNFRepoConfig(dnfRepoConfigPath(), dnfRepoConfig(dnfRestoreChannel())); err != nil {
 			return warnRes(i18n.T("the signed Ryoku RPM repository is missing and could not be restored: %v"), err).
 				withFix(i18n.T("restore %s, then run `%s makecache -y --refresh --repo=ryoku`"), dnfRepoConfigPath(), host.DNFCommand())
 		}
@@ -1401,13 +1424,31 @@ func reconcileFedoraRyokuChannel(checkOnly bool) recResult {
 }
 
 var (
+	// dnf5 exits 0 when a repository fails to load ("Usable URL not found"),
+	// so only a ryoku-desktop row proves the metadata loaded.
 	checkDNFRepoMetadata = func() (string, error) {
-		return sys.RunOut(host.DNFCommand(), "repoquery", "-y", "--repo=ryoku", "--available", "ryoku-desktop")
+		out, err := sys.RunOut(host.DNFCommand(), "repoquery", "-y", "--repo=ryoku", "--available", "ryoku-desktop")
+		if err == nil && !servesRyokuDesktop(out) {
+			err = errDNFRepoEmpty
+		}
+		return out, err
 	}
 	refreshDNFRepoMetadata = func() error {
 		return sys.Run("sudo", host.DNFCommand(), "makecache", "-y", "--refresh", "--repo=ryoku")
 	}
 )
+
+var errDNFRepoEmpty = errors.New("the Ryoku RPM repository serves no ryoku-desktop")
+
+func servesRyokuDesktop(out string) bool {
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "ryoku-desktop" || strings.HasPrefix(line, "ryoku-desktop-") {
+			return true
+		}
+	}
+	return false
+}
 
 func dnfRepoRefreshAdvice() string {
 	return fmt.Sprintf("sudo %s makecache -y --refresh --repo=ryoku", host.DNFCommand())
@@ -1433,6 +1474,11 @@ func reconcileFedoraRyokuSyncDB(checkOnly bool) recResult {
 	out, err := checkDNFRepoMetadata()
 	if err == nil {
 		return okRes(i18n.T("the Ryoku RPM repository metadata loads and verifies"))
+	}
+	if errors.Is(err, errDNFRepoEmpty) {
+		if status, _ := doctorFedoraReleaseStatus(); status.RepositoryChecked && !status.Published {
+			return noteRes("%s", status.UnpublishedNotice())
+		}
 	}
 	detail := firstLine(out)
 	if detail == "" {
