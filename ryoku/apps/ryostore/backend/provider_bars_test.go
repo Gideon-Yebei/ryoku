@@ -133,7 +133,7 @@ func TestBarProviderUsesRegistryReceiptsAndDerivedIndex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantRow.View = barStyleView(wantRow, receipt)
+	wantRow.View = barStyleViews.path("obi", receipt)
 	if len(rows) != 1 || rows[0] != wantRow {
 		t.Fatalf("installed index = %+v", rows)
 	}
@@ -200,7 +200,7 @@ func TestBarProviderKeepsReceiptOwnedStyleUsableOffline(t *testing.T) {
 	if !state.Offline {
 		t.Fatal("cold offline load was not marked offline")
 	}
-	if obi := barStyleByID(items, "obi"); len(items) != len(builtinBarStyles()) + 1 || obi == nil || !obi.Installed || !obi.Active {
+	if obi := barStyleByID(items, "obi"); len(items) != len(builtinBarStyles())+1 || obi == nil || !obi.Installed || !obi.Active {
 		t.Fatalf("offline items = %+v", items)
 	}
 	if err := provider.Remove(context.Background(), "obi"); err != nil {
@@ -275,7 +275,7 @@ func TestBarProviderLoadRecoversInterruptedTransaction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if obi := barStyleByID(items, "obi"); len(items) != len(builtinBarStyles()) + 1 || obi == nil || obi.Installed {
+	if obi := barStyleByID(items, "obi"); len(items) != len(builtinBarStyles())+1 || obi == nil || obi.Installed {
 		t.Fatalf("catalog after recovery = %+v", items)
 	}
 	destination, _, err := productDestination("barstyles", "obi")

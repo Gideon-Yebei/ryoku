@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
 	"path"
 )
 
@@ -89,6 +93,27 @@ func findProductEntry(entries []ProductEntry, id string) (ProductEntry, error) {
 		}
 	}
 	return ProductEntry{}, fmt.Errorf("unknown product %q", id)
+}
+
+// productRegistryUnavailable reports a source that cannot be reached right now
+// (no connection, or the server failing): the provider keeps serving what is
+// installed and marks the category offline.
+func productRegistryUnavailable(err error) bool {
+	var requestErr *url.Error
+	if errors.As(err, &requestErr) {
+		return true
+	}
+	var statusErr *HTTPStatusError
+	return errors.As(err, &statusErr) && statusErr.Status >= 500
+}
+
+// productRegistryAbsent reports a source that has no registry for a category
+// yet, such as a catalogue fork older than the category: the honest answer is
+// an empty shelf, not an error or an offline store.
+func productRegistryAbsent(err error) bool {
+	var statusErr *HTTPStatusError
+	return errors.As(err, &statusErr) && statusErr.Status == http.StatusNotFound ||
+		errors.Is(err, os.ErrNotExist)
 }
 
 // assertProductInstallable refuses a registry-backed install or update for one of

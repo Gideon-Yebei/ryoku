@@ -47,8 +47,8 @@ There is one door for discovery and catalogue transactions:
 - **Ryoku Settings manages what is active.** It owns activation, configuration,
   placement, and applied-state controls.
 - **Install never activates.** Installing a rice, lockscreen, plugin, bar style,
-  or future fastfetch style must not change the desktop. Completion offers
-  **Open in Settings**.
+  app launcher, or future fastfetch style must not change the desktop.
+  Completion offers **Open in Settings**.
 
 The first release exposes Lockscreens, Plugins, Bundles, Rices, Bar styles, and
 Fastfetch styles. A category without a live remote registry remains visible with
@@ -72,7 +72,7 @@ The rail exposes one semantic route order:
 ```text
 Search
 Discover
-Lockscreens · Rices · Themes · Bar styles · Fastfetch · Plugins
+Lockscreens · Rices · Themes · Bar styles · App launchers · Fastfetch · Plugins
 Omarchy plugins · Bundles
 Library
 ```
@@ -80,7 +80,8 @@ Library
 **Library** is a first-class cross-category collection. Every item writes its
 state explicitly:
 
-- `ACTIVE` for the rice, lockscreen, bar, or fastfetch style currently worn;
+- `ACTIVE` for the rice, lockscreen, bar, launcher, or fastfetch style currently
+  worn;
 - `ENABLED` for a running plugin;
 - `INSTALLED` for an owned but inactive item;
 - `<installed> / <total> INSTALLED` for a partial bundle;
@@ -280,6 +281,14 @@ and installation, not a second runtime copy.
 - **Bar styles:** expose the shipped runtime style manifests and the active
   `shell.json` value. The current development styles are all visible and report
   installed state. Settings retains selection and configuration.
+- **App launchers:** fetch the `ryostore` launcher registry and install each
+  launcher's receipt-owned folder through the common transaction engine, then
+  publish `launchers.json` with a content-addressed view per launcher, the same
+  way bar styles publish theirs. Active state is `variant` in `launcher.json`;
+  Settings -> App Launcher retains selection. Install never selects, and removing
+  the launcher in use resets `variant` to the default in the same journaled
+  transaction. The ids of the launchers Ryoku ships are reserved. See
+  `docs/launcher.md`.
 - **Fastfetch styles:** expose the category and active local state. Until a
   style registry exists, the category renders its honest upcoming plate.
   Fastfetch editing remains in Settings.

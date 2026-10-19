@@ -8,7 +8,7 @@ import (
 
 var storeSections = map[string]struct{}{
 	"discover": {}, "library": {}, "rices": {}, "lockscreens": {},
-	"barstyles": {}, "fastfetch": {}, "plugins": {}, "bundles": {}, "decors": {},
+	"barstyles": {}, "launchers": {}, "fastfetch": {}, "plugins": {}, "bundles": {}, "decors": {},
 	"launcher-images": {}, "fastfetch-emblems": {}, "ryotunes-skins": {},
 	"vesktop-themes": {},
 }
@@ -19,16 +19,16 @@ func storeSection(section string) bool {
 }
 
 // settingsSection maps a Store category to the Hub page that applies or manages
-// it. The lockscreen and app-launcher pages are only for editing config, not for
-// applying a store install, and the flat-image categories (decors, launcher
-// images) have no page at all, so none of them appear here and none shows an
-// "open in settings" action.
+// it. The lockscreen page only edits config, not a store install, and the
+// flat-image categories (decors, launcher images) have no page at all, so none
+// of them appear here and none shows an "open in settings" action.
 func settingsSection(category string) (string, bool) {
 	section, ok := map[string]string{
 		"rices":     "appearance",
 		"plugins":   "addons",
 		"bundles":   "addons",
 		"barstyles": "bar-studio",
+		"launchers": "launcher",
 		"fastfetch": "fastfetch",
 	}[category]
 	return section, ok

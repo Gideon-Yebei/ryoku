@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `ryostore/`: **App launchers is a Store section.** A launchers provider
+  installs community launchers from the ryostore `launchers/` registry through
+  the common transaction engine and publishes `launchers.json` with a
+  content-addressed view per launcher. Install never selects one; removing the
+  launcher in use resets `launcher.json` `variant` to the default in the same
+  journaled transaction, and the ids of the shipped launchers are reserved. The
+  view publishing and the worn-product fallback that bar styles already had are
+  now shared by plugins, bar styles and launchers instead of copied
+  (`backend/provider_launchers.go`, `backend/product_views.go`,
+  `backend/product_selection.go`).
 - `ryostore/`: **Ryostore looks like the Hub and shows products properly.** The
   store moves to the Hub's rail, page head and action bar, with Discover,
   categories, search and Library in the rail. An opened product leads with its

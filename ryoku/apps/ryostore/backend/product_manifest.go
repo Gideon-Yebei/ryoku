@@ -277,7 +277,7 @@ func productUpdateAvailable(installedVersion, availableVersion string) bool {
 
 func validProductCategory(category string) bool {
 	switch category {
-	case "rices", "lockscreens", "barstyles", "fastfetch", "plugins", "bundles", "decors",
+	case "rices", "lockscreens", "barstyles", "launchers", "fastfetch", "plugins", "bundles", "decors",
 		"launcher-images", "fastfetch-emblems", "ryotunes-skins", vesktopThemesCategory:
 		return true
 	default:
