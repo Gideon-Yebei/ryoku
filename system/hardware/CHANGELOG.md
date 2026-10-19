@@ -17,6 +17,15 @@
   headless one exits at once.
 
 ### Fixed
+- `drivers/nvidia.sh`: **pre-Turing NVIDIA cards get their driver at install.**
+  The target already carries `nvidia-utils` (hardware.packages lays it, and
+  CachyOS's hyprland, steam, and proton builds depend on it), and the 580xx and
+  470xx utils conflict with it without replacing it. Under `--noconfirm` pacman
+  answers that conflict "no", so the driver transaction failed and Maxwell,
+  Pascal, Volta, and Kepler cards stayed on nouveau. The legacy branches now
+  remove the Turing+ userspace with `-Rdd` first (the legacy utils provide both
+  names) and put it back if the install fails. Covered by
+  `tests/nvidia-driver-selection.sh`.
 - `gpu/ryoku-gpu-lib32`: **installs on every edition, and as root.** It
   asks `ryoku-host pkg status` which of the wanted 32-bit driver packages the
   edition provides and installs only those, turning on Void's multilib
