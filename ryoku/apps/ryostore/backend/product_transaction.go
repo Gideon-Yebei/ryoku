@@ -469,7 +469,7 @@ func removeProduct(_ context.Context, category, id string) error {
 
 func recoverStoreTransactions() error {
 	root := storeTransactionsDir()
-	for _, category := range []string{"rices", "lockscreens", "barstyles", "launchers", "fastfetch", "plugins", "bundles", vesktopThemesCategory} {
+	for _, category := range []string{"rices", "lockscreens", "barstyles", "launchers", "docks", "fastfetch", "plugins", "bundles", vesktopThemesCategory} {
 		directory := filepath.Join(root, category)
 		entries, err := os.ReadDir(directory)
 		if os.IsNotExist(err) {
@@ -795,12 +795,14 @@ func syncProductDerivedState(journal productTransactionJournal, committed bool) 
 		if err := writeBarStyleIndexLocked(); err != nil {
 			return err
 		}
-	case "launchers":
-		if err := writeLauncherIndexLocked(); err != nil {
+	default:
+		product, ok := shellQMLProductFor(journal.Category)
+		if !ok {
+			return nil
+		}
+		if err := product.writeIndexLocked(); err != nil {
 			return err
 		}
-	default:
-		return nil
 	}
 	if journal.Operation != "remove" {
 		return nil

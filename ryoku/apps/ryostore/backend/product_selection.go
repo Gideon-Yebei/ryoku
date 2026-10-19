@@ -8,19 +8,26 @@ import (
 	"syscall"
 )
 
-const launcherTransactionKey = "ryoStoreLauncherTransaction"
+const (
+	launcherTransactionKey = "ryoStoreLauncherTransaction"
+	dockTransactionKey     = "ryoStoreDockTransaction"
+)
 
 // productSelection is the user setting that wears a product: shell.json names
-// the bar style the desktop draws, launcher.json the launcher Super+Space opens.
-// Removing the worn product moves that setting to its fallback inside the
-// removal's own transaction, so the desktop never keeps naming what is gone and
-// a later reinstall does not put it back on by itself.
+// the bar style the desktop draws and the dock design every bar style shares,
+// launcher.json the launcher Super+Space opens. Removing the worn product moves
+// that setting to its fallback inside the removal's own transaction, so the
+// desktop never keeps naming what is gone and a later reinstall does not put it
+// back on by itself.
 type productSelection struct {
-	path     func() string
+	path func() string
+	// object names the section that holds key, such as shell.json's dock; ""
+	// when the setting sits at the root of the file.
+	object   string
 	key      string
 	fallback string
-	// marker is a key the fallback write leaves beside the setting, so recovery
-	// reverts only its own fallback and preserves a newer user choice.
+	// marker is a root key the fallback write leaves in the same file, so
+	// recovery reverts only its own fallback and preserves a newer user choice.
 	marker string
 }
 
@@ -31,16 +38,43 @@ func selectionFor(category string) (productSelection, bool) {
 	case "launchers":
 		// An empty variant opens the launcher the shell ships as its default.
 		return productSelection{path: defaultLauncherConfigPath, key: "variant", fallback: "", marker: launcherTransactionKey}, true
+	case "docks":
+		return productSelection{path: defaultShellConfigPath, object: "dock", key: "design", fallback: "ryoku", marker: dockTransactionKey}, true
 	}
 	return productSelection{}, false
 }
 
+func defaultLauncherConfigPath() string {
+	return filepath.Join(configHome(), "ryoku", "launcher.json")
+}
+
+// holder is the object that carries the setting, or nil when its section is
+// missing or not an object (then nothing wears a product through it).
+func (s productSelection) holder(state map[string]any) map[string]any {
+	if s.object == "" {
+		return state
+	}
+	section, _ := state[s.object].(map[string]any)
+	return section
+}
+
+// current is the id the setting wears now, "" when it names nothing.
+func (s productSelection) current() string {
+	state, err := readConfigState(s.path())
+	if err != nil {
+		return ""
+	}
+	value, _ := s.holder(state)[s.key].(string)
+	return value
+}
+
 func (s productSelection) applyFallback(id, token string) error {
 	return mutateConfigState(s.path(), func(state map[string]any) bool {
-		if state[s.key] != id {
+		holder := s.holder(state)
+		if holder == nil || holder[s.key] != id {
 			return false
 		}
-		state[s.key] = s.fallback
+		holder[s.key] = s.fallback
 		state[s.marker] = token
 		return true
 	})
@@ -51,14 +85,16 @@ func (s productSelection) finishFallback(id, token string, committed bool) error
 		marker, owned := state[s.marker].(string)
 		owned = owned && marker == token
 		changed := false
-		if committed {
-			if state[s.key] == id {
-				state[s.key] = s.fallback
+		if holder := s.holder(state); holder != nil {
+			if committed {
+				if holder[s.key] == id {
+					holder[s.key] = s.fallback
+					changed = true
+				}
+			} else if owned && holder[s.key] == s.fallback {
+				holder[s.key] = id
 				changed = true
 			}
-		} else if owned && state[s.key] == s.fallback {
-			state[s.key] = id
-			changed = true
 		}
 		if owned {
 			delete(state, s.marker)

@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Added
+- `ryostore/`: **Docks is a Store section.** Community docks install from the
+  ryostore `docks/` registry and publish `docks.json` with a content-addressed
+  view per dock. Install never selects one; removing the dock in use moves
+  `shell.json` `dock.design` back to `ryoku` in the same journaled transaction,
+  and the ids of the shipped designs are reserved. A dock's **Open in Settings**
+  opens the Stage Editor's Dock section in the running shell instead of the Hub.
+  Launchers and docks are one shell-QML provider now, with one generic index
+  and test suite, and the worn-product fallback reaches a setting inside a
+  section of its file such as `dock.design` (`backend/provider_shell_qml.go`,
+  `backend/product_selection.go`, `backend/routing.go`).
 - `ryostore/`: **App launchers is a Store section.** A launchers provider
   installs community launchers from the ryostore `launchers/` registry through
   the common transaction engine and publishes `launchers.json` with a
@@ -11,7 +21,7 @@
   journaled transaction, and the ids of the shipped launchers are reserved. The
   view publishing and the worn-product fallback that bar styles already had are
   now shared by plugins, bar styles and launchers instead of copied
-  (`backend/provider_launchers.go`, `backend/product_views.go`,
+  (`backend/provider_shell_qml.go`, `backend/product_views.go`,
   `backend/product_selection.go`).
 - `ryostore/`: **Ryostore looks like the Hub and shows products properly.** The
   store moves to the Hub's rail, page head and action bar, with Discover,

@@ -38,6 +38,7 @@ Item {
             "colorschemes": "色",
             "themes": "色",
             "barstyles": "棒",
+            "docks": "台",
             "launchers": "起",
             "fastfetch": "速",
             "plugins": "部品",

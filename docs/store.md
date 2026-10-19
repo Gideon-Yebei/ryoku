@@ -47,8 +47,9 @@ There is one door for discovery and catalogue transactions:
 - **Ryoku Settings manages what is active.** It owns activation, configuration,
   placement, and applied-state controls.
 - **Install never activates.** Installing a rice, lockscreen, plugin, bar style,
-  app launcher, or future fastfetch style must not change the desktop.
-  Completion offers **Open in Settings**.
+  dock, app launcher, or future fastfetch style must not change the desktop.
+  Completion offers **Open in Settings** (for a dock, the Stage Editor's Dock
+  section).
 
 The first release exposes Lockscreens, Plugins, Bundles, Rices, Bar styles, and
 Fastfetch styles. A category without a live remote registry remains visible with
@@ -72,7 +73,7 @@ The rail exposes one semantic route order:
 ```text
 Search
 Discover
-Lockscreens · Rices · Themes · Bar styles · App launchers · Fastfetch · Plugins
+Lockscreens · Rices · Themes · Bar styles · Docks · App launchers · Fastfetch · Plugins
 Omarchy plugins · Bundles
 Library
 ```
@@ -80,8 +81,8 @@ Library
 **Library** is a first-class cross-category collection. Every item writes its
 state explicitly:
 
-- `ACTIVE` for the rice, lockscreen, bar, launcher, or fastfetch style currently
-  worn;
+- `ACTIVE` for the rice, lockscreen, bar, dock, launcher, or fastfetch style
+  currently worn;
 - `ENABLED` for a running plugin;
 - `INSTALLED` for an owned but inactive item;
 - `<installed> / <total> INSTALLED` for a partial bundle;
@@ -281,14 +282,18 @@ and installation, not a second runtime copy.
 - **Bar styles:** expose the shipped runtime style manifests and the active
   `shell.json` value. The current development styles are all visible and report
   installed state. Settings retains selection and configuration.
-- **App launchers:** fetch the `ryostore` launcher registry and install each
-  launcher's receipt-owned folder through the common transaction engine, then
-  publish `launchers.json` with a content-addressed view per launcher, the same
-  way bar styles publish theirs. Active state is `variant` in `launcher.json`;
-  Settings -> App Launcher retains selection. Install never selects, and removing
-  the launcher in use resets `variant` to the default in the same journaled
-  transaction. The ids of the launchers Ryoku ships are reserved. See
-  `docs/launcher.md`.
+- **Docks and App launchers:** one shell-QML provider (`provider_shell_qml.go`)
+  serves both. It fetches the category's `ryostore` registry and installs each
+  product's receipt-owned folder through the common transaction engine, then
+  publishes `docks.json` or `launchers.json` with a content-addressed view per
+  product, the way bar styles publish theirs. Active state is `dock.design` in
+  `shell.json` (picked in Edit desktop -> Dock) or `variant` in `launcher.json`
+  (Settings -> App Launcher). Install never selects; removing the one in use
+  moves that setting back to the shell's default (`ryoku`, or the default
+  launcher) in the same journaled transaction. The ids of the designs and
+  launchers Ryoku ships are reserved. A dock's **Open in Settings** asks the
+  running shell for the Stage Editor's Dock section rather than the Hub. See
+  `docs/ui-ux.md` (dock) and `docs/launcher.md`.
 - **Fastfetch styles:** expose the category and active local state. Until a
   style registry exists, the category renders its honest upcoming plate.
   Fastfetch editing remains in Settings.
