@@ -230,6 +230,7 @@ func reconcilers() []reconciler {
 		checks = append(checks,
 			reconciler{i18n.T("Fedora release"), reconcileFedoraRelease},
 			reconciler{i18n.T("earlier Fedora boot-menu leftovers"), reconcileFedoraLegacyBoot},
+			reconciler{i18n.T("revoked Ryoku release keys"), reconcileFedoraRevokedKeys},
 		)
 	}
 	if !fedora {
