@@ -1134,7 +1134,12 @@ func lockSettingsFile(path string) (func(), error) {
 	}, nil
 }
 
-const barStyleTransactionKey = "ryoStoreBarStyleTransaction"
+// The markers a Store removal leaves beside the setting it moved to its
+// fallback, so a crashed removal's recovery reverts only its own write.
+const (
+	barStyleTransactionKey = "ryoStoreBarStyleTransaction"
+	dockTransactionKey     = "ryoStoreDockTransaction"
+)
 
 // patch sets one leaf. A schema path is validated and clamped; native
 // passthrough paths are merged without validation. Retired settings namespaces
@@ -1172,6 +1177,11 @@ func (s *settingsStore) patch(path string, value json.RawMessage) error {
 	}
 	if len(segs) == 1 && segs[0] == "barStyle" {
 		delete(full, barStyleTransactionKey)
+	}
+	// Any dock edit is the user driving the dock now, so the removal's
+	// fallback no longer owns its design.
+	if segs[0] == "dock" {
+		delete(full, dockTransactionKey)
 	}
 	wasNomarchy := nomarchySelectedIn(diskRaw)
 	isNomarchy := nomarchySelectedIn(full)
