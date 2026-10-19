@@ -61,6 +61,12 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **`ryoku update` no longer hangs in its closing doctor run.** When the shell
+  was down and left no log, the desktop-load check started the shell to see
+  whether it loads and then waited for it to exit, which a working shell never
+  does. The check now stops the probe as soon as it reports loading, or after
+  twenty seconds, and leaves nothing it started running
+  (`internal/doctor/bounded_probe.go`).
 - **Neovim shows up once in the launcher.** Ryoku's `ryoku-nvim.desktop` and
   the neovim package's `nvim.desktop` both say Neovim, so every launcher and app
   grid listed it twice. The doctor writes a user-level copy of the package's
