@@ -8,7 +8,7 @@ IMAGE=${RYOKU_XBPS_IMAGE:-ghcr.io/void-linux/void-glibc-full}
 HOST_WORK=${RYOKU_XBPS_WORK:-${TMPDIR:-/tmp}/ryoku-xbps-work-$UID}
 HOST_OUT=${RYOKU_XBPS_OUT:-$SCRIPT_DIR/out}
 
-for command in git tar sha256sum; do
+for command in git tar sha256sum curl jq; do
 	command -v "$command" >/dev/null 2>&1 || {
 		printf 'container-runner.sh: required host command not found: %s\n' "$command" >&2
 		exit 1
@@ -62,6 +62,36 @@ channel=${RYOKU_CHANNEL:-local}
 name=${RYOKU_NAME:-$(tr -d '[:space:]' < "$ROOT/CODENAME")}
 commit=$(git -C "$ROOT" rev-parse HEAD)
 
+# Ryotunes ships on its own release train. Build its latest stable release, as
+# the Arch importer and the Fedora fetch hook do; a pin in the template only
+# ever fell behind. The token stays on the host: only the version and the
+# release's own checksum enter the build container.
+latest_ryotunes() {
+	local api=${RYOKU_GITHUB_API:-https://api.github.com}
+	local download=${RYOKU_GITHUB_DL:-https://github.com}
+	local token=${GH_TOKEN:-${GITHUB_TOKEN:-}} release tag version sums sum file extra
+	local -a auth=()
+	[[ -z $token ]] || auth=(-H "Authorization: Bearer $token")
+	release=$(curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' \
+		"${auth[@]}" "$api/repos/Ryoku-dev/ryotunes/releases/latest") || return 1
+	[[ $(jq -r '.draft' <<<"$release") == false && $(jq -r '.prerelease' <<<"$release") == false ]] \
+		|| return 1
+	tag=$(jq -r '.tag_name // empty' <<<"$release")
+	[[ $tag =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+	version=${tag#v}
+	sums=$(curl -fsSL --retry 3 \
+		"$download/Ryoku-dev/ryotunes/releases/download/$tag/ryotunes-$version.tar.gz.sha256") || return 1
+	[[ $(grep -c . <<<"$sums") == 1 ]] || return 1
+	read -r sum file extra <<<"$sums"
+	[[ $sum =~ ^[0-9a-fA-F]{64}$ && ${file#\*} == "ryotunes-$version.tar.gz" && -z ${extra:-} ]] \
+		|| return 1
+	printf '%s %s\n' "$version" "${sum,,}"
+}
+read -r ryotunes_version ryotunes_sha256 < <(latest_ryotunes) || {
+	printf 'container-runner.sh: could not resolve the latest Ryoku-dev/ryotunes release\n' >&2
+	exit 1
+}
+
 command -v "$ENGINE" >/dev/null 2>&1 || {
 	printf 'container-runner.sh: container engine not found: %s\n' "$ENGINE" >&2
 	exit 1
@@ -86,7 +116,9 @@ run=("$ENGINE" run --rm --platform linux/amd64 --privileged
 	-e "RYOKU_NAME=$name"
 	-e "RYOKU_PKGVER=$package_version"
 	-e "RYOKU_XBPS_PRODUCTION=${RYOKU_XBPS_PRODUCTION:-0}"
-	-e "XBPS_PASSPHRASE=${XBPS_PASSPHRASE:-}")
+	-e "XBPS_PASSPHRASE=${XBPS_PASSPHRASE:-}"
+	-e "RYOKU_RYOTUNES_VERSION=$ryotunes_version"
+	-e "RYOKU_RYOTUNES_SHA256=$ryotunes_sha256")
 
 if [[ -n ${RYOKU_XBPS_KEY:-} ]]; then
 	[[ -f $RYOKU_XBPS_KEY ]] || { printf 'container-runner.sh: key not found: %s\n' "$RYOKU_XBPS_KEY" >&2; exit 1; }
@@ -142,6 +174,8 @@ inner='
 		RYOKU_NAME="$RYOKU_NAME" \
 		RYOKU_PKGVER="$RYOKU_PKGVER" \
 		XBPS_PASSPHRASE="$XBPS_PASSPHRASE" \
+		RYOKU_RYOTUNES_VERSION="$RYOKU_RYOTUNES_VERSION" \
+		RYOKU_RYOTUNES_SHA256="$RYOKU_RYOTUNES_SHA256" \
 		/ryoku/void/packages/repo/build-repo.sh
 '
 run+=("$IMAGE" sh -c 'set -e

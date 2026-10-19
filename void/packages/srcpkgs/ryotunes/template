@@ -1,24 +1,25 @@
 # Template file for 'ryotunes'
 pkgname=ryotunes
-version=1.1.6
+version=1.2.1
 revision=1
-_upstream_pkgrel=1
 archs="x86_64"
 build_style=cargo
 hostmakedepends="pkg-config"
 makedepends="gtk+3-devel libwebkit2gtk41-devel mpv-devel openssl-devel"
-depends="desktop-file-utils ffmpeg6 gtk+3 hicolor-icon-theme libwebkit2gtk41
- librsvg mpv openssl polkit quickshell xdg-utils yt-dlp"
+depends="desktop-file-utils ffmpeg6 gtk+3 hicolor-icon-theme libayatana-appindicator
+ libwebkit2gtk41 librsvg mpv openssl polkit qt6-imageformats qt6-plugin-tls-openssl
+ quickshell xdg-utils yt-dlp"
 short_desc="Ryoku music client, playback daemon, and sync server"
 maintainer="Ryoku <releases@ryoku.dev>"
 license="GPL-3.0-or-later"
 homepage="https://github.com/Ryoku-dev/ryotunes"
 distfiles="${homepage}/releases/download/v${version}/ryotunes-${version}.tar.gz"
-checksum=9ecadc6d9b8f0ac151a6d0505b0f3323cd8c46bf467f06e90c359f3a69860982
+checksum=36be6f5891acc74df35681b9927e4202867dd2f1d29824188ec42c8d7311a5d5
 nocross=yes
 
-# The source release tracks the same stable tag selected by Arch's importer.
-# Bump version, _upstream_pkgrel, and checksum together from releases/latest.
+# The repository build stamps version and checksum with Ryotunes' latest
+# release (void/packages/repo/container-runner.sh); the values above are only
+# the last release seen here.
 # Linux uses this binary to ask ryotunesd to open the installed QML client; it never runs Tauri.
 # Building without default features avoids bundling the unused web frontend.
 do_build() {

@@ -209,6 +209,7 @@ jobs:
           RYOKU_RELEASE: ${{ steps.channel.outputs.release }}
           RYOKU_CHANNEL: ${{ steps.channel.outputs.channel }}
           XBPS_PASSPHRASE: ${{ secrets.VOID_REPO_SIGNING_PASSPHRASE }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           trap 'rm -f "$RYOKU_XBPS_KEY"' EXIT

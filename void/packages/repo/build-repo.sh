@@ -14,6 +14,8 @@ KEYRING_DIR=${RYOKU_XBPS_KEYRING_DIR:-}
 MIRROR_DIR=${RYOKU_XBPS_MIRROR:-}
 PRODUCTION=${RYOKU_XBPS_PRODUCTION:-0}
 SOURCE_ARCHIVE=${RYOKU_XBPS_SOURCE_ARCHIVE:-}
+RYOTUNES_VERSION=${RYOKU_RYOTUNES_VERSION:-}
+RYOTUNES_SHA256=${RYOKU_RYOTUNES_SHA256:-}
 VP=$WORK/void-packages
 HOSTDIR=$WORK/hostdir
 ARCH_DIR=$OUT/$ARCH
@@ -215,6 +217,21 @@ for pkg in "${all_packages[@]}"; do
 			|| cp "$archive" "$cache/ryoku-$VERSION.tar.gz"
 	fi
 done
+
+# container-runner.sh resolves Ryotunes' latest release; xbps-src then fetches
+# that release and verifies it against the release's own checksum.
+if [[ -n ${template_for[ryotunes]:-} ]]; then
+	[[ $RYOTUNES_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && $RYOTUNES_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+		|| die "RYOKU_RYOTUNES_VERSION and RYOKU_RYOTUNES_SHA256 must name a Ryotunes release"
+	stamped=$VP/srcpkgs/ryotunes/template
+	awk -v version="$RYOTUNES_VERSION" -v checksum="$RYOTUNES_SHA256" '
+		!version_done && /^version=/ { print "version=" version; version_done=1; next }
+		!checksum_done && /^checksum=/ { print "checksum=" checksum; checksum_done=1; next }
+		{ print }
+	' "$stamped" > "$stamped.tmp"
+	mv "$stamped.tmp" "$stamped"
+	log "Building Ryotunes $RYOTUNES_VERSION, its latest release"
+fi
 
 {
 	printf '%s\n' 'XBPS_BUILD_ENVIRONMENT=ryoku-repository' 'XBPS_CHROOT_CMD=uchroot'

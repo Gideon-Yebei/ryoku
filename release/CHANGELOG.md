@@ -146,6 +146,15 @@
   the other plugin packages.
 
 ### Fixed
+- **Void builds the latest Ryotunes release.** The Void template pinned
+  Ryotunes 1.1.6 while releases moved on to 1.2.1, so Void installs and ISOs
+  shipped an old Ryotunes that `ryoku update` called current. The repository
+  build now resolves Ryotunes' latest stable release and stamps its version
+  and checksum, as the Arch importer and the Fedora fetch hook already follow
+  it. The package also pulls in Qt's TLS plugin, the tray indicator library
+  and Qt's image formats, which Void ships separately, so cover art loads and
+  the tray icon appears (`../void/packages/repo/container-runner.sh`,
+  `../void/packages/repo/build-repo.sh`, `../void/packages/srcpkgs/ryotunes/`).
 - **The Void key-sound profiles build again.** Void's ffmpeg 6 read the
   importer's stdin, which was the profile list the build loops over, so it ate
   the next line and the build died on a half-read profile name, failing the
