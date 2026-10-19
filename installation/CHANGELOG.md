@@ -13,6 +13,10 @@
   `backend/lib/cachyos.sh`).
 
 ### Fixed
+- **Reboot now works on the Void ISO.** The done screen's Reboot now and Power
+  off ran `systemctl`, which the Void live medium does not have, so the
+  installer dropped to a shell instead. They run plain `reboot` and `poweroff`
+  now, which systemd and runit both provide (`tui/system.go`).
 - **The install-steps rail fits a short console.** With the new questions the
   step list outgrew an 80x24 console, and the clamp cut off the header and the
   step's title. The rail now scrolls around the current step and counts the

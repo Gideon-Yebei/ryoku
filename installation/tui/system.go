@@ -1054,15 +1054,21 @@ func keymapRelaunch(code string) bool {
 	return true
 }
 
-// applyExit runs the post-install action chosen on the done screen. reboot and
-// poweroff hand off to systemd; anything else just returns so the live session
-// ends and drops to a shell.
+// exitCommand builds the done screen's reboot or poweroff command. A var so a
+// test can see what would run instead of rebooting the machine it runs on.
+var exitCommand = exec.Command
+
+// applyExit runs the post-install action chosen on the done screen. Plain
+// reboot and poweroff exist on every live medium: systemd links them to
+// systemctl, and the Void ISO's runit, which has no systemctl, hands them to
+// runit-init. Anything else just returns so the live session ends and drops to
+// a shell.
 func applyExit(action string) {
-	switch action {
-	case "reboot":
-		_ = exec.Command("systemctl", "reboot").Run()
-	case "poweroff":
-		_ = exec.Command("systemctl", "poweroff").Run()
+	if action != "reboot" && action != "poweroff" {
+		return
+	}
+	if err := exitCommand(action).Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "ryoku-tui: %s failed: %v\n", action, err)
 	}
 }
 

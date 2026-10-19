@@ -3780,7 +3780,7 @@ func (m model) viewDone() string {
 			fg(cSub, i18n.T("what's next")) + "\n" +
 			fg(cDim, i18n.Tf("log in as %s  ·  your configs live in ~/.config", user)) + "\n" +
 			fg(cDim, next))
-	// WIRE: doneSel 0 → systemctl reboot · 1 → systemctl poweroff · 2 → exit to a shell
+	// WIRE: doneSel 0 → reboot · 1 → poweroff · 2 → exit to a shell (applyExit)
 	opts := []struct{ label, hint string }{
 		{i18n.T("Reboot now"), i18n.T("recommended")},
 		{i18n.T("Power off"), ""},
