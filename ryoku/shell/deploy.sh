@@ -250,6 +250,23 @@ release_power_cutover_lock() {
   power_cutover_lock_held=0
 }
 
+# The live cutover reloads logind through sudo after the old shell is stopped,
+# so the credential has to be there before anything is stopped.
+cutover_sudo() {
+  command -v sudo >/dev/null 2>&1 || return 1
+  sudo -n true 2>/dev/null && return 0
+  [[ -t 0 ]] && sudo -v
+}
+
+# A failed cutover can stop after shell-quiesce or after the idle and lid
+# daemons stop; without this the session keeps no shell, no idle lock, and
+# no lid policy until the next login.
+recover_cutover() {
+  "$bindir/ryoku-power-cutover" generation-guard-stop || true
+  "$bindir/ryoku-shell" ping >/dev/null 2>&1 || restart_shell || true
+  start_session_power_units || true
+}
+
 power_cutover_unit=ryoku-power-cutover-guard.service
 stop_power_cutover_guard() {
   if [ -d /run/systemd/system ]; then
@@ -1557,6 +1574,10 @@ if (( wm_live && reload )); then
     say "installed. next login stages and activates qylock with the new shell."
     release_power_cutover_lock
     piece_end skipped
+  elif ! cutover_sudo; then
+    say "installed. the live switch needs sudo; log out and back in to activate the new shell and qylock."
+    release_power_cutover_lock
+    piece_end skipped
   elif [ -d /run/systemd/system ]; then
     # Hold a durable login1 block and the qylock generation writer gate before
     # stopping the old daemon. Existing locks can finish first; new launches
@@ -1566,9 +1587,8 @@ if (( wm_live && reload )); then
       piece_end failed
       exit 1
     fi
-    if ! command -v sudo >/dev/null 2>&1 ||
-       ! cmp -s "$here/../../system/hardware/power/logind-ryoku-lid.conf" \
-         /etc/systemd/logind.conf.d/10-ryoku-lid.conf; then
+    if ! cmp -s "$here/../../system/hardware/power/logind-ryoku-lid.conf" \
+      /etc/systemd/logind.conf.d/10-ryoku-lid.conf; then
       say "cannot activate the guarded lid policy: the logind drop-in is not installed" >&2
       piece_end failed
       exit 1
@@ -1577,7 +1597,7 @@ if (( wm_live && reload )); then
     # A later failure (session-bind, a reload) used to exit through errexit
     # with the durable sleep block still live, denying every suspend until a
     # reboot (#282). The stop is a no-op once the success path released it.
-    trap 'status=$?; piece_exit "$status"; stop_power_cutover_guard || true; exit "$status"' EXIT
+    trap 'status=$?; piece_exit "$status"; (( status == 0 )) || recover_cutover; stop_power_cutover_guard || true; exit "$status"' EXIT
     "$bindir/ryoku-power-cutover" generation-guard-start
     "$bindir/ryoku-power-cutover" shell-quiesce
     stage_qylock_user 1
@@ -1618,7 +1638,7 @@ if (( wm_live && reload )); then
       exit 1
     fi
     start_power_cutover_guard
-    trap 'status=$?; piece_exit "$status"; stop_power_cutover_guard || true; exit "$status"' EXIT
+    trap 'status=$?; piece_exit "$status"; (( status == 0 )) || recover_cutover; stop_power_cutover_guard || true; exit "$status"' EXIT
     "$bindir/ryoku-power-cutover" generation-guard-start
     "$bindir/ryoku-power-cutover" shell-quiesce
     stage_qylock_user 1
