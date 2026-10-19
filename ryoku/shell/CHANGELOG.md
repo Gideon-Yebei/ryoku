@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- **Orpheus can watch and switch VPNs.** A VPN module, offered in the Layout
+  editor and kept out of the default layout, shows a lock and the live tunnel's
+  name; its card switches Tailscale (picking or clearing its exit node, LAN
+  access through it, offering this machine as one, peers and the operator
+  authorisation it needs) and every NetworkManager VPN and WireGuard profile,
+  and shows the public IP (checkip.amazonaws.com, read only while it is open).
+  The daemon's `network` topic now lists saved VPN profiles under `vpn` and
+  takes `network.vpnActivate` / `network.vpnDeactivate`, which refuse anything
+  that is not a VPN or WireGuard profile (`ipc/network.go`,
+  `quickshell/shell/services/{Network,Tailscale}.qml`,
+  `quickshell/shell/modules/bar/barstyles/orpheus/`).
 - **Orpheus can show coding-agent limits and a paired phone.** Its Layout editor
   now offers an AI usage module backed by the same watched caches as QS Bar, and
   a phone module with connection, battery, and unread state that opens Kit's

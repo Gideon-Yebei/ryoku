@@ -90,12 +90,15 @@ Not shown to remove it; click a hidden module to add it back, or right-click a
 placed one to remove it. The logo and the voice stay put. The modules are logo;
 workspaces as dots, numbers, kanji, Greek, dashes, or app icons; window title;
 voice; media; weather; system monitor; keyboard layout; recording and microphone
-activity; coding-agent limits; a paired phone; updates; tray; notifications;
-controls; battery; clock; shortcuts for the launcher, Ask, overview, clipboard,
-screenshot, wallpaper, and Ryoku Hub; and power. Auto-hide can be `off`, `smart`,
-or `always`; smart hides the bar while the current workspace has windows, and
-touching the top edge brings it back. AI usage and Phone are available in the
-Layout editor but stay out of the default layout.
+activity; coding-agent limits; a paired phone; VPN (Tailscale, with its exit
+node picker, LAN access and run-as-exit-node switches, and NetworkManager VPN
+and WireGuard profiles, each with its own switch in the VPN card, which also
+shows the public IP); updates; tray; notifications; controls; battery; clock; shortcuts for the
+launcher, Ask, overview, clipboard, screenshot, wallpaper, and Ryoku Hub; and
+power. Auto-hide can be `off`, `smart`, or `always`; smart hides the bar while
+the current workspace has windows, and touching the top edge brings it back. AI
+usage, Phone and VPN are available in the Layout editor but stay out of the
+default layout.
 
 Its settings use the `orpheus` namespace in `shell.json`:
 
