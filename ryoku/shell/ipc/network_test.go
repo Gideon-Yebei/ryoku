@@ -390,9 +390,6 @@ func TestDnsHelperPathPrefersPackaged(t *testing.T) {
 	}
 }
 
-// TestLiveNetworkFrame exercises the real snapshot path against the running
-// NetworkManager and prints the frame, as evidence the topic renders live data.
-// Gated so the default `go test` stays deterministic and bus-free.
 // vpnProfileFrames lists only type "vpn" profiles, in service order, and marks
 // connecting/ip4 only for the ones with live state.
 func TestVpnProfileFrames(t *testing.T) {
@@ -461,6 +458,9 @@ func TestFirstAddress(t *testing.T) {
 	}
 }
 
+// TestLiveNetworkFrame exercises the real snapshot path against the running
+// NetworkManager and prints the frame, as evidence the topic renders live data.
+// Gated so the default `go test` stays deterministic and bus-free.
 func TestLiveNetworkFrame(t *testing.T) {
 	if os.Getenv("RYOKU_LIVE_DBUS") == "" {
 		t.Skip("set RYOKU_LIVE_DBUS=1 to run the live NetworkManager integration")
