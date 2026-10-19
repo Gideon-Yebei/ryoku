@@ -323,6 +323,8 @@ pinned=$(sed -n 's/^[[:space:]]*fedoraKeyFingerprint[[:space:]]*=[[:space:]]*"\(
 [[ -n $pinned ]] || fail "installer key fingerprint not found"
 shipped=$(GNUPGHOME="$fixture" gpg --batch --with-colons --show-keys "$key" 2>/dev/null | awk -F: '$1 == "fpr" { print $10; exit }')
 [[ $shipped == "$pinned" ]] || fail "ryoku-keyring key fingerprint '$shipped' does not match the installer's $pinned"
+doctor_pinned=$(sed -n 's/^const ryokuReleaseKeyFingerprint = "\([0-9a-f]*\)"$/\1/p' "$ROOT/ryoku/cli/internal/doctor/reconcile_fedora_keyring.go")
+[[ ${doctor_pinned^^} == "$pinned" ]] || fail "ryoku doctor checks for key '$doctor_pinned', not the installer's $pinned"
 # ryoku doctor deletes each revoked fingerprint from the rpm keyring.
 while IFS= read -r revoked || [[ -n $revoked ]]; do
 	[[ -z $revoked || $revoked == '#'* ]] && continue

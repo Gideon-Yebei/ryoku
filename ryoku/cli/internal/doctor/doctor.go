@@ -231,6 +231,7 @@ func reconcilers() []reconciler {
 		checks = append(checks,
 			reconciler{i18n.T("Fedora release"), reconcileFedoraRelease},
 			reconciler{i18n.T("earlier Fedora boot-menu leftovers"), reconcileFedoraLegacyBoot},
+			reconciler{i18n.T("Ryoku release key"), reconcileFedoraKeyring},
 			reconciler{i18n.T("revoked Ryoku release keys"), reconcileFedoraRevokedKeys},
 		)
 	}
@@ -1388,11 +1389,11 @@ func reconcileFedoraRyokuChannel(checkOnly bool) recResult {
 	app := host.Default()
 	repository, err := app.RepoURL()
 	if err != nil || repository == "" {
-		// The key is not packaged on Fedora; only the installer fetches and
-		// verifies it. A repository that names a missing key never loads.
+		// Without the key file dnf cannot read the repository, not even to
+		// reinstall ryoku-keyring, so only the installer can bring it back.
 		if !dnfRepoKeyPresent() {
 			return warnRes(i18n.T("ryoku-desktop is installed but the signed Ryoku RPM repository and its release key %s are missing; updates will not arrive"), dnfRepoKeyPath).
-				withFix(i18n.T("re-run the Ryoku shell installer, which verifies and imports the release key"))
+				withFix(fedoraKeyReinstallAdvice())
 		}
 		if checkOnly {
 			return wouldRes(i18n.T("ryoku-desktop is installed but the signed Ryoku RPM repository is not configured; updates will not arrive")).

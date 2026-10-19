@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **Doctor watches the Fedora release key.** It warns when `ryoku-keyring` is
+  gone, when the key file is missing or no longer the packaged one, and puts
+  the key back into the rpm keyring when rpm stopped trusting it. It also
+  drops revoked Ryoku keys from the rpm keyring after an update; that part
+  was contributed by itsKontra.
 - **Icon-theme choices survive updates.** Materialize reapplies the Hub's
   remembered icon theme after refreshing the shipped GTK and Qt configs, before
   recording their final hashes, so the choice neither resets nor becomes a
