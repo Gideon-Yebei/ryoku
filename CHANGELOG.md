@@ -72,6 +72,11 @@ for finer detail.
   mutable channels current without changing frozen distro snapshots.
 
 ### Added
+- **Community app launchers.** RyoStore gains an App launchers section: anyone
+  can submit a launcher as a folder to the ryostore catalogue, users install it
+  there and pick it in Ryoku Settings -> App Launcher, and Super+Space opens it,
+  the same way community bar styles work. Tatami, a full-screen app shelf, is
+  the first one.
 - **RyoManager joins the default apps.** Fresh installs can keep or drop the
   system monitor; existing boxes get it once through doctor, and a removal
   stays removed.

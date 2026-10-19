@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **App Launcher shows launchers from RyoStore.** The style switch becomes a
+  gallery of every launcher: the shipped six and each RyoStore launcher, tagged
+  STORE (selectable once installed, with UPDATE when a newer version is out),
+  plus BROWSE RYOSTORE. A store launcher previews with its own `Preview.qml`, or
+  its store art when it has none, and picking and saving it works as for a
+  shipped one (`quickshell/pages/LauncherPage.qml`).
 - **Dictation offers Redux Multilingual.** On systemd desktops the Dictation
   page lists Redux, a fast Parakeet model for 25 European languages that runs
   through a resident worker. Picking it builds the speech runtime from pinned
