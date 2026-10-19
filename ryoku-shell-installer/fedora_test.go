@@ -546,3 +546,41 @@ func TestEnableFedoraBluetooth(t *testing.T) {
 		}
 	})
 }
+
+func TestFedoraKeyUntrustCommandFindsTheImportedKey(t *testing.T) {
+	fingerprint := strings.ToLower(fedoraKeyFingerprint)
+	legacy := "gpg-pubkey-" + fingerprint[len(fingerprint)-8:]
+	missing := errors.New("exit status 1")
+	for _, test := range []struct {
+		name    string
+		listed  string
+		listErr error
+		legacy  bool
+		want    []string
+	}{
+		{name: "fingerprint keystore", listed: "105ef944 Fedora\n" + strings.ToUpper(fingerprint) + " Ryoku Releases <releases@ryoku.dev> public key\n", want: []string{"rpmkeys", "--delete", fingerprint}},
+		{name: "gpg-pubkey package", listErr: missing, legacy: true, want: []string{"rpm", "-e", legacy}},
+		{name: "other keys only", listed: "105ef944105ef944105ef944105ef944105ef944 Fedora\n", want: nil},
+		{name: "nothing trusted", listErr: missing, want: nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			probe := func(name string, args ...string) (string, error) {
+				switch strings.Join(append([]string{name}, args...), " ") {
+				case "rpmkeys --list":
+					return test.listed, test.listErr
+				case "rpm -q " + legacy:
+					if test.legacy {
+						return legacy + "-6a0c5a3b\n", nil
+					}
+					return "", missing
+				}
+				t.Fatalf("unexpected probe %s %v", name, args)
+				return "", nil
+			}
+			got := fedoraKeyUntrustCommand(probe)
+			if strings.Join(got, " ") != strings.Join(test.want, " ") {
+				t.Fatalf("untrust command = %q, want %q", got, test.want)
+			}
+		})
+	}
+}

@@ -66,6 +66,10 @@
   steps, so a stuck stable install can be finished on unstable.
 
 ### Fixed
+- **Uninstalling on Fedora stops trusting Ryoku's signing key.** Removing the
+  repository files now also deletes the key rpm imported, so the machine no
+  longer accepts packages signed by Ryoku. The key file itself leaves with the
+  `ryoku-keyring` package and is deleted by hand only on older installs.
 - **Rashin can be left out on Void and Fedora.** The Rashin row was locked on
   there because the desktop package required it. It is a normal choice on
   every edition now, and `--rashin=false` works everywhere.

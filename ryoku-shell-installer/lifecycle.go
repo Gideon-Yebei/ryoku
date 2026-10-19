@@ -237,13 +237,24 @@ func runUninstall(yes, dry bool) int {
 		}
 	}
 	if activeDistro.id == "fedora" {
-		paths := []string{fedoraRepoConfigPath(), fedoraKeyPath}
+		paths := []string{fedoraRepoConfigPath()}
+		// ryoku-keyring owns the key file and took it with the packages; only
+		// an install from before that package leaves it unowned.
+		if _, err := probeCommand("rpm", "-qf", fedoraKeyPath); err != nil {
+			paths = append(paths, fedoraKeyPath)
+		}
 		coprs, _ := filepath.Glob(filepath.Join(fedoraRepoDir, "ryoku-copr-*.repo"))
 		paths = append(paths, coprs...)
 		if confirm(rd, i18n.T("remove the Ryoku RPM repository files and signing key?"), yes) {
 			args := append([]string{"-n", "rm", "-f"}, paths...)
 			if err := run("sudo", args...); err != nil {
 				fmt.Println(i18n.T("warning: could not remove the Ryoku RPM repository files and signing key"))
+			}
+			// Deleting the file does not untrust the key rpm imported from it.
+			if untrust := fedoraKeyUntrustCommand(probeCommand); untrust != nil {
+				if err := run("sudo", append([]string{"-n"}, untrust...)...); err != nil {
+					fmt.Println(i18n.Tf("warning: rpm still trusts the Ryoku signing key; remove it with sudo %s", strings.Join(untrust, " ")))
+				}
 			}
 		}
 	}
@@ -285,4 +296,30 @@ func runUninstall(yes, dry bool) int {
 	fmt.Println(i18n.T("kept: session packages (sddm, networkmanager, pipewire, ...) and the backups"))
 	fmt.Println(i18n.Tf("under %s; delete those directories once you are sure.", root))
 	return 0
+}
+
+// probeCommand runs a read-only query and returns its output.
+func probeCommand(name string, args ...string) (string, error) {
+	out, err := exec.Command(name, args...).Output()
+	return string(out), err
+}
+
+// fedoraKeyUntrustCommand is the command that drops the pinned Ryoku key from
+// the rpm keyring, or nil when rpm does not trust it. rpm 6 lists and deletes
+// keys by fingerprint; older rpm keeps each key as a gpg-pubkey package named
+// after the fingerprint's last eight digits.
+func fedoraKeyUntrustCommand(probe func(string, ...string) (string, error)) []string {
+	fingerprint := strings.ToLower(fedoraKeyFingerprint)
+	if out, err := probe("rpmkeys", "--list"); err == nil {
+		for _, line := range strings.Split(out, "\n") {
+			if fields := strings.Fields(line); len(fields) > 0 && strings.ToLower(fields[0]) == fingerprint {
+				return []string{"rpmkeys", "--delete", fingerprint}
+			}
+		}
+	}
+	legacy := "gpg-pubkey-" + fingerprint[len(fingerprint)-8:]
+	if _, err := probe("rpm", "-q", legacy); err == nil {
+		return []string{"rpm", "-e", legacy}
+	}
+	return nil
 }
