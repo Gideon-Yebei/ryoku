@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Super+Space opens launchers installed from RyoStore.** The launcher host
+  adds the Store's `launchers.json` rows to its catalog as entries that load
+  from their installed view (a shipped id always wins), waits for that index
+  before resolving the saved choice so a store launcher opens on the first press
+  after login, and swaps an updated launcher in without a restart
+  (`quickshell/shell/modules/launcher/Launcher.qml`,
+  `quickshell/shell/modules/launcher/shared/Singletons/LauncherProducts.qml`,
+  `quickshell/shell/modules/launcher/shared/lib/catalog.js`).
 - **Orpheus can watch and switch VPNs.** A VPN module, offered in the Layout
   editor and kept out of the default layout, shows a lock and the live tunnel's
   name; its card switches Tailscale (picking or clearing its exit node, LAN
