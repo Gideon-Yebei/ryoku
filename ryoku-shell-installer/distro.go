@@ -275,11 +275,13 @@ func (e *engine) d() *distro {
 	return activeDistro
 }
 
+var ryokuSystemBin = "/usr/bin"
+
 // ryokuTool finds a Ryoku-built program: /usr/bin from a package, ~/.local/bin
 // from a fromSource build (which a fresh login's PATH does not carry). Empty
 // when it is not installed yet.
 func (e *engine) ryokuTool(name string) string {
-	cands := []string{filepath.Join("/usr/bin", name)}
+	cands := []string{filepath.Join(ryokuSystemBin, name)}
 	if e.f != nil && e.f.homeDir != "" {
 		cands = append(cands, filepath.Join(e.f.homeDir, ".local", "bin", name))
 	}

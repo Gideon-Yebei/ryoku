@@ -295,6 +295,9 @@ func TestSourcePayloadCloneIsCompleteAndRefreshable(t *testing.T) {
 func TestRunitSessionEnsureAndWrapperRepairOrder(t *testing.T) {
 	t.Setenv("RYOKU_HOST_INIT", "runit")
 	root := t.TempDir()
+	oldSystemBin := ryokuSystemBin
+	ryokuSystemBin = filepath.Join(root, "usr-bin")
+	t.Cleanup(func() { ryokuSystemBin = oldSystemBin })
 	home := filepath.Join(root, "home")
 	binDir := filepath.Join(home, ".local", "bin")
 	backupDir := filepath.Join(root, "backup")

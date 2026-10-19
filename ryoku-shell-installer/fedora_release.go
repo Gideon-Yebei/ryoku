@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -113,6 +115,18 @@ func supportedFedoraReleases(client httpDoer) ([]string, error) {
 	return releases, nil
 }
 
+// isFedoraPublishedOnChannel counts an unreachable repository as published,
+// since the release list is shared with testing.
+func isFedoraPublishedOnChannel(client httpDoer, ref string, releases []string) bool {
+	for _, release := range releases {
+		published, err := fedoraRepositoryPublished(client, fedoraReleaseRepoURL(ref, release))
+		if published || err != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func fedoraReleaseVersion(osReleasePath string) (string, error) {
 	data, err := os.ReadFile(osReleasePath)
 	if err != nil {
@@ -143,6 +157,9 @@ func fedoraReleaseGate(client httpDoer, ref, osReleasePath string) error {
 	supported, listErr := supportedFedoraReleases(client)
 	if listErr != nil {
 		return fmt.Errorf(i18n.T("Ryoku does not publish packages for Fedora %s yet. Supported releases could not be read from %s: %v"), release, fedoraReleasesURL, listErr)
+	}
+	if channel, _ := fedoraRepository(ref); channel == "stable" && slices.Contains(supported, release) && !isFedoraPublishedOnChannel(client, ref, supported) {
+		return errors.New(i18n.T("The stable channel has no Fedora packages until Ryoku's first Fedora release. To install the testing packages now, run the installer with --ref unstable-dev."))
 	}
 	message := i18n.Tf("Ryoku does not publish packages for Fedora %s yet. Supported: %s.", release, strings.Join(supported, ", "))
 	running, parseErr := strconv.Atoi(release)
