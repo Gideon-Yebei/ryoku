@@ -294,6 +294,41 @@ func TestFedoraReleaseGateRefusesUnpublishedAndSkipsOverride(t *testing.T) {
 	}
 }
 
+func TestFedoraReleaseGateExplainsStableBeforeTheFirstRelease(t *testing.T) {
+	osRelease := filepath.Join(t.TempDir(), "os-release")
+	if err := os.WriteFile(osRelease, []byte("ID=fedora\nVERSION_ID=44\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RYOKU_RPM_REPO", "")
+	for _, tc := range []struct {
+		name      string
+		published string
+		wantWait  bool
+	}{
+		{name: "before the first release", wantWait: true},
+		{name: "after the first release", published: fedoraReleaseRepoURL("main", "45")},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client := httpDoerFunc(func(req *http.Request) (*http.Response, error) {
+				switch req.URL.String() {
+				case fedoraReleasesURL:
+					return httpResponse(http.StatusOK, "44\n45\n"), nil
+				case tc.published:
+					return httpResponse(http.StatusOK, ""), nil
+				}
+				return httpResponse(http.StatusNotFound, ""), nil
+			})
+			err := fedoraReleaseGate(client, "main", osRelease)
+			if err == nil {
+				t.Fatal("an unpublished release passed the gate")
+			}
+			if got := strings.Contains(err.Error(), "first Fedora release"); got != tc.wantWait {
+				t.Fatalf("stable gate error = %v", err)
+			}
+		})
+	}
+}
+
 func TestFedoraReleaseGateFallsBackToGET(t *testing.T) {
 	osRelease := filepath.Join(t.TempDir(), "os-release")
 	if err := os.WriteFile(osRelease, []byte("ID=fedora\nVERSION_ID=44\n"), 0o644); err != nil {
