@@ -148,7 +148,7 @@ func setRyokuServer(conf, server string) (string, string) {
 // base.packages via readBasePackages: the same manifest the ISO pacstraps.
 var ryokuPkgs = []string{"ryoku-keyring", "ryoku-desktop"}
 
-var fedoraRyokuPkgs = []string{"ryoku", "ryoku-desktop", "ryoku-desktop-hyprland", "ryoku-desktop-niri"}
+var fedoraRyokuPkgs = []string{"ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-hyprland", "ryoku-desktop-niri"}
 
 // ryokuOverwriteGlob names the ryoku-desktop-owned paths that a prior partial
 // install, a dev deploy, or the ISO installer can leave unowned on disk: the

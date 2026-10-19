@@ -18,7 +18,8 @@ that release, it stops and prints the supported list from
 `https://repo.ryoku.dev/stable/fedora/releases`. The installer uses dnf5 or
 dnf, verifies and imports Ryoku's release key, writes the signed RPM repository,
 and configures SDDM. It replaces GDM when present; KDE keeps its existing SDDM
-greeter configuration by default.
+greeter configuration by default. The `ryoku-keyring` RPM then owns the key file
+that the repository names, so dnf picks up a rotated key on the next update.
 
 Ryoku's repository carries the Fedora-compatible Arch desktop set, including a
 Ryoku-built Quickshell 0.3 or newer, GPU Screen Recorder, GlazePKG, the Hyprland
