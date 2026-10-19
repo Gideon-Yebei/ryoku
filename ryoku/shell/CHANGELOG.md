@@ -39,6 +39,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Orpheus cards scroll with the wheel over their rows.** Every list row
+  swallowed the wheel, so a long card such as VPN or Notifications only
+  scrolled from the gaps between rows. Only the bar pieces that step something
+  on the wheel (volume, workspaces, the voice pages) take it now
+  (`quickshell/shell/modules/bar/barstyles/orpheus/kit/Press.qml`).
 - **Store plugins added to the desktop show up.** A plugin that offers both a
   bar glyph and a desktop tile stayed on the bar after Add widget, so only its
   position was saved and no tile appeared. Adding it now moves it to the
