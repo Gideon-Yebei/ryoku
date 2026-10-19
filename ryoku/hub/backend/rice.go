@@ -979,25 +979,50 @@ func restoreRice(slot string) error {
 	return nil
 }
 
-// ensureUserRice makes a packaged rice editable before its first apply. The
-// manifest lands last so an interrupted copy is never mistaken for a complete
-// user rice.
+// packagedRiceRecord names the file in a user rice that records the sha256 of
+// the packaged manifest it was copied from.
+const packagedRiceRecord = ".packaged"
+
+// legacyPackagedRices are the sha256 sums of every rice.json the packages
+// shipped before copies recorded their source. An untouched copy of one of
+// them is refreshed like a recorded copy; a rice the user saved never matches.
+var legacyPackagedRices = map[string]bool{
+	"9fa0c626c7a1a147fcbe8c6fa640e9ceabd40257bf3f25dc1897eeeece526d67": true, // default 079d51151
+	"9a0e99672665e358abff6b89cd951e566c16a7e34a2e31420ec5c6bc6c6a2fe5": true, // default 0d774cf63
+	"9bc76f34224282dfb2825b8c6976079a42c424a0a3a6fa2579bb152284dd736f": true, // default 956fddaa3
+	"68d1f892352aa27eeec3a2f7c84c5842f325a53eccba5477665ee1507df95b72": true, // default 0ef1974e9
+	"c670376566d9d50e22bf314dec3aab5d84b6288962e3f251337c8995472fe8ca": true, // default 6e471b63d
+	"4ef679f9bf0ed220891492c56376714746c69d0dd78b4aeb7814cc2222ed5f73": true, // default 453f8e6d8
+	"355ea2757cb1a69bb00f349bc8052cc867980a1298ec1d659ed1bb62af2ba9da": true, // noc 6e471b63d
+	"6484cdcf55bf0ff80454412b49d01790b17b414dd89a3ad845e7400c58a6d430": true, // noc 453f8e6d8
+}
+
+// ensureUserRice makes a packaged rice editable before its first apply, and
+// brings an untouched copy up to the packaged version after an update, so a
+// fix to a shipped rice reaches the boxes that applied it before. A copy the
+// user saved over stays theirs. The manifest lands last so an interrupted copy
+// is never mistaken for a complete user rice.
 func ensureUserRice(slug string) error {
 	if !validRiceSlug(slug) {
 		return fmt.Errorf("bad rice slug %q", slug)
 	}
-	if isFile(ricePath(slug)) {
-		return nil
-	}
 	src := filepath.Join(systemRicesDir(), slug)
 	if _, err := loadRiceFrom(src); err != nil {
+		return nil
+	}
+	packaged, err := os.ReadFile(filepath.Join(src, "rice.json"))
+	if err != nil {
+		return err
+	}
+	packagedSum := fmt.Sprintf("%x", sha256.Sum256(packaged))
+	dst := filepath.Join(ricesDir(), slug)
+	if isFile(ricePath(slug)) && !stalePackagedCopy(dst, packagedSum) {
 		return nil
 	}
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}
-	dst := filepath.Join(ricesDir(), slug)
 	for _, e := range entries {
 		if e.IsDir() || strings.HasPrefix(e.Name(), ".") || e.Name() == "rice.json" {
 			continue
@@ -1009,7 +1034,25 @@ func ensureUserRice(slug string) error {
 	if err := copyFile(filepath.Join(src, "rice.json"), filepath.Join(dst, "rice.json")); err != nil {
 		return fmt.Errorf("copy packaged rice manifest: %w", err)
 	}
-	return nil
+	return atomicWrite(filepath.Join(dst, packagedRiceRecord), []byte(packagedSum+"\n"), 0o644)
+}
+
+// stalePackagedCopy reports whether the user rice in dir is an untouched copy
+// of an older packaged manifest: its rice.json still matches the recorded
+// source, or a legacy shipped one, and the package now ships something else.
+func stalePackagedCopy(dir, packagedSum string) bool {
+	current, err := os.ReadFile(filepath.Join(dir, "rice.json"))
+	if err != nil {
+		return false
+	}
+	sum := fmt.Sprintf("%x", sha256.Sum256(current))
+	if sum == packagedSum {
+		return false
+	}
+	if recorded, err := os.ReadFile(filepath.Join(dir, packagedRiceRecord)); err == nil {
+		return strings.TrimSpace(string(recorded)) == sum
+	}
+	return legacyPackagedRices[sum]
 }
 
 // riceWindowSections overlays the active provider's look onto the shared

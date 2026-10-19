@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1401,5 +1403,63 @@ func TestRiceApplyLeavesExactlyItsWidgets(t *testing.T) {
 	}
 	if readJSONMap(widgetsStorePath())["weatherEnabled"] != false {
 		t.Fatal("a rice without widgets left a widget on the desktop")
+	}
+}
+
+// A fix to a shipped rice used to stop at boxes that had applied it once: the
+// copy in the user's library won forever. Applying now refreshes a copy that
+// is still byte-for-byte a packaged version, recorded or legacy, and leaves a
+// rice the user saved over, or wrote, alone.
+func TestApplyRefreshesOnlyUntouchedPackagedCopies(t *testing.T) {
+	dir := t.TempDir()
+	system := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("RYOKU_SYSTEM_RICES_DIR", system)
+	sum := func(s string) string { return fmt.Sprintf("%x", sha256.Sum256([]byte(s))) }
+	write := func(p, body string) {
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	manifest := func(slug, rev string) string {
+		return `{"schema":1,"slug":"` + slug + `","name":"` + rev + `","look":{}}`
+	}
+	legacy := manifest("old", "shipped-before-records")
+	legacyPackagedRices[sum(legacy)] = true
+	t.Cleanup(func() { delete(legacyPackagedRices, sum(legacy)) })
+
+	for _, c := range []struct {
+		slug, user, record string
+		refreshed          bool
+	}{
+		{"recorded", manifest("recorded", "v1"), sum(manifest("recorded", "v1")), true},
+		{"edited", manifest("edited", "mine"), sum(manifest("edited", "v1")), false},
+		{"old", legacy, "", true},
+		{"own", manifest("own", "mine"), "", false},
+	} {
+		write(filepath.Join(system, c.slug, "rice.json"), manifest(c.slug, "v2"))
+		write(filepath.Join(system, c.slug, "fastfetch.jsonc"), "v2 readout")
+		write(ricePath(c.slug), c.user)
+		if c.record != "" {
+			write(filepath.Join(ricesDir(), c.slug, packagedRiceRecord), c.record+"\n")
+		}
+		if err := ensureUserRice(c.slug); err != nil {
+			t.Fatalf("%s: %v", c.slug, err)
+		}
+		got, _ := os.ReadFile(ricePath(c.slug))
+		if refreshed := string(got) == manifest(c.slug, "v2"); refreshed != c.refreshed {
+			t.Fatalf("%s: refreshed=%v, want %v (manifest %s)", c.slug, refreshed, c.refreshed, got)
+		}
+		if !c.refreshed {
+			continue
+		}
+		readout, _ := os.ReadFile(filepath.Join(ricesDir(), c.slug, "fastfetch.jsonc"))
+		record, _ := os.ReadFile(filepath.Join(ricesDir(), c.slug, packagedRiceRecord))
+		if string(readout) != "v2 readout" || strings.TrimSpace(string(record)) != sum(manifest(c.slug, "v2")) {
+			t.Fatalf("%s: refreshed copy has readout %q and record %q", c.slug, readout, record)
+		}
 	}
 }

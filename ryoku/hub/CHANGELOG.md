@@ -130,7 +130,10 @@
   desktop edited on its own output, so the rice looks the same on a machine
   whose screens have other names. Applying a rice leaves exactly its widgets:
   any desktop or plugin widget it does not have switches off, and a rice with
-  none clears the desktop instead of keeping the old ones (`backend/rice.go`).
+  none clears the desktop instead of keeping the old ones. Applying a shipped
+  rice also brings an untouched earlier copy of it up to the version the
+  package ships, so fixes to Default and NOC reach boxes that applied them
+  before; a rice you saved over stays yours (`backend/rice.go`).
 - **Saving a rice keeps its wallpaper after Ryogami optimises the image.**
   Capture follows Ryogami's current wallpaper when the recorded file was
   replaced by its WebP copy, and says so when it finds none. Applying a rice
