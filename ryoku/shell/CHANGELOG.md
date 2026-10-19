@@ -28,6 +28,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Store plugins added to the desktop show up.** A plugin that offers both a
+  bar glyph and a desktop tile stayed on the bar after Add widget, so only its
+  position was saved and no tile appeared. Adding it now moves it to the
+  desktop, as adding it in QS Bar moves it to the bar
+  (`quickshell/shell/modules/stage/StageWidgetProvider.qml`). Found and fixed
+  by Josevi Canet.
 - **Ryogami keeps the current wallpaper when it optimises the file.** Outputs,
   workspace wallpapers, library entries, playlists and the recorded wallpaper
   move to the WebP copy, so restores and rice saves no longer point at the
