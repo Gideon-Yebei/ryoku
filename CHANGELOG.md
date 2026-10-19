@@ -72,6 +72,11 @@ for finer detail.
   mutable channels current without changing frozen distro snapshots.
 
 ### Added
+- **Community docks.** RyoStore gains a Docks section: anyone can submit a dock
+  as a folder to the ryostore catalogue, users install it there and pick it in
+  Edit desktop -> Dock, and it becomes the dock on every monitor and every bar
+  style, the same way community launchers and bar styles work. Engawa, a plank
+  that lies flush with the screen edge, is the first one.
 - **Community app launchers.** RyoStore gains an App launchers section: anyone
   can submit a launcher as a folder to the ryostore catalogue, users install it
   there and pick it in Ryoku Settings -> App Launcher, and Super+Space opens it,

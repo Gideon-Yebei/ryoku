@@ -518,6 +518,23 @@ and per-monitor visibility from `ShellState`.
   It can magnify, label and preview windows, and optionally show media. Sumi's
   `RailDock` remains an in-bar alternative, but reads and writes the same shared
   pins and app identities.
+
+  Docks from RyoStore (the `docks/` catalogue of the ryostore repository, whose
+  `docks/AUTHORING.md` is the author's guide) join the same picker. Installing
+  one publishes `~/.local/state/ryoku/store/docks.json` with a content-addressed
+  view under `dock-views/<id>/<digest>/`; `services/DockProducts.qml` reads that
+  index (through the shared `StoreIndex`) and `UniversalDockHost` runs the
+  view's `Dock.qml` as the design of that id, waiting for the index so a saved
+  store dock does not flash the Ryoku design first. A store dock gets the same
+  `screen`, `surfaceVisible` and `stageEditing` the shipped designs get, reads
+  the shared model and settings from `Dock`, and opens Ryoku's context menu with
+  `Dock.openMenu`. One that fails to load draws the Ryoku design and logs why;
+  an update swaps the new view in live. The picker lists every store dock
+  beside the shipped ones (an uninstalled one opens RyoStore), offers Update, and
+  links to RyoStore. Removing the dock in use moves `dock.design` back to
+  `ryoku` in the Store's own transaction, and any dock edit drops that
+  removal's recovery marker. The shipped design ids (`Dock.builtinDesigns`) are
+  reserved.
 - **wallpaper** the background itself, drawn on the bottom layer with its own
   reveal shader for transitions: 22 presets the daemon draws from at random on
   each switch, from the crossfades, directional sweeps and circle irises to a

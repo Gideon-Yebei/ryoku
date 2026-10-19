@@ -3,6 +3,22 @@
 ## Unreleased
 
 ### Added
+- **The dock can be one installed from RyoStore.** `UniversalDockHost` runs a
+  store dock's `Dock.qml` from its installed view as the design of that id,
+  with the same screen, visibility and Stage Editor inputs the shipped designs
+  get; it waits for the Store's `docks.json` so a saved store dock never flashes
+  the Ryoku design first, swaps an update in without a restart, and draws the
+  Ryoku design (and logs why) when a store dock fails to load. Store docks
+  share the Ryoku design's right-click menu. Edit desktop -> Dock lists them
+  beside the shipped designs with an Update button and a Browse RyoStore row,
+  and the daemon drops a Store removal's dock marker on any dock edit so
+  recovery never brings back a removed design. The Store index reader is one
+  `StoreIndex` type shared with the launcher's
+  (`quickshell/shell/modules/dock/UniversalDockHost.qml`,
+  `quickshell/shell/services/DockProducts.qml`,
+  `quickshell/shell/services/StoreIndex.qml`,
+  `quickshell/stage/modules/ii/editMode/EditDockDesignPicker.qml`,
+  `ipc/settings.go`).
 - **Super+Space opens launchers installed from RyoStore.** The launcher host
   adds the Store's `launchers.json` rows to its catalog as entries that load
   from their installed view (a shipped id always wins), waits for that index
