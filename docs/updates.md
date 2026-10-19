@@ -96,7 +96,10 @@ running release and selected channel. It refuses an unpublished release and
 prints the supported list. Atomic and other rpm-ostree systems are refused.
 
 The installer verifies and imports Ryoku's release key and writes
-`/etc/yum.repos.d/ryoku.repo`. Separate package-restricted COPR files supply the
+`/etc/yum.repos.d/ryoku.repo`. From then on the `ryoku-keyring` RPM, which
+`ryoku-desktop` requires, owns the key file, so a rotated key arrives with an
+update. The repository file stays installer-written because its URL follows the
+channel `ryoku track` selects. Separate package-restricted COPR files supply the
 Hyprland stack, starship, lazygit, and yazi packages Fedora lacks. Ryoku-owned
 packages, including Quickshell, come from Ryoku's signed repository.
 
