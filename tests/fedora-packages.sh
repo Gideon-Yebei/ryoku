@@ -315,4 +315,13 @@ if "$RESOLVE" --table "$fixture/bad.tsv" >"$fixture/out" 2>"$fixture/err"; then
 fi
 grep -q 'line 2' "$fixture/err" || fail "malformed-table error did not name the bad line"
 
+# The installer pins the key it fetches; the ryoku-keyring RPM must ship that key.
+key="$ROOT/keys/ryoku-release-key.pub.asc"
+grep -qF 'keys/ryoku-release-key.pub.asc' "$SPECS/ryoku-keyring.spec" \
+	|| fail "ryoku-keyring does not ship $key"
+pinned=$(sed -n 's/^[[:space:]]*fedoraKeyFingerprint[[:space:]]*=[[:space:]]*"\([0-9A-F]*\)"$/\1/p' "$ROOT/ryoku-shell-installer/engine.go")
+[[ -n $pinned ]] || fail "installer key fingerprint not found"
+shipped=$(GNUPGHOME="$fixture" gpg --batch --with-colons --show-keys "$key" 2>/dev/null | awk -F: '$1 == "fpr" { print $10; exit }')
+[[ $shipped == "$pinned" ]] || fail "ryoku-keyring key fingerprint '$shipped' does not match the installer's $pinned"
+
 echo "fedora-packages: package closure, translations, and RPM dependencies are complete"

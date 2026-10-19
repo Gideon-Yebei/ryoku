@@ -202,7 +202,7 @@ ryoku-desktop-niri	ryoku-desktop-niri	desktop	Ryoku-owned RPM.
 ryoku-desktop-wayfire	-	wayfire	Fedora ships Wayfire 0.10.1; Ryoku's Wayfire desktop requires 0.11.
 ryoku-hub	ryoku-hub	desktop	Ryoku-owned RPM.
 ryoku-hypr-plugins	ryoku-hypr-plugins	hyprland	Ryoku-owned RPM.
-ryoku-keyring	ryoku-keyring	desktop	
+ryoku-keyring	ryoku-keyring	desktop	Ryoku-owned RPM.
 ryoku-keysounds	ryoku-keysounds	hyprland	Ryoku-owned RPM.
 ryoku-keysounds-niri	ryoku-keysounds-niri	optional	Ryoku-owned RPM.
 ryoku-keysounds-profiles	ryoku-keysounds-profiles	optional	Ryoku-owned RPM.
