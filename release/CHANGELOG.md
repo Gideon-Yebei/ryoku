@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Added
+- **Fedora gets a `ryoku-keyring` RPM.** It owns the release key file and the
+  revoked-key list, `ryoku-desktop` requires it, and a rotated key now reaches
+  Fedora machines through `ryoku update`. Contributed by itsKontra.
 - **RyoManager ships in every native Ryoku repository.** Arch, Fedora and Void
   build it from a pinned commit of `Ryoku-dev/ryomanager`
   (`packages/ryomanager/`, `../fedora/packages/rpm/ryomanager.spec`,
