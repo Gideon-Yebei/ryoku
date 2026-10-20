@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Fixed
+- **The palette bridge health check reads right on Void.** `doctor.sh` asks
+  `ryoku-host svc --user is-active` whether the bridge runs instead of
+  `systemctl --user`, which Void does not have (`palette-bridge/doctor.sh`).
 - **Vesktop keeps following wallpaper changes.** Palette updates preserve the
   QuickCSS file inode so Vencord's file watcher continues receiving changes
   after the first update (`palette-bridge/vesktop/quickcss.sh`).
