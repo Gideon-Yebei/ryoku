@@ -63,6 +63,13 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Nomarchy's package probes and power commands work on Void.**
+  `omarchy-pkg-present` and `omarchy-pkg-missing` asked pacman on every edition
+  but Fedora, so on Void every package read as missing; they now ask
+  `ryoku-host pkg installed` wherever pacman is not the package manager.
+  `omarchy-system-reboot` and `omarchy-system-shutdown` go through
+  `ryoku-host power` instead of `systemctl`, which Void does not have
+  (`nomarchy/bin/`, `tests/nomarchy-host-seam.sh`).
 - **Orpheus cards scroll with the wheel over their rows.** Every list row
   swallowed the wheel, so a long card such as VPN or Notifications only
   scrolled from the gaps between rows. Only the bar pieces that step something

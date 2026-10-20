@@ -72,7 +72,7 @@ pretending the action worked.
 | `omarchy-restart-shell`, `omarchy-refresh-shell` | `ryoku-shell reload` |
 | `omarchy-system-lock` | `ryoku-qylock-lock` |
 | `omarchy-system-logout`, `omarchy-system-wake` | `ryoku wm act session.exit` or `output.power on` |
-| `omarchy-system-reboot`, `omarchy-system-shutdown` | systemd reboot or poweroff |
+| `omarchy-system-reboot`, `omarchy-system-shutdown` | `ryoku-host power reboot` or `poweroff` (logind or elogind) |
 | `omarchy-system-sleep-lock` | qylock, then `ryoku-shell suspend` |
 | `omarchy-toggle-nightlight` | Ryoku shell night-light intent |
 | `omarchy-toggle-touchpad` | `ryoku wm act input.touchpad toggle` |
@@ -91,11 +91,11 @@ pretending the action worked.
 | `omarchy-default-browser`, `omarchy-default-terminal`, `omarchy-default-editor` | XDG or Ryoku default application state |
 | `omarchy-display-text-size` | Nomarchy shell override plus live config reload |
 | `omarchy-font-list`, `omarchy-font-current`, `omarchy-font-set` | fontconfig monospace selection |
-| `omarchy-cmd-present`, `omarchy-cmd-missing`, `omarchy-pkg-present`, `omarchy-pkg-missing` | PATH and pacman probes |
+| `omarchy-cmd-present`, `omarchy-cmd-missing`, `omarchy-pkg-present`, `omarchy-pkg-missing` | PATH probes, and package probes through pacman on Arch and CachyOS or `ryoku-host pkg installed` on Fedora and Void |
 | `omarchy-capture-screenshot`, `omarchy-capture-screenrecording` | Existing Ryoku capture actions |
 | `omarchy-weather-status`, `omarchy-weather-location` | wttr.in status and persisted weather location |
 | `omarchy-voxtype-config`, `omarchy-voxtype-status` | Ryoku voice control and status |
-| `omarchy-reminder` | User-systemd reminder timers and Nomarchy reminder panel |
+| `omarchy-reminder` | User-systemd reminder timers and Nomarchy reminder panel; Void has no user timers, so reminders need a systemd edition |
 | `omarchy-theme-color`, `omarchy-theme-set`, `omarchy-theme-set-templates`, `omarchy-theme-list`, `omarchy-theme-current`, `omarchy-theme-switcher` | Nomarchy theme bridge and shipped themes |
 | `omarchy-bar-text-color` | Ryoku wallpaper-tone contrast map |
 | `omarchy-battery-status`, `omarchy-system-stats` | UPower and procfs data for the power panel |
