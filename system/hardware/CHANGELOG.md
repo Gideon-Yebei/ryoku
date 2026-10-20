@@ -17,6 +17,11 @@
   headless one exits at once.
 
 ### Fixed
+- `gpu/ryoku-gpu-lib32`: **installs on every edition, and as root.** It
+  asks `ryoku-host pkg status` which of the wanted 32-bit driver packages the
+  edition provides and installs only those, turning on Void's multilib
+  repository first. Run as root it no longer dies with
+  `line 51: : command not found`, which an empty privilege prefix expanded to.
 - `power/ryoku-power-cutover`: **launcher apps inherit the late X display at
   login.** The first fix preserved `DISPLAY` only when Xwayland was already in
   the session scope as the environment bind ran. The bind now waits a bounded

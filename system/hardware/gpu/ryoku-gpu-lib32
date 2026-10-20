@@ -116,12 +116,37 @@ main() {
     [[ " ${want[*]-} " == *" $p "* ]] || want+=("$p")
   done
 
+  # Away from pacman only part of Arch's lib32 set has a package: Void ships the
+  # vendor 32-bit Vulkan drivers in multilib (turned on by the install itself),
+  # Fedora its .i686 builds. Install what this edition provides and skip the
+  # rest instead of failing the whole transaction on one missing name.
+  local manager
+  manager=$(ryoku-host pkgmgr 2>/dev/null || echo pacman)
+  if [[ $manager != pacman ]]; then
+    local -a provided=()
+    local name state
+    while IFS=$'\t' read -r name state _; do
+      if [[ $state == available || $state == installed ]]; then
+        provided+=("$name")
+      else
+        echo "ryoku-gpu-lib32: $name has no package on this distribution; skipping it."
+      fi
+    done < <(ryoku-host pkg status "${want[@]}" 2>/dev/null)
+    if (( ${#provided[@]} == 0 )); then
+      echo "ryoku-gpu-lib32: no 32-bit GPU packages are available on this distribution; skipping."
+      return 0
+    fi
+    want=("${provided[@]}")
+  fi
+
   echo "ryoku-gpu-lib32: 32-bit GPU packages: ${want[*]}"
   # Keep the package database and lib32 libraries in one upgrade transaction.
-  local -a priv=()
+  # A catalogue package table from the bundle actuator rides along across sudo.
+  local -a priv=() overlay=()
   (( EUID == 0 )) || priv=(sudo)
+  [[ -n ${RYOKU_HOST_PKG_OVERLAY:-} ]] && overlay=(--overlay "$RYOKU_HOST_PKG_OVERLAY")
   local rc
-  if run "${priv[@]-}" ryoku-host pkg install --upgrade "${want[@]}"; then
+  if run ${priv[@]+"${priv[@]}"} ryoku-host pkg ${overlay[@]+"${overlay[@]}"} install --upgrade "${want[@]}"; then
     return 0
   else
     rc=$?

@@ -96,8 +96,11 @@ kdeconnect	kdeconnect	optional
 khal	khal	desktop	
 kitty	kitty	desktop	
 lazygit	lazygit	desktop	
+lib32-mesa	mesa-dri-32bit	optional	repo=multilib
 lib32-nvidia-utils	-	hardware:nvidia	Deferred with nvidia-utils: the 32-bit libraries follow the proprietary driver.
+lib32-vulkan-icd-loader	vulkan-loader-32bit	optional	repo=multilib
 lib32-vulkan-intel	mesa-vulkan-intel-32bit	hardware:intel	repo=multilib
+lib32-vulkan-nouveau	mesa-vulkan-nouveau-32bit	optional	repo=multilib
 lib32-vulkan-radeon	mesa-vulkan-radeon-32bit	hardware:amd	repo=multilib
 lib32-vulkan-swrast	mesa-vulkan-lavapipe-32bit	hardware:vm	repo=multilib
 libcanberra	libcanberra	optional	
@@ -142,7 +145,7 @@ nodejs	nodejs	desktop,dev
 noto-fonts	noto-fonts-ttf	desktop	
 noto-fonts-cjk	noto-fonts-cjk	desktop	
 noto-fonts-emoji	noto-fonts-emoji	desktop	
-npm	-	dev	Included in Void nodejs.
+npm	nodejs	dev	
 nvibrant-bin	nvibrant	extra	repo=ryoku
 nvidia-utils	-	hardware:nvidia	Deferred: Void's nvidia drives Turing and newer only and blacklists nouveau; NVIDIA GPUs stay on nouveau until the driver step picks a branch per GPU.
 openrgb	openrgb	desktop	

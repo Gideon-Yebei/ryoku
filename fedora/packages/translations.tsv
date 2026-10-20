@@ -96,8 +96,11 @@ kdeconnect	kde-connect	optional
 khal	khal	desktop	
 kitty	kitty	desktop	
 lazygit	lazygit	desktop	Provided by a restricted COPR.
+lib32-mesa	mesa-dri-drivers.i686 mesa-libGL.i686	optional	
 lib32-nvidia-utils	-	hardware:nvidia	Fedora NVIDIA drivers require RPM Fusion and hardware-specific selection.
+lib32-vulkan-icd-loader	vulkan-loader.i686	optional	
 lib32-vulkan-intel	mesa-vulkan-drivers.i686	hardware:intel	
+lib32-vulkan-nouveau	mesa-vulkan-drivers.i686	optional	
 lib32-vulkan-radeon	mesa-vulkan-drivers.i686	hardware:amd	
 lib32-vulkan-swrast	mesa-vulkan-drivers.i686	hardware:vm	
 libcanberra	libcanberra	optional	

@@ -145,6 +145,8 @@ add_lane ryoku-keyring desktop
 add_lane ryoku-palette-bridge desktop
 add_lane udev desktop
 for pkg in dualsensectl dbus hidapi libusb; do add_lane "$pkg" optional; done
+# ryoku-gpu-lib32 installs the 32-bit GPU baseline on demand for games.
+for pkg in lib32-mesa lib32-vulkan-icd-loader lib32-vulkan-nouveau; do add_lane "$pkg" optional; done
 
 canonical_lanes() {
 	local encoded=$1 lane out=

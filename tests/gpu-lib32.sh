@@ -22,11 +22,28 @@ case "${1:-}" in
     ;;
   pkg)
     shift
-    [ "${1:-}" = install ] || exit 2
-    shift
-    while [ "$#" -gt 0 ] && [ "${1#--}" != "$1" ]; do shift; done
-    printf '%s\n' "$@" >"$RYOKU_HOST_CAPTURE"
-    exit "${RYOKU_HOST_INSTALL_EXIT:-0}"
+    if [ "${1:-}" = --overlay ]; then
+      printf '%s\n' "$2" >"$RYOKU_HOST_CAPTURE.overlay"
+      shift 2
+    fi
+    case "${1:-}" in
+      status)
+        shift
+        for name in "$@"; do
+          case " ${RYOKU_TEST_PROVIDED:-} " in
+            *" $name "*) printf '%s\tavailable\trepo\t\n' "$name" ;;
+            *) printf '%s\tunavailable\t\tNot packaged here.\n' "$name" ;;
+          esac
+        done
+        ;;
+      install)
+        shift
+        while [ "$#" -gt 0 ] && [ "${1#--}" != "$1" ]; do shift; done
+        printf '%s\n' "$@" >"$RYOKU_HOST_CAPTURE"
+        exit "${RYOKU_HOST_INSTALL_EXIT:-0}"
+        ;;
+      *) exit 2 ;;
+    esac
     ;;
   *)
     exit 2
@@ -93,13 +110,25 @@ if RYOKU_PACMAN_CONF="$offconf" RYOKU_GPU_DRM_ROOT="$root" \
   fail "multilib off: should have exited non-zero"
 fi
 
+# Void ships only part of the lib32 set (the vendor ICDs, in multilib): the
+# helper installs what the edition provides, forwards the catalogue table, and
+# names what it skips instead of failing on Arch-only names.
 root="$tmp/void"; mk_card "$root" card0 amdgpu
-if ! out="$(RYOKU_TEST_PKGMGR=xbps RYOKU_HOST_INSTALL_EXIT=5 \
+: >"$capture"
+out="$(RYOKU_TEST_PKGMGR=xbps RYOKU_TEST_PROVIDED="lib32-vulkan-radeon" RYOKU_HOST_PKG_OVERLAY=/tables/void.tsv \
     RYOKU_GPU_DRM_ROOT="$root" RYOKU_HOST_CAPTURE="$capture" \
+    PATH="$fakebin:/usr/bin:/bin" bash "$cmd" 2>&1)" || fail "Void lib32 install failed: $out"
+[[ $(cat "$capture") == lib32-vulkan-radeon ]] || fail "Void: installed $(tr '\n' ' ' <"$capture") instead of the provided ICD only"
+grep -Fq 'lib32-mesa has no package on this distribution' <<<"$out" || fail "Void: skipped baseline not named"
+[[ $(cat "$capture.overlay") == /tables/void.tsv ]] || fail "Void: catalogue table not forwarded across sudo"
+
+: >"$capture"
+if ! out="$(RYOKU_TEST_PKGMGR=xbps RYOKU_GPU_DRM_ROOT="$root" RYOKU_HOST_CAPTURE="$capture" \
     PATH="$fakebin:/usr/bin:/bin" bash "$cmd" 2>&1)"; then
-  fail "unavailable Void libraries should be non-fatal"
+  fail "no Void libraries at all should be non-fatal"
 fi
-grep -Fq '32-bit GPU libraries are not available on this distribution' <<<"$out" \
-  || fail "unavailable Void libraries: missing clear message"
+grep -Fq 'no 32-bit GPU packages are available on this distribution' <<<"$out" \
+  || fail "no Void libraries: missing clear message"
+[[ ! -s $capture ]] || fail "no Void libraries: an install still ran"
 
 echo "gpu-lib32: all checks passed"
