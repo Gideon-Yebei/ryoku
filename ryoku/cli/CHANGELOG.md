@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- **`ryoku-host pkg status` answers a whole batch.** It prints one line per
+  package, `name<TAB>installed|available|unavailable<TAB>repo|aur<TAB>reason`,
+  on pacman, dnf and xbps alike, with the edition table's sentence as the
+  reason for a package the edition does not ship
+  (`internal/host/package_status.go`).
+- **`ryoku-host pkg --overlay <table>`** (or `RYOKU_HOST_PKG_OVERLAY`) lays a
+  catalogue's own package table under Ryoku's edition table, so Store bundles
+  name their packages per edition while Ryoku's own row still wins
+  (`internal/host/overlay.go`). A Void row's `repo=` may list several
+  repositories (`repo=nonfree,multilib`); each `void-repo-*` package is
+  installed first (`internal/host/xbps_enablers.go`).
 - **Doctor watches the Fedora release key.** It warns when `ryoku-keyring` is
   gone, when the key file is missing or no longer the packaged one, and puts
   the key back into the rpm keyring when rpm stopped trusting it. It also
@@ -61,6 +72,10 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **Fedora's 32-bit packages resolve.** A name with an architecture suffix,
+  such as `mesa-dri-drivers.i686`, is looked up as a package, not as something
+  a package provides, so `ryoku-host pkg status`, `install` and `version` find
+  it (`internal/host/dnf.go`).
 - **`ryoku update` no longer hangs in its closing doctor run.** When the shell
   was down and left no log, the desktop-load check started the shell to see
   whether it loads and then waited for it to exit, which a working shell never
