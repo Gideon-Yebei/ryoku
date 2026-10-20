@@ -65,7 +65,7 @@ func productEntryItem(base, category string, entry ProductEntry) (Item, error) {
 		Tags:        entry.Tags, Accent: entry.Accent, Surface: entry.Surface,
 		Upstream: entry.Upstream, Discord: entry.Discord,
 		DownloadPaused: entry.DownloadPaused, DownloadPauseReason: entry.DownloadPauseReason,
-		RequiredWindowManager: entry.WindowManager,
+		RequiredWindowManager: entry.WindowManager, RequiredPackageManagers: entry.PackageManagers,
 	}
 	if ok, running := productWindowManagerGate(entry.WindowManager); !ok {
 		item.Unavailable = true
@@ -73,6 +73,10 @@ func productEntryItem(base, category string, entry ProductEntry) (Item, error) {
 		if item.UnavailableReason == "" {
 			item.UnavailableReason = "Written for " + running + "."
 		}
+	} else if ok, _ := productPackageManagerGate(entry.PackageManagers); !ok {
+		item.Unavailable = true
+		item.UnavailableEdition = true
+		item.UnavailableReason = packageManagerReason(entry.PackageManagersReason)
 	}
 	// A missing receipt means not installed. A corrupt or unreadable one is a
 	// local problem, not a source outage: leave the product installable
@@ -138,6 +142,10 @@ func assertProductInstallable(ctx context.Context, cache *Cache, category, id st
 		}
 		return fmt.Errorf("%s/%s: written for %s, not %s",
 			category, id, entry.WindowManager, running)
+	}
+	if ok, _ := productPackageManagerGate(entry.PackageManagers); !ok {
+		return fmt.Errorf("%s/%s: not available on this system: %s",
+			category, id, packageManagerReason(entry.PackageManagersReason))
 	}
 	if !entry.DownloadPaused {
 		return nil

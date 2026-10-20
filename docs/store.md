@@ -20,11 +20,13 @@ Ryoku Settings manages what is already present.
   remains the destination for activation, configuration, placement, and other
   applied-state controls.
 - **Install = the actuator.** `ryostore-install` routes each bundle item by
-  type: `package` through `pacman -Syu` / the AUR helper (one package at a time,
-  so one failure never strands the rest), `script` through `installers/<name>.sh`,
-  and `plugin` / `nautilus-pack` through the shell's guest paths. It runs in a
-  floating terminal for the sudo prompt; a bundle's `requires` (such as
-  `multilib`) is ensured first. Removal is symmetric.
+  type: `package` through `ryoku-host` (the official repositories or the AUR
+  helper on Arch and CachyOS, the edition's own repositories under its own
+  package names on Fedora and Void; one package at a time, so one failure never
+  strands the rest), `script` through `installers/<name>.sh`, and `plugin` /
+  `nautilus-pack` through the shell's guest paths. It runs in a floating
+  terminal for the sudo prompt; a bundle's `requires` (such as `multilib`) is
+  ensured first. Removal is symmetric.
 - **Guests = host/guest.** The shell is the *host*; a bundle ships *guests*
   (a plugin that renders in a widget or frame-popout host, a nautilus pack that
   drops right-click scripts). A guest declares its host and mounts on install,
@@ -85,7 +87,8 @@ state explicitly:
   currently worn;
 - `ENABLED` for a running plugin;
 - `INSTALLED` for an owned but inactive item;
-- `<installed> / <total> INSTALLED` for a partial bundle;
+- `<installed> / <total> INSTALLED` for a partial bundle, counting only the
+  parts this edition can install;
 - `UPDATE` when a newer store-managed version is available.
 
 Opening a product expands its selected cover into a media-led dossier. Images
@@ -198,7 +201,8 @@ Item
   kind, license, stars, verificationStatus, listedAt
   installed, active, enabled, installedCount, totalCount
   updateAvailable, downloadPaused, downloadPauseReason
-  requiredWindowManager, unavailable, unavailableReason, metadata
+  requiredWindowManager, requiredPackageManagers, unavailable,
+  unavailableEdition, unavailableReason, metadata
 ```
 
 A source may pause a product's downloads without delisting it: the registry
@@ -219,6 +223,20 @@ Install and update are refused the same way a pause is, on a fresh registry read
 so the item stays listed and an installed copy stays removable. A catalogue built
 under one window manager is rebuilt rather than served after a switch, since the
 answer to "does this run here?" belongs to the desktop it was computed on.
+
+Ryoku runs on Arch, CachyOS, Fedora and Void, and a catalogue item can be gated
+on the package managers that can provide it the same way: the registry entry,
+or a single bundle item, carries `packageManagers` (`pacman`, `dnf`, `xbps`)
+and a human `packageManagersReason`, the backend asks `ryoku-host pkgmgr` which
+one this machine runs, and the item comes back `unavailable` with
+`unavailableEdition` set, so the store says *Not on this system* rather than
+naming a window manager. A window-manager gate wins when both apply. The
+refusal on install is the same fresh registry read. Bundle packages are named
+per edition by the catalogue's `bundles/packages/<edition>.tsv` tables, which
+`ryostore internal package-table` serves to the actuator. A part the running
+edition does not ship stays listed in the bundle's detail, greyed out with the
+table's reason, cannot be selected, and is left out of **Install all** and the
+part count.
 
 The public command surface is deliberately small:
 

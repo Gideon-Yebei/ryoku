@@ -52,6 +52,10 @@ type ProductEntry struct {
 	// the provider name `ryoku wm use <name>` takes. Empty means any.
 	WindowManager       string `json:"windowManager,omitempty"`
 	WindowManagerReason string `json:"windowManagerReason,omitempty"`
+	// PackageManagers limits the product to the editions whose package manager
+	// `ryoku-host pkgmgr` names (pacman, dnf, xbps). Empty means every edition.
+	PackageManagers       []string `json:"packageManagers,omitempty"`
+	PackageManagersReason string   `json:"packageManagersReason,omitempty"`
 	// Upstream is the https:// home of the project a product comes from
 	// (a registry entry always names one); Discord is an optional invite to
 	// that project's community. Both surface as links on the detail page.

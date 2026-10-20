@@ -3,6 +3,18 @@
 ## Unreleased
 
 ### Added
+- `ryostore/`: **Every product says whether this edition can have it.** A
+  registry entry, or a single bundle item, may carry `packageManagers`
+  (`pacman`, `dnf`, `xbps`) and a `packageManagersReason`; on any other
+  edition the item comes back unavailable with `unavailableEdition` set, the
+  store tags it *Not on this system*, and install is refused on a fresh
+  registry read. A window-manager gate wins when both apply. Bundle parts the
+  running edition does not ship, by the catalogue's `bundles/packages/` table,
+  stay listed in the detail greyed out with the reason, cannot be selected,
+  and drop out of **Install all** and the part count. `ryostore internal
+  package-table` serves that table to the actuator
+  (`backend/host_package_manager.go`, `backend/provider_bundles.go`,
+  `quickshell/ProductDetail.qml`).
 - `ryostore/`: **Docks is a Store section.** Community docks install from the
   ryostore `docks/` registry and publish `docks.json` with a content-addressed
   view per dock. Install never selects one; removing the dock in use moves
