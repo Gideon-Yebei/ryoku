@@ -2,7 +2,8 @@
 
 # Pacman uses -Rs to drop dependencies nothing else needs. Other hosts remove
 # the translated package through ryoku-host and let their native dependency
-# policy decide what can be cleaned.
+# policy decide what can be cleaned; a catalogue package table from the bundle
+# actuator (RYOKU_HOST_PKG_OVERLAY) rides along across sudo.
 
 set -euo pipefail
 
@@ -13,6 +14,8 @@ set -euo pipefail
 
 manager=$(ryoku-host pkgmgr 2>/dev/null || true)
 if [[ -n $manager && $manager != pacman ]]; then
-  exec sudo ryoku-host pkg remove "$@"
+  overlay=()
+  [[ -n ${RYOKU_HOST_PKG_OVERLAY:-} ]] && overlay=(--overlay "$RYOKU_HOST_PKG_OVERLAY")
+  exec sudo ryoku-host pkg "${overlay[@]}" remove "$@"
 fi
 exec sudo pacman -Rs --noconfirm "$@"

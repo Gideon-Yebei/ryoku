@@ -14,6 +14,18 @@ for finer detail.
   user is no longer in a mango session.
 
 ### Fixed
+- The Store installs bundles on every edition. Bundle packages keep their Arch
+  names in the catalogue, and on Fedora and Void the catalogue's own edition
+  tables name them for that edition, so **Install all** brings in the
+  edition's packages instead of failing on Arch names. A part an edition does
+  not ship stays listed, greyed out with the reason and where to get it
+  instead, and the install skips it; the CachyOS layer and DaVinci Resolve,
+  which need Arch's repositories or the AUR, say so up front on Fedora and
+  Void.
+- The 32-bit GPU drivers (`ryoku-gpu-lib32`) install on Void and Fedora too:
+  the helper installs only what the edition provides, turns on Void's
+  multilib repository first, and no longer fails with
+  `line 51: : command not found` when run as root.
 - The CachyOS edition now installs what a vanilla CachyOS install carries:
   CachyOS's own builds of pacman, mesa, the firmware and the kernel layer, its
   own pacman.conf with the repositories for the CPU's tier, the CachyOS LTS

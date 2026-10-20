@@ -15,7 +15,9 @@ set -euo pipefail
 # Every manager installs through the host seam. Pacman asks for its full-sync
 # transaction so installing against stale databases cannot create a partial
 # upgrade. `--needed` is pacman spelling; the host seam already skips packages
-# that are present.
+# that are present. A catalogue package table (RYOKU_HOST_PKG_OVERLAY, set by
+# the bundle actuator) rides along as an option, because sudo drops the
+# environment.
 packages=()
 for arg in "$@"; do
   [[ $arg == --needed ]] || packages+=("$arg")
@@ -23,4 +25,6 @@ done
 ((${#packages[@]})) || exit 0
 upgrade=()
 [[ $(ryoku-host pkgmgr 2>/dev/null || true) == pacman ]] && upgrade=(--upgrade)
-exec sudo ryoku-host pkg install "${upgrade[@]}" "${packages[@]}"
+overlay=()
+[[ -n ${RYOKU_HOST_PKG_OVERLAY:-} ]] && overlay=(--overlay "$RYOKU_HOST_PKG_OVERLAY")
+exec sudo ryoku-host pkg "${overlay[@]}" install "${upgrade[@]}" "${packages[@]}"
