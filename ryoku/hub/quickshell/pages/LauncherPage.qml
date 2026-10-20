@@ -203,6 +203,7 @@ Item {
                             installedVersion: item.installedVersion || "",
                             updateAvailable: item.updateAvailable === true,
                             unavailable: item.unavailable === true,
+                            unavailableEdition: item.unavailableEdition === true,
                             unavailableReason: item.unavailableReason || "",
                             requiredWindowManager: item.requiredWindowManager || "",
                             downloadPaused: item.downloadPaused === true,
@@ -439,7 +440,8 @@ Item {
                                             return String(item.description || "");
                                         if (item.unavailable) {
                                             const wm = String(item.requiredWindowManager).toUpperCase();
-                                            const tag = wm.length > 0 ? I18n.tr("%1 only").arg(wm) : I18n.tr("Unavailable");
+                                            const tag = item.unavailableEdition ? I18n.tr("Not on this system")
+                                                : wm.length > 0 ? I18n.tr("%1 only").arg(wm) : I18n.tr("Unavailable");
                                             return item.unavailableReason.length > 0 ? tag + " \u00b7 " + item.unavailableReason : tag;
                                         }
                                         if (item.downloadPaused)

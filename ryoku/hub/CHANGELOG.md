@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **Add-ons reads part availability from the actuator.** The bundle card and
+  sheet take each part's availability and reason from `ryostore-install
+  status` instead of probing every package with `ryoku-host pkg available`,
+  so the Hub and the Store agree on what an edition can install, and Bar
+  studio and Launcher tag a product an edition cannot have *Not on this
+  system* (`quickshell/pages/AddonsPage.qml`).
 - **App Launcher shows launchers from RyoStore.** The style switch becomes a
   gallery of every launcher: the shipped six and each RyoStore launcher, tagged
   STORE (selectable once installed, with UPDATE when a newer version is out),
