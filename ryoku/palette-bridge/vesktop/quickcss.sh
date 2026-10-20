@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 
+# The Flathub build's sandbox sees only its own ~/.var/app folder, so it keeps
+# its settings and themes there instead of in the config directory.
+vesktop_flatpak_root() {
+  printf '%s\n' "$HOME/.var/app/dev.vencord.Vesktop/config/vesktop"
+}
+
+# The Vesktop directory in use under config root $1: the native one, else the
+# Flathub build's. Fails when neither has settings yet.
+vesktop_config_root() {
+  local root
+  for root in "$1/vesktop" "$(vesktop_flatpak_root)"; do
+    if [[ -f "$root/settings/settings.json" ]]; then
+      printf '%s\n' "$root"
+      return 0
+    fi
+  done
+  return 1
+}
+
 vesktop_render_palette() (
   set -e
   local template="$1" carrier="$2" output="$3" temporary

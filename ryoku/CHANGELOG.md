@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **The palette bridge themes the Flathub Vesktop and Zen.** Fedora and Void
+  users get both from Flathub, which keeps each app's settings in its own
+  `~/.var/app` folder. With no native install, Vesktop setup and removal use
+  the Flathub settings, QuickCSS and theme folder, and Zen setup finds the
+  profile under the Flathub build's `.zen` or `config/zen`
+  (`palette-bridge/install-integrations.sh`,
+  `palette-bridge/remove-integrations.sh`, `palette-bridge/vesktop/quickcss.sh`).
 - **The palette bridge health check reads right on Void.** `doctor.sh` asks
   `ryoku-host svc --user is-active` whether the bridge runs instead of
   `systemctl --user`, which Void does not have (`palette-bridge/doctor.sh`).

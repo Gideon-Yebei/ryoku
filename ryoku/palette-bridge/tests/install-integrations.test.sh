@@ -212,4 +212,32 @@ cp "$quick_css" "$test_root/expected.css"
 run_vesktop remove
 cmp "$test_root/expected.css" "$quick_css"
 
+# The Flathub build keeps its settings in its own ~/.var/app folder. With no
+# native Vesktop, setup and removal follow it there and leave ~/.config alone.
+flatpak_home="$test_root/flatpak-home"
+flatpak_config="$flatpak_home/.config"
+flatpak_vesktop="$flatpak_home/.var/app/dev.vencord.Vesktop/config/vesktop"
+mkdir -p "$flatpak_config/matugen" "$flatpak_vesktop/settings"
+printf '[config]\n' > "$flatpak_config/matugen/apps.toml"
+printf '{}\n' > "$flatpak_vesktop/settings/settings.json"
+run_flatpak_vesktop() {
+  HOME="$flatpak_home" XDG_CONFIG_HOME="$flatpak_config" XDG_STATE_HOME="$test_root/flatpak-state" \
+    PATH="$fake_bin:$PATH" "$project_root/$1-integrations.sh" --vesktop
+}
+run_flatpak_vesktop install
+grep -Fq -- '--accent-2: #fedcba;' "$flatpak_vesktop/settings/quickCss.css"
+cmp "$project_root/vesktop/midnight-ryoku.theme.css" "$flatpak_vesktop/themes/midnight-ryoku.theme.css"
+jq -e '.useQuickCss == true' "$flatpak_vesktop/settings/settings.json" >/dev/null
+grep -Fq 'dev.vencord.Vesktop/config/vesktop/settings/quickCss.css' \
+  "$flatpak_config/ryoku/user_edits/matugen/apps.toml"
+[[ ! -e "$flatpak_config/vesktop" ]]
+run_flatpak_vesktop remove
+if grep -Fq -- '--ryo-bridge-enabled: 1;' "$flatpak_vesktop/settings/quickCss.css"; then
+  printf 'FAIL: removal left the palette in the Flathub QuickCSS\n' >&2; exit 1
+fi
+[[ ! -e "$flatpak_vesktop/themes/midnight-ryoku.theme.css" ]]
+if grep -Fq '[templates.vesktop]' "$flatpak_config/ryoku/user_edits/matugen/apps.toml"; then
+  printf 'FAIL: removal left the Flathub Vesktop Matugen hook\n' >&2; exit 1
+fi
+
 printf 'PASS: integration setup and removal are idempotent and preserve existing configuration\n'

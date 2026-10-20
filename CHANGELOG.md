@@ -26,6 +26,9 @@ for finer detail.
   the helper installs only what the edition provides, turns on Void's
   multilib repository first, and no longer fails with
   `line 51: : command not found` when run as root.
+- Store items that theme Vesktop and Zen follow the Flathub builds Fedora and
+  Void users install: a Vesktop theme lands in the Flathub folder too, and the
+  palette bridge sets up Flathub Vesktop and Zen.
 - The CachyOS edition now installs what a vanilla CachyOS install carries:
   CachyOS's own builds of pacman, mesa, the firmware and the kernel layer, its
   own pacman.conf with the repositories for the CPU's tier, the CachyOS LTS
