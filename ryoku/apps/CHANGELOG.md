@@ -149,6 +149,13 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- `ryostore/`: **A Vesktop theme reaches the Flathub Vesktop.** Fedora and Void
+  users get Vesktop from Flathub, whose sandbox sees only its own `~/.var/app`
+  folder, so a theme linked into `~/.config/vesktop/themes` never showed up.
+  When the Flathub build is installed or has run, the install also puts a copy
+  in its theme folder. An update or removal replaces or takes out only a copy
+  whose content is a version the Store installed, and a rollback restores the
+  previous one (`backend/vesktop_theme.go`, `backend/product_transaction.go`).
 - `ryostore/`: **An offline catalogue no longer claims it is ready.** Built-in
   bars no longer mask a failed remote fetch with no cache, and the action bar
   reports the offline state with a refresh hint.

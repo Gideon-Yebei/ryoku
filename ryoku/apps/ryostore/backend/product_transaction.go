@@ -25,17 +25,20 @@ var (
 )
 
 type productTransactionJournal struct {
-	Schema                  int             `json:"schema"`
-	Category                string          `json:"category"`
-	ID                      string          `json:"id"`
-	Version                 string          `json:"version"`
-	Operation               string          `json:"operation"`
-	Phase                   string          `json:"phase"`
-	HadDestination          bool            `json:"hadDestination,omitempty"`
-	Adopted                 bool            `json:"adopted,omitempty"`
-	BaseRevision            uint64          `json:"baseRevision"`
-	PriorReceipt            *Receipt        `json:"priorReceipt,omitempty"`
-	VesktopThemeFile        string          `json:"vesktopThemeFile,omitempty"`
+	Schema           int      `json:"schema"`
+	Category         string   `json:"category"`
+	ID               string   `json:"id"`
+	Version          string   `json:"version"`
+	Operation        string   `json:"operation"`
+	Phase            string   `json:"phase"`
+	HadDestination   bool     `json:"hadDestination,omitempty"`
+	Adopted          bool     `json:"adopted,omitempty"`
+	BaseRevision     uint64   `json:"baseRevision"`
+	PriorReceipt     *Receipt `json:"priorReceipt,omitempty"`
+	VesktopThemeFile string   `json:"vesktopThemeFile,omitempty"`
+	// The new theme file's sha256, so a rollback recognises the copy it made
+	// for the Flathub build of Vesktop. Empty in journals from before copies.
+	VesktopThemeSHA256      string          `json:"vesktopThemeSHA256,omitempty"`
 	SelectionToken          string          `json:"selectionToken,omitempty"`
 	PluginPlacement         json.RawMessage `json:"pluginPlacement,omitempty"`
 	PluginPlacementPresent  bool            `json:"pluginPlacementPresent,omitempty"`
@@ -87,12 +90,13 @@ func installProductFrom(ctx context.Context, cache *Cache, category string, entr
 	if manifest.Destination != expectedDestination {
 		return fmt.Errorf("%s/%s: destination %q is outside the category allowlist", category, entry.ID, manifest.Destination)
 	}
-	vesktopThemeFile := ""
+	vesktopThemeFile, vesktopThemeSHA256 := "", ""
 	if category == vesktopThemesCategory {
-		vesktopThemeFile, err = vesktopThemeManifestFile(manifest.Files)
+		theme, err := vesktopThemeManifestFile(manifest.Files)
 		if err != nil {
 			return err
 		}
+		vesktopThemeFile, vesktopThemeSHA256 = theme.Destination, theme.SHA256
 	}
 
 	globalUnlock, err := lockTree(storeTransactionLockPath())
@@ -221,16 +225,17 @@ func installProductFrom(ctx context.Context, cache *Cache, category string, entr
 		return err
 	}
 	journal := productTransactionJournal{
-		Schema:           1,
-		Category:         category,
-		ID:               entry.ID,
-		Version:          entry.Version,
-		Operation:        operation,
-		Phase:            "install-prepared",
-		BaseRevision:     baseRevision,
-		HadDestination:   hadDestination,
-		Adopted:          adopting,
-		VesktopThemeFile: vesktopThemeFile,
+		Schema:             1,
+		Category:           category,
+		ID:                 entry.ID,
+		Version:            entry.Version,
+		Operation:          operation,
+		Phase:              "install-prepared",
+		BaseRevision:       baseRevision,
+		HadDestination:     hadDestination,
+		Adopted:            adopting,
+		VesktopThemeFile:   vesktopThemeFile,
+		VesktopThemeSHA256: vesktopThemeSHA256,
 	}
 	if hadReceipt {
 		priorCopy := prior
@@ -737,10 +742,13 @@ func validateProductJournal(journal productTransactionJournal) error {
 		if journal.Operation != "remove" && !validVesktopThemeName(journal.VesktopThemeFile) {
 			return fmt.Errorf("invalid Vesktop theme transaction filename")
 		}
-		if journal.Operation == "remove" && journal.VesktopThemeFile != "" {
+		if journal.Operation == "remove" && (journal.VesktopThemeFile != "" || journal.VesktopThemeSHA256 != "") {
 			return fmt.Errorf("Vesktop theme removal has a new filename")
 		}
-	} else if journal.VesktopThemeFile != "" {
+		if journal.VesktopThemeSHA256 != "" && !productHashPattern.MatchString(journal.VesktopThemeSHA256) {
+			return fmt.Errorf("invalid Vesktop theme transaction checksum")
+		}
+	} else if journal.VesktopThemeFile != "" || journal.VesktopThemeSHA256 != "" {
 		return fmt.Errorf("non-Vesktop transaction has a theme filename")
 	}
 	_, selects := selectionFor(journal.Category)
