@@ -26,6 +26,12 @@
   remove the Turing+ userspace with `-Rdd` first (the legacy utils provide both
   names) and put it back if the install fails. Covered by
   `tests/nvidia-driver-selection.sh`.
+- `gpu/ryoku-gpu-lib32`: **a pre-Turing NVIDIA card gets its own 32-bit
+  userspace.** It asked for `lib32-nvidia-utils` on every NVIDIA box, which
+  pacman resolves to the Turing+ package even when a legacy branch provides the
+  name, so the Gaming bundle's driver step conflicted with `nvidia-580xx-utils`
+  or `nvidia-470xx-utils` and failed. It now asks for the `lib32-` half of
+  whichever package owns `nvidia-utils`. Covered by `tests/gpu-lib32.sh`.
 - `gpu/ryoku-gpu-lib32`: **installs on every edition, and as root.** It
   asks `ryoku-host pkg status` which of the wanted 32-bit driver packages the
   edition provides and installs only those, turning on Void's multilib
