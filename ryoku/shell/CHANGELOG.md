@@ -78,6 +78,14 @@
   longer falls back to blue folders, and running KDE apps receive the palette
   change after `kdeglobals` is merged without a dangling named colour scheme
   (`scripts/ryoku-cmd-folders`, `ipc/matugen.go`).
+- **Notifications stay in the panel, and the bars move for quiet sounds too.**
+  A notification used to leave the history as soon as its sender's timeout ran
+  out, and one that never expires was never listed, so the Orpheus card often
+  read empty. The timeout now only times the popup; the panel keeps the newest
+  100 until they are dismissed. The shared spectrum feed was tuned on loud
+  music, so videos, games and anything at lower volume barely moved the drops;
+  a slow peak follower now lifts quiet sources while loud ones keep their real
+  dynamics (`quickshell/shell/services/{Notifs,AudioBars}.qml`).
 - **Nomarchy's package probes and power commands work on Void.**
   `omarchy-pkg-present` and `omarchy-pkg-missing` asked pacman on every edition
   but Fedora, so on Void every package read as missing; they now ask
