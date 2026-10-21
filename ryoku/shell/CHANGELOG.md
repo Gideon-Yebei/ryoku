@@ -68,6 +68,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Ryogami deletes the wallpaper its card identifies.** Delete now keeps the
+  catalogue row when removing the source fails, reports that failure in the
+  picker, and is not offered for Wallpaper Engine scenes managed by Steam
+  Workshop. Subfolder wallpapers use their catalogue key for delete and
+  favourites (`ryogami/{daemon,picker}/`).
 - **Nomarchy's package probes and power commands work on Void.**
   `omarchy-pkg-present` and `omarchy-pkg-missing` asked pacman on every edition
   but Fedora, so on Void every package read as missing; they now ask
