@@ -94,6 +94,11 @@ Singleton {
     // Editor writes it through the Dock singleton; every renderer reads it.
     property alias dock: adapter.dock
 
+    // designs: the OSD, notification card and Super+Esc sidebar every bar
+    // style shares. "ryoku" is the shipped design of each; any other id is a
+    // design RyoStore installed. Designs resolves them for the hosts.
+    property alias designs: adapter.designs
+
     // clipboard: geometry and corner treatment for the bottom-centred history
     // surface. The adapter keeps it a self-contained shell.json subtree so it
     // can retune live without a shell restart.
@@ -342,6 +347,11 @@ Singleton {
                     "revealOnEmpty": true,
                     "badges": true
                 }
+            })
+            property var designs: ({
+                "osd": "ryoku",
+                "notification": "ryoku",
+                "sidebar": "ryoku"
             })
             property var clipboard: ({
                 "widthPercent": 65,

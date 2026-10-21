@@ -32,6 +32,16 @@
   (`quickshell/shell/modules/launcher/Launcher.qml`,
   `quickshell/shell/modules/launcher/shared/Singletons/LauncherProducts.qml`,
   `quickshell/shell/modules/launcher/shared/lib/catalog.js`).
+- **OSDs, notification cards and the Super+Escape panel can wear RyoStore
+  designs.** Their saved choices are `shell.json` `designs.osd`,
+  `designs.notification`, and `designs.sidebar`, each defaulting to the shipped
+  `ryoku` design. The shell still owns every window, timer, value and input while
+  an installed design only draws; a design that fails to load falls back to
+  Ryoku's own. Python, Nomarchy, Tansu and Nacre keep the banners or OSD they own.
+  The Hub's new Settings -> Overlays page selects each installed design and has
+  Try actions, including an `osd preview` IPC call that flashes the volume OSD
+  (`quickshell/shell/services/{Config,Designs}.qml`,
+  `quickshell/shell/modules/{osd,notifications,sidebar}/`).
 - **Orpheus can watch and switch VPNs.** A VPN module, offered in the Layout
   editor and kept out of the default layout, shows a lock and the live tunnel's
   name; its card switches Tailscale (picking or clearing its exit node, LAN
@@ -73,6 +83,16 @@
   doubling them. Owning the banners also used to silence the arrival cue, but
   only the Python style plays a sound of its own, so the shell's cue now stands
   down only there (`quickshell/shell/services/{Config,Notifs}.qml`).
+- **The keyboard-layout OSD appears when the layout changes.** It listened for
+  a signal `KeyboardLayout` never had, so changing layouts could not raise the
+  popup; it now follows the layout property that actually changes
+  (`quickshell/shell/modules/osd/OsdSource.qml`).
+- **Every Store design resolves through the same checked view path.** The shared
+  validator now resolves dock, OSD, notification and sidebar views alike, so
+  each host rejects an invalid entry and can draw its shipped design instead
+  (`quickshell/shell/services/lib/storeview.js`,
+  `quickshell/shell/services/DockProducts.qml`,
+  `quickshell/shell/services/Designs.qml`).
 - **Ryogami deletes the wallpaper its card identifies.** Delete now keeps the
   catalogue row when removing the source fails, reports that failure in the
   picker, and is not offered for Wallpaper Engine scenes managed by Steam

@@ -86,6 +86,19 @@ animations do not continue in the background.
 Controls remains a global shell surface. The same arrangement is used by every
 bar style and every supported compositor.
 
+### Store designs
+
+Sidebar designs from RyoStore change the panel content without taking over the
+surface. The shell keeps the window, focus, click-away area, Escape handling,
+open and close motion, and per-display state. A design receives the screen,
+scale, active state, and available room; it may choose a supported placement
+and implicit size, and may ask the host to close it.
+
+Pick the design in **Ryoku Hub > Settings > Overlays**. Design authors can use
+the stock blocks with `import shell.modules.sidebar as Kit`, including the
+complete Controls board, individual Controls sections, frame, and buttons.
+
+
 
 ## ryoshot
 

@@ -653,11 +653,14 @@ type.*
 
 - **notifications** toasts in a top corner, left or right by config, 16px off it,
   driven over D-Bus. Each card glides in from off the edge it is anchored to and
-  leaves the same way, and its siblings slide down to close the gap.
+  leaves the same way, and its siblings slide down to close the gap. This card is
+  the shipped `ryoku` notification design; other installed designs can be worn
+  from Settings -> Overlays.
 - **OSD** one pill, bottom centre, for volume, mic or brightness, raised by the
   media and brightness keys and hidden on a timer. It spans the desktop hole so
   the compositor clamps it inside the frame, which is why it needs no reserve
-  arithmetic of its own.
+  arithmetic of its own. The pill is the shipped `ryoku` OSD design; other
+  installed designs can be worn from Settings -> Overlays.
 - **capture overlays** the region selector, the camera permission prompt, and the
   keypress overlay a recording draws so a demo shows its own keys.
 - **confirm** the session dialog for shutdown, reboot and logout, drawn on the
