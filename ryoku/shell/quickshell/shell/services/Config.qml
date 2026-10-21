@@ -79,6 +79,7 @@ Singleton {
         && !(root.python && root.python.general && root.python.general.notifications === false))
         || (barStyle === "nomarchy"
         && !(root.nomarchy && root.nomarchy.notifications === false))
+        || barStyle === "tansu"
     readonly property bool styleOwnsFeedback: (barStyle === "python"
         && !(root.python && root.python.general && root.python.general.osd === false))
         || (barStyle === "nomarchy"
