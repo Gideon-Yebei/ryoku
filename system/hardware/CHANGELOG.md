@@ -17,6 +17,14 @@
   headless one exits at once.
 
 ### Fixed
+- `power/ryoku-power-cutover`: **updates recover a niri-session environment
+  without reviving its previous compositor socket.** If no process retained
+  `WAYLAND_DISPLAY`, the bind failed even though the sole graphical session's
+  user manager still held it. The manager display is now accepted only for one
+  unambiguous Ryoku session, and its opaque handles are discarded before
+  services restart. The niri provider also replaces a dead inherited
+  `NIRI_SOCKET` with the live socket for that Wayland display. Covered by
+  `tests/power-cutover.sh` and `ryoku/wm/niri/session_environment_test.go`.
 - `gpu/ryoku-gpu-lib32`: **installs on every edition, and as root.** It
   asks `ryoku-host pkg status` which of the wanted 32-bit driver packages the
   edition provides and installs only those, turning on Void's multilib
