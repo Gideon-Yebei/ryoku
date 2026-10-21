@@ -73,6 +73,11 @@
   picker, and is not offered for Wallpaper Engine scenes managed by Steam
   Workshop. Subfolder wallpapers use their catalogue key for delete and
   favourites (`ryogami/{daemon,picker}/`).
+- **Folder accents and KDE app palettes now update completely.** The generated
+  `ryoku-folders` theme carries Papirus's plain-directory aliases so Dolphin no
+  longer falls back to blue folders, and running KDE apps receive the palette
+  change after `kdeglobals` is merged without a dangling named colour scheme
+  (`scripts/ryoku-cmd-folders`, `ipc/matugen.go`).
 - **Nomarchy's package probes and power commands work on Void.**
   `omarchy-pkg-present` and `omarchy-pkg-missing` asked pacman on every edition
   but Fedora, so on Void every package read as missing; they now ask
