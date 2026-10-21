@@ -68,6 +68,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Tansu shows each notification once, and Nomarchy and Tansu keep their
+  sound.** Tansu's phone alerts now replace the shell's banners instead of
+  doubling them. Owning the banners also used to silence the arrival cue, but
+  only the Python style plays a sound of its own, so the shell's cue now stands
+  down only there (`quickshell/shell/services/{Config,Notifs}.qml`).
 - **Ryogami deletes the wallpaper its card identifies.** Delete now keeps the
   catalogue row when removing the source fails, reports that failure in the
   picker, and is not offered for Wallpaper Engine scenes managed by Steam

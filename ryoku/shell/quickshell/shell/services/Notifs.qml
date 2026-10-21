@@ -111,10 +111,10 @@ Singleton {
     // timer) rather than adding a twin; then arm its timer unless it is persistent.
     // The arrival cue. The daemon owns the clip, the user's choice of file, the
     // volume and the on/off switches (`sounds` in shell.json); a sender can still
-    // ask for silence with the spec's suppress-sound hint. A bar style that draws
-    // its own banners plays its own sound, so the shell's cue stands down.
+    // ask for silence with the spec's suppress-sound hint. A bar style that
+    // plays its own sound for its banners takes the cue over.
     function chime(n) {
-        if (Config.styleOwnsBanners)
+        if (Config.styleOwnsNotificationSound)
             return;
         const hints = n.hints || {};
         if (hints["suppress-sound"] === true)
