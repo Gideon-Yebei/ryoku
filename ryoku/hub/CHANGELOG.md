@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- **Overlays chooses shell surface designs.** The new Desktop > Overlays page
+  wears installed RyoStore designs for pop-ups, notification cards and the
+  Super+Escape panel, previews each surface, and keeps Bar Studio's style
+  gallery on the same shared catalogue component
+  (`quickshell/pages/OverlaysPage.qml`,
+  `quickshell/pages/StoreDesignGallery.qml`,
+  `quickshell/pages/BarStudioPage.qml`, `quickshell/Hub.qml`).
 - **Deck frost has an on/off switch.** Desktop > General gains a Deck frost
   switch for the blur and dim behind open windows, on Hyprland and niri alike;
   the strength slider shows only while it is on. The slider now saves too: it
