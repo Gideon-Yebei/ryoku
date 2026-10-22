@@ -153,6 +153,10 @@
   Hermes's model, and connecting an agent now says it routes that agent's models
   through Prowl (`quickshell/pages/RashinPage.qml`).
 ### Fixed
+- **Palette Bridge controls only enable for a complete installation.** Status
+  now follows the supplemental Matugen template locations and requires both the
+  packaged daemon and recipes, instead of showing setup actions that could only
+  fail (`backend/palettebridge.go`).
 - **Bluetooth stays off after reboot.** Connections now sends adapter power
   changes through `ryoku-bluetooth-power`, so the Hub records the user's choice
   instead of changing only BlueZ's temporary `Powered` property

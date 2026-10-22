@@ -11,7 +11,9 @@ BuildRequires:  coreutils
 BuildRequires:  findutils
 BuildRequires:  golang >= 1.26.4
 Requires:       bash
+Requires:       curl
 Requires:       jq
+Requires:       ryoku
 Requires:       ryoku-extras
 
 %description

@@ -11,7 +11,7 @@ pkgdesc="Ryoku wallpaper palette event bridge: exposes colours to SPA integratio
 arch=('x86_64')
 url="https://ryoku.dev"
 license=('MIT')
-depends=('bash' 'jq' 'matugen')
+depends=('bash' 'curl' 'jq' 'matugen' 'ryoku')
 makedepends=('go')
 source=()
 
@@ -29,10 +29,12 @@ build() {
 
 check() {
   cd "$_repo/ryoku/palette-bridge"
+  go test ./...
   if command -v node >/dev/null; then
     node tests/spicetify-palette.test.js
   fi
   bash tests/install-integrations.test.sh
+  bash tests/zen-profiles.test.sh
   bash tests/vesktop-quickcss.test.sh
   bash tests/install.test.sh
 }

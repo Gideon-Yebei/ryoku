@@ -8,7 +8,7 @@ maintainer="Ryoku <releases@ryoku.dev>"
 license="MIT"
 homepage="https://ryoku.dev"
 hostmakedepends="go"
-depends="bash jq matugen"
+depends="bash curl jq matugen ryoku"
 distfiles="https://repo.ryoku.dev/sources/ryoku-${version}.tar.gz"
 checksum=SKIP
 wrksrc="ryoku-${version}"
@@ -30,7 +30,13 @@ do_build() {
 
 do_check() {
 	cd "$wrksrc/ryoku/palette-bridge"
+	go test ./...
+	if command -v node >/dev/null; then
+		node tests/spicetify-palette.test.js
+	fi
 	bash tests/install-integrations.test.sh
+	bash tests/zen-profiles.test.sh
+	bash tests/vesktop-quickcss.test.sh
 	bash tests/install.test.sh
 }
 

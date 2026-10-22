@@ -149,6 +149,12 @@
   the other plugin packages.
 
 ### Fixed
+- **Palette Bridge packages carry their runtime contract.** Arch, Fedora, and
+  Void now depend on the Ryoku host service seam and curl, and package checks
+  exercise the daemon and every integration path instead of shipping scripts
+  their package test never ran (`packages/ryoku-palette-bridge/`,
+  `../fedora/packages/rpm/ryoku-palette-bridge.spec`,
+  `../void/packages/srcpkgs/ryoku-palette-bridge/`).
 - **Void builds the latest Ryotunes release.** The Void template pinned
   Ryotunes 1.1.6 while releases moved on to 1.2.1, so Void installs and ISOs
   shipped an old Ryotunes that `ryoku update` called current. The repository

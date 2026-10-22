@@ -1180,6 +1180,7 @@ func matugenRenderTemplates(shell map[string]string, k matugenKnobs, includeNoma
 	// silently undid it.
 	if k.ThemeRyokuApps && themeAppsEnabled() {
 		matugenRenderFiltered(filepath.Join(dir, "apps.toml"), carrierPath, enabled)
+		matugenRenderFiltered(filepath.Join(ryokuConfigDir(), "palette-bridge", "matugen.toml"), carrierPath, enabled)
 		// matugen wrote the shared snippet target; poke each vault's symlink so
 		// Obsidian's watcher, which never sees the out-of-vault target change,
 		// reloads the new palette without a restart.

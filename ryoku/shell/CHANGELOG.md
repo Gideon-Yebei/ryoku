@@ -78,6 +78,10 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Palette Bridge follows the current Matugen pipeline without freezing its app roster.**
+  The shell renders the bridge's opt-in supplemental template file after its
+  shipped app templates, so Vesktop and Zen keep repainting while new Ryoku app
+  templates continue reaching existing users (`ipc/matugen.go`).
 - **Bluetooth stays off after reboot and login.** The shell's Bluetooth and
   airplane-mode controls now use the shared power helper instead of changing
   only BlueZ's temporary `Powered` property, so the saved radio choice also

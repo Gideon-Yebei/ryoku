@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **Palette Bridge works with the current config and service layout.** Vesktop
+  and Zen now use a dedicated supplemental Matugen file instead of forking the
+  shipped app roster, setup renders the active carrier immediately without
+  calling materialize, package activation no longer tries to compile Go into
+  the user's home, and service management uses `ryoku-host` on every edition.
+  Existing bridge-owned Matugen forks migrate on the next setup or doctor run
+  (`palette-bridge/`, `cli/internal/doctor/reconcile_vesktop_palette.go`).
 - **Rashin's quick Ask checks the live machine before answering.** Its one-line
   launcher instruction now puts read-only tools ahead of brevity for
   current-state questions, and the overview reads AMD Radeon utilisation and
