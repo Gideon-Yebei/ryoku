@@ -82,6 +82,14 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Hidden shell surfaces no longer redraw every second.** The compositor
+  gives a covered surface one frame callback a second, and Qt's 100 ms callback
+  timeout turned each into an unexpose and re-expose that rebuilt the surface's
+  swapchain and drew the same picture again. The overview backdrop did this all
+  the time, and the bar, desktop and frame did it under a fullscreen window or a
+  locked screen. The daemon now starts every shell process with that timeout
+  off, so a hidden surface with nothing new to show stays still
+  (`ipc/daemon.go`).
 - **Orpheus's system readouts hold a steady width.** Each reading now keeps
   the width of its widest usual value, right-aligned, so a number gaining a
   digit no longer resizes its drop. Every resize sprang the whole liquid body

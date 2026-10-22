@@ -933,13 +933,27 @@ const jemallocConf = "narenas:2,background_thread:true,dirty_decay_ms:5000,muzzy
 // qsEnv is the environment for a supervised quickshell process: the daemon's own
 // env (which carries the QML import path setupQmlImportPath exports) plus the
 // jemalloc tuning, unless the user already pinned MALLOC_CONF.
+//
+// It also turns off Qt's frame-callback timeout. The compositor sends a hidden
+// surface (the overview backdrop, anything under a fullscreen window, a locked
+// or powered-off screen) one frame callback about once a second. After 100 ms
+// without one Qt marks the window unexposed, and each late callback exposes it
+// again, which rebuilds its swapchain and redraws the same frame: a full-screen
+// render every second, forever, for nothing. Without the timeout a hidden
+// surface with nothing new to draw stays quiet, and one that does still paces
+// itself on the compositor's callbacks.
 func qsEnv() []string {
 	env := nomarchyEnv()
 	if os.Getenv("MALLOC_CONF") == "" {
 		env = append(env, "MALLOC_CONF="+jemallocConf)
 	}
+	if _, set := os.LookupEnv(frameCallbackTimeoutEnv); !set {
+		env = append(env, frameCallbackTimeoutEnv+"=0")
+	}
 	return env
 }
+
+const frameCallbackTimeoutEnv = "QT_WAYLAND_FRAME_CALLBACK_TIMEOUT"
 
 // surfaceLog is where a supervised surface's stderr goes, one file per component
 // so a crash on start is still readable after the respawn.
