@@ -87,6 +87,14 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Ryogami waits on events instead of polling.** Its settings file is
+  watched with inotify (rename-safe, with a short debounce) instead of a stat
+  every two seconds, the Steam workshop tree is watched per item directory and
+  rescanned once a download settles instead of signed every three seconds, the
+  process pause rule waits for its setting while disabled, and battery and
+  adapter changes come from kernel uevents instead of a 10 second sysfs read.
+  Each falls back to a slow poll only when its event source cannot be set up
+  (`ryogami/daemon/`).
 - **A Wi-Fi signal change no longer re-reads all of NetworkManager.** The
   connected access point's strength moves every few seconds, and each change
   re-read every access point, device, active connection and saved

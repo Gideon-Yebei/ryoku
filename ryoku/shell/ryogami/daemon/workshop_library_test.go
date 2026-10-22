@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func writeWEProject(t *testing.T, dir string, doc map[string]interface{}) {
@@ -25,6 +26,84 @@ func touch(t *testing.T, path string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestWorkshopWatchCoalescesWriteBurst(t *testing.T) {
+	root := t.TempDir()
+	item := filepath.Join(root, "123")
+	writeWEProject(t, item, map[string]interface{}{"type": "scene"})
+
+	watcher, err := openWorkshopWatch(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const debounce = 50 * time.Millisecond
+	rescans := make(chan struct{}, 8)
+	type watchResult struct {
+		rebuild bool
+		err     error
+	}
+	done := make(chan watchResult, 1)
+	go func() {
+		rebuild, err := runWorkshopWatch(watcher, debounce, false, nil, func() {
+			rescans <- struct{}{}
+		})
+		done <- watchResult{rebuild: rebuild, err: err}
+	}()
+
+	for i := range 8 {
+		tmp := filepath.Join(item, "download.tmp")
+		if err := os.WriteFile(tmp, []byte{byte(i)}, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Rename(tmp, filepath.Join(item, "project.json")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	select {
+	case <-rescans:
+	case <-time.After(time.Second):
+		t.Fatal("workshop writes did not trigger a rescan")
+	}
+	select {
+	case <-rescans:
+		t.Fatal("workshop burst triggered more than one rescan")
+	case <-time.After(3 * debounce):
+	}
+
+	if err := os.RemoveAll(root); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case result := <-done:
+		watcher.close()
+		if result.err != nil {
+			t.Fatal(result.err)
+		}
+		if !result.rebuild {
+			t.Fatal("removed workshop root did not request a watch rebuild")
+		}
+	case <-time.After(time.Second):
+		watcher.close()
+		t.Fatal("workshop watcher did not stop after its root was removed")
+	}
+}
+
+func TestWorkshopWatchRebuildSignal(t *testing.T) {
+	watcher, err := openWorkshopWatch(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer watcher.close()
+	rewatch := make(chan struct{}, 1)
+	rewatch <- struct{}{}
+	rebuild, err := runWorkshopWatch(watcher, time.Second, false, rewatch, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !rebuild {
+		t.Fatal("path change did not request a watch rebuild")
 	}
 }
 

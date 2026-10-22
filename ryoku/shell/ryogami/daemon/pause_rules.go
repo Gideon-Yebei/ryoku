@@ -399,11 +399,27 @@ func (d *daemon) startWindowStateEffects() {
 	d.reevaluatePause()
 }
 
+var processPollWake = make(chan struct{}, 1)
+
+func wakeProcessPoll() {
+	select {
+	case processPollWake <- struct{}{}:
+	default:
+	}
+}
+
 func (d *daemon) pollProcesses() {
 	for {
-		time.Sleep(2 * time.Second)
-		if d.settingBool("playback.processEnabled") {
+		if !d.settingBool("playback.processEnabled") {
+			<-processPollWake
+			continue
+		}
+		timer := time.NewTimer(2 * time.Second)
+		select {
+		case <-timer.C:
 			d.reevaluatePause()
+		case <-processPollWake:
+			timer.Stop()
 		}
 	}
 }
@@ -493,6 +509,7 @@ func init() {
 		d.startWindowStateEffects()
 	})
 	watchSetting("playback.", func(d *daemon, _ string, _ interface{}) { d.reevaluatePause() })
+	watchSetting("playback.processEnabled", func(_ *daemon, _ string, _ interface{}) { wakeProcessPoll() })
 	watchSetting("paper.idlePauseSeconds", func(d *daemon, _ string, _ interface{}) { d.reevaluatePause() })
 	afterApply(func(d *daemon, _ applyEvent) { d.reevaluatePause() })
 
