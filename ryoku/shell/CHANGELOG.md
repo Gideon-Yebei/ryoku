@@ -82,6 +82,10 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **QS Bar's silent drift draws half the frames.** On Performance the idle
+  stream advanced 20 times a second; it now steps at 10, which the slow drift
+  does not show, and music keeps its 30 or 60 fps
+  (`barstyles/qsbar/modules/StreamShader.qml`).
 - **Python material clocks without seconds tick once a minute.** The analog
   face woke every second and Lumen every second (25 times a second with
   seconds shown); with the seconds hand off both now wake at the next minute,
