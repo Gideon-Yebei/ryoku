@@ -10,7 +10,6 @@
 
 import QtQuick
 import QtQuick.Effects
-import QtQuick.Shapes
 import shell.services
 import shell.barkit as Pill
 import "../IslandMetrics.js" as Island
@@ -208,28 +207,29 @@ Rectangle {
             visible: !surface.hasArt
         }
 
+        // The art is clipped through a mask layer, not a Shape fill: an
+        // invisible Image feeding ShapePath.fillItem never repainted once the
+        // art arrived, and the bubble stayed blank. The cover is static, so the
+        // two small layers cost nothing per frame.
+        Rectangle {
+            id: coverMask
+            anchors.fill: parent
+            radius: cover.radius
+            visible: false
+            layer.enabled: surface.hasArt
+        }
+
         Image {
-            id: coverTexture
             anchors.fill: parent
             source: surface.artUrl
             sourceSize: Qt.size(surface.coverDecodeSize, surface.coverDecodeSize)
-            visible: false
+            visible: surface.hasArt
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true
-        }
-        Shape {
-            anchors.fill: parent
-            visible: surface.hasArt
-            ShapePath {
-                strokeWidth: -1
-                fillItem: coverTexture
-                PathRectangle {
-                    width: cover.width
-                    height: cover.height
-                    radius: cover.radius
-                }
-            }
+            layer.enabled: surface.hasArt
+            layer.smooth: true
+            layer.effect: MultiEffect { maskEnabled: true; maskSource: coverMask }
         }
 
         Pill.MaterialIcon {

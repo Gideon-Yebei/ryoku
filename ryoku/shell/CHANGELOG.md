@@ -195,9 +195,8 @@
   (`quickshell/shell/modules/desktop/`, `quickshell/shell/modules/wallpaper/`,
   `quickshell/stage/services/Battery.qml`).
 - **Kairos draws its music art at the size it shows.** Cover and backdrop
-  decode at their largest display size instead of the file's, the masked
-  layers and the backdrop blur exist only while the full panel is open, and
-  the cover's mask is a rounded shape fill rather than an offscreen effect.
+  decode at their largest display size instead of the file's, and the
+  backdrop's masked layer and blur exist only while the full panel is open.
   Progress reads the shared music clock instead of poking MPRIS every 500 ms,
   the low-battery ring pulses briefly every few seconds (still in reduced
   motion), the date wheel formats its labels once per anchor, and quick
