@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **Bar Studio marks the heavier bar styles.** QS Bar, Python, Nomarchy, Shima
+  and Sumi now say they may need more CPU, GPU and memory; Orpheus and Kairos,
+  the two styles kept light, carry no mark. The tier comes from the RyoStore
+  catalogue, so store styles stay unmarked
+  (`quickshell/pages/StoreDesignGallery.qml`).
 - **Overlays chooses shell surface designs.** The new Desktop > Overlays page
   wears installed RyoStore designs for pop-ups, notification cards and the
   Super+Escape panel, previews each surface, and keeps Bar Studio's style
