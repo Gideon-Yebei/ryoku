@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **A Wi-Fi signal change no longer re-reads all of NetworkManager.** The
+  connected access point's strength moves every few seconds, and each change
+  re-read every access point, device, active connection and saved
+  connection's settings over D-Bus, about 100 round trips and 2,000 system
+  calls. A strength-only change now patches the last frame in place; anything
+  structural still takes the full read (`ipc/network.go`).
 - **The shell daemon waits on events instead of polling at idle.** shell.json
   is watched with inotify (rename-safe, following a config tree that appears
   later) instead of a stat every 500 ms. The memory guard samples every 1 to 15
