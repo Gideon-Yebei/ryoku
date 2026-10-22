@@ -64,20 +64,44 @@ func systemMemory() uint64 {
 // processMemory is resident plus swapped-out memory: a leak that is being
 // pushed to swap is still a leak, and swap is where the machine stalls.
 func processMemory(status string) (uint64, bool) {
-	rss, ok := readKBField(strings.NewReader(status), "VmRSS")
-	if !ok {
+	return processMemoryReader(strings.NewReader(status))
+}
+
+func processMemoryReader(r io.Reader) (uint64, bool) {
+	sc := bufio.NewScanner(r)
+	var rss, swap uint64
+	var haveRSS, haveSwap bool
+	for sc.Scan() {
+		line := sc.Text()
+		switch {
+		case strings.HasPrefix(line, "VmRSS:"):
+			rss, haveRSS = parseStatusKB(line[len("VmRSS:"):])
+		case strings.HasPrefix(line, "VmSwap:"):
+			swap, haveSwap = parseStatusKB(line[len("VmSwap:"):])
+		}
+		if haveRSS && haveSwap {
+			break
+		}
+	}
+	return rss + swap, haveRSS
+}
+
+func parseStatusKB(value string) (uint64, bool) {
+	fields := strings.Fields(value)
+	if len(fields) == 0 {
 		return 0, false
 	}
-	swap, _ := readKBField(strings.NewReader(status), "VmSwap")
-	return rss + swap, true
+	kb, err := strconv.ParseUint(fields[0], 10, 64)
+	return kb << 10, err == nil
 }
 
 func readProcessMemory(pid int) (uint64, bool) {
-	b, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/status")
+	f, err := os.Open("/proc/" + strconv.Itoa(pid) + "/status")
 	if err != nil {
 		return 0, false
 	}
-	return processMemory(string(b))
+	defer f.Close()
+	return processMemoryReader(f)
 }
 
 // watchMemory samples the process until exited closes. The first sample over

@@ -82,6 +82,19 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The shell daemon sleeps when nothing happens.** The qylock release check
+  ran `pgrep` plus `ryoku-host` (and its `systemctl`) every 5 s for the whole
+  session, 36 launches a minute; it now scans `/proc` in-process, asks the
+  systemd user manager over D-Bus (runit boxes keep the `ryoku-host`
+  transient check), and is woken by lock, unlock, sleep and resume with a 30 s
+  safety pass. The power profile, power sounds, night light, palette idle,
+  widget gate and matugen watchers stopped ticking every 0.5 to 10 s and wait
+  on UPower, power-profiles-daemon, netlink, inotify, pidfd and exact
+  deadlines instead, each with a slow reconciliation pass. The memory
+  backstop still samples once a second, reading only `VmRSS` and `VmSwap`
+  (`ipc/sleepwake.go`, `ipc/processscan.go`, `ipc/autoprofile.go`,
+  `ipc/powersounds.go`, `ipc/devicesounds.go`, `ipc/nightlight*.go`,
+  `ipc/idlewatch.go`, `ipc/widgetwatch.go`, `ipc/matugen.go`, `ipc/memwatch.go`).
 - **Phone support and closed features cost nothing at idle.** With a phone
   paired, the shell ran an adb pipeline every 30 s, checked scrcpy with
   `pgrep` every 10 s and kept the Android icon extractor resident. ADB state

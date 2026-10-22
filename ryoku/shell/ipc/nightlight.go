@@ -42,6 +42,8 @@ const nlDefaultTemp = 4000
 // A var so the hotplug tests shorten the wait instead of sitting through it.
 var nlRearmGrace = 4 * time.Second
 
+const nightlightFallbackReconcile = 30 * time.Second
+
 // errNightlightUnavailable is what the intents return when the active compositor
 // has no night-light capability, so the caller reports the absence by name.
 var errNightlightUnavailable = errors.New("night light is not available on this desktop")
@@ -75,6 +77,7 @@ type nightlightState struct {
 	schedStopMin    int
 	schedFile       string
 	schedLastDesire bool
+	schedKick       chan struct{}
 
 	// rearmMu guards the hotplug bookkeeping: outputsSeen says the wm watcher
 	// has reported a connector set at least once (the first set only primes, it
@@ -120,6 +123,7 @@ func (d *daemon) startNightlight() {
 		schedMarginMin: nlDefaultMarginMin,
 		schedStartMin:  nlDefaultClockStart,
 		schedStopMin:   nlDefaultClockStop,
+		schedKick:      make(chan struct{}, 1),
 	}
 	d.nightlight = n
 	n.loadSchedule()
@@ -315,25 +319,38 @@ func (n *nightlightState) watch() {
 
 	buf := make([]byte, 4096)
 	for {
+		_, pid := n.runningPID()
+		pidfd := -1
+		if pid > 0 {
+			pidfd, _ = unix.PidfdOpen(pid, 0)
+		}
 		pfds := []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN | unix.POLLERR}}
-		// The bounded poll is the outside-kill re-check: a raw pkill touches no
-		// watched file, so every expiry rescans /proc.
-		nready, err := unix.Poll(pfds, 5000)
-		if err != nil && err != unix.EINTR {
+		timeout := int(nightlightFallbackReconcile / time.Millisecond)
+		if pidfd >= 0 {
+			pfds = append(pfds, unix.PollFd{Fd: int32(pidfd), Events: unix.POLLIN | unix.POLLERR | unix.POLLHUP})
+			timeout = -1
+		}
+		nready, err := unix.Poll(pfds, timeout)
+		if pidfd >= 0 {
+			unix.Close(pidfd)
+		}
+		if err != nil {
+			if err == unix.EINTR {
+				continue
+			}
 			return
 		}
-		// Drain the inotify queue so the next poll does not fire immediately.
-		for {
-			if _, err := unix.Read(fd, buf); err != nil {
-				break
+		stateChanged := nready > 0 && pfds[0].Revents != 0
+		if stateChanged {
+			for {
+				if _, err := unix.Read(fd, buf); err != nil {
+					break
+				}
 			}
 		}
-		var next bool
-		if nready > 0 {
-			// Woken by a state-dir write: do not trust the first scan, settle it.
+		next := n.running()
+		if stateChanged {
 			next = n.settle()
-		} else {
-			next = n.running()
 		}
 		nextTemp := n.savedTemp()
 		if next != on || nextTemp != temp {
@@ -343,10 +360,10 @@ func (n *nightlightState) watch() {
 	}
 }
 
-// loopNoWatch is the degraded watcher when inotify is unavailable: a slow tick
-// only, still fork-free.
+// loopNoWatch is the degraded watcher when inotify is unavailable. It retains
+// reconciliation, but at a slow cadence rather than waking every five seconds.
 func (n *nightlightState) loopNoWatch(on bool, temp int) {
-	tick := time.NewTicker(5 * time.Second)
+	tick := time.NewTicker(nightlightFallbackReconcile)
 	defer tick.Stop()
 	for range tick.C {
 		next, nextTemp := n.running(), n.savedTemp()
@@ -425,24 +442,27 @@ func (n *nightlightState) savedTemp() int {
 }
 
 // running scans /proc for the provider's night-light backend, named by caps.
-// This is the fork-free pgrep: read each pid's comm (one small file per process,
-// no exec) and compare the name. comm truncates at 15 characters; the backend
-// names fit, so an exact compare is right. False when no backend is named.
 func (n *nightlightState) running() bool {
+	running, _ := n.runningPID()
+	return running
+}
+
+func (n *nightlightState) runningPID() (bool, int) {
 	proc := n.backend()
 	if proc == "" {
-		return false
+		return false, 0
 	}
 	ents, err := os.ReadDir("/proc")
 	if err != nil {
-		return false
+		return false, 0
 	}
 	for _, e := range ents {
 		if procCommIs(e.Name(), proc) {
-			return true
+			pid, _ := strconv.Atoi(e.Name())
+			return true, pid
 		}
 	}
-	return false
+	return false, 0
 }
 
 // procCommIs reports whether the pid's comm equals name. It skips anything that

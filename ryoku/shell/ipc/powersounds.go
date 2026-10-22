@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/godbus/dbus/v5"
 )
 
 // powersounds watches the system battery and AC line over sysfs and plays the
@@ -22,6 +24,7 @@ const (
 	batteryLowPercent = 4
 	batteryLowRepeat  = 60 * time.Second
 	powerPoll         = 2 * time.Second
+	powerReconcile    = 5 * time.Minute
 )
 
 // powerState is the sysfs snapshot the cues key off. The battery fields describe
@@ -144,27 +147,92 @@ func (c *powerCue) step(st powerState, now time.Time) []string {
 	return cues
 }
 
+func powerCueWait(c powerCue, busEvents, usbEvents, deviceCues bool, now time.Time) time.Duration {
+	if !busEvents || (deviceCues && !usbEvents) {
+		return powerPoll
+	}
+	if c.lowActive {
+		wait := batteryLowRepeat - now.Sub(c.lastLow)
+		if wait < time.Second {
+			return time.Second
+		}
+		if wait < powerReconcile {
+			return wait
+		}
+	}
+	return powerReconcile
+}
+
 func (d *daemon) watchPowerSounds() {
 	var c powerCue
 	var dc deviceCue
+
+	var conn *dbus.Conn
+	var signals chan *dbus.Signal
+	if candidate, err := dbus.ConnectSystemBus(); err == nil {
+		if addUPowerSignalMatch(candidate) == nil {
+			conn = candidate
+			signals = make(chan *dbus.Signal, 16)
+			conn.Signal(signals)
+		} else {
+			_ = candidate.Close()
+		}
+	}
+	if conn != nil {
+		defer conn.Close()
+		defer conn.RemoveSignal(signals)
+	}
+
+	usbChanges, stopUSBWatch, usbErr := watchUSBChanges(usbDevicesRoot)
+	if usbErr == nil {
+		defer stopUSBWatch()
+	} else {
+		usbChanges = nil
+	}
+
+	timer := time.NewTimer(0)
+	defer timer.Stop()
 	for {
 		now := time.Now()
 		for _, cue := range c.step(readPowerState(), now) {
 			d.playSound(cue)
 		}
-		// The USB list is read only while a device cue is on; turning one on
-		// later starts from a fresh seed, so it never plays for old changes.
-		if ev := d.soundPrefs().Events; ev.DeviceAdded.Enabled || ev.DeviceRemoved.Enabled {
-			for _, cue := range dc.step(usbDevices(usbDevicesRoot), now) {
+		ev := d.soundPrefs().Events
+		deviceCues := ev.DeviceAdded.Enabled || ev.DeviceRemoved.Enabled
+		if deviceCues {
+			for _, cue := range dc.stepWithSuspend(usbDevices(usbDevicesRoot), systemSuspendOffset()) {
 				d.playSound(cue)
 			}
 		} else {
 			dc = deviceCue{}
 		}
+
+		wait := powerCueWait(c, signals != nil, usbChanges != nil, deviceCues, now)
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(wait)
+
+	wait:
 		select {
 		case <-d.quit:
 			return
-		case <-time.After(powerPoll):
+		case sig, ok := <-signals:
+			if !ok {
+				signals = nil
+				break
+			}
+			if !powerStateSignal(sig) {
+				goto wait
+			}
+		case _, ok := <-usbChanges:
+			if !ok {
+				usbChanges = nil
+			}
+		case <-timer.C:
 		}
 	}
 }

@@ -1027,6 +1027,52 @@ func TestUnlockPrepareKicksFallbackGuardWatcher(t *testing.T) {
 	}
 }
 
+func TestLockDispatchKicksFallbackGuardWatcher(t *testing.T) {
+	t.Setenv("XDG_SESSION_ID", "lock-kick")
+	oldRunning, oldProof := lockProcessRunning, lockProofValid
+	lockProcessRunning = func() bool { return true }
+	lockProofValid = func() bool { return true }
+	t.Cleanup(func() {
+		lockProcessRunning, lockProofValid = oldRunning, oldProof
+	})
+	d := &daemon{guardKick: make(chan struct{}, 1)}
+	if got := d.dispatch("lock"); got != "ok" {
+		t.Fatalf("lock = %q, want ok", got)
+	}
+	select {
+	case <-d.guardKick:
+	default:
+		t.Fatal("lock did not kick the fallback guard watcher")
+	}
+}
+
+func TestSleepAndResumeKickFallbackGuardWatcher(t *testing.T) {
+	kicks := 0
+	cycle := &sleepCycle{
+		block:     &fakeSleepInhibitor{heldState: true},
+		delay:     &fakeSleepInhibitor{heldState: true},
+		lock:      func(time.Time) error { return nil },
+		wake:      func(context.Context) {},
+		now:       time.Now,
+		logf:      func(string, ...any) {},
+		guardKick: func() { kicks++ },
+	}
+	cycle.setSessionActive(true)
+	if !cycle.handle(true) {
+		t.Fatal("sleep edge did not complete")
+	}
+	afterSleep := kicks
+	if afterSleep == 0 {
+		t.Fatal("sleep edge did not kick the fallback guard watcher")
+	}
+	if !cycle.handle(false) {
+		t.Fatal("resume edge did not restore protection")
+	}
+	if kicks == afterSleep {
+		t.Fatal("resume edge did not kick the fallback guard watcher")
+	}
+}
+
 func TestResumeClearsSleepPhaseBeforeUnlock(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
 	t.Setenv("XDG_SESSION_ID", "resume-test")
@@ -1261,11 +1307,39 @@ func TestSessionActivationReacquiresGlobalBlock(t *testing.T) {
 	<-done
 }
 
-// An idle session must not pay for this watcher. Both questions it asks cost
-// a process, and on a fixed 100 ms tick that was twenty forks a second from
-// login until logout (#411). The numbers here are the point: at the old rate
-// a second and a half is fifteen rounds, so anything near that means the
-// easing off is gone.
+func TestClassifySystemdUserError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want systemdUserErrorKind
+	}{
+		{name: "success", want: systemdUserErrorNone},
+		{name: "unit absent", err: dbus.Error{Name: "org.freedesktop.systemd1.NoSuchUnit"}, want: systemdUserErrorUnitAbsent},
+		{name: "service unknown", err: dbus.Error{Name: "org.freedesktop.DBus.Error.ServiceUnknown"}, want: systemdUserErrorUnavailable},
+		{name: "name has no owner", err: dbus.Error{Name: "org.freedesktop.DBus.Error.NameHasNoOwner"}, want: systemdUserErrorUnavailable},
+		{name: "connection closed", err: dbus.ErrClosed, want: systemdUserErrorUnavailable},
+		{name: "operation rejected", err: dbus.Error{Name: "org.freedesktop.DBus.Error.AccessDenied"}, want: systemdUserErrorOther},
+		{name: "ordinary error", err: errors.New("failed"), want: systemdUserErrorOther},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := classifySystemdUserError(tt.err); got != tt.want {
+				t.Fatalf("classifySystemdUserError(%v) = %d, want %d", tt.err, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQylockGuardTransientNameMatchesPrepareScript(t *testing.T) {
+	const unit = "ryoku-qylock-unlock-guard-session-c"
+	if got := qylockGuardTransientName(unit + ".service"); got != unit {
+		t.Fatalf("transient name = %q, want %q", got, unit)
+	}
+}
+
+// An idle session must barely wake this watcher. The lock scan is in-process,
+// the systemd query normally is too, and the slow safety pass exists only to
+// catch a guard whose lifecycle kick was lost.
 func TestUnlockFallbackGuardStopsAskingWhileNothingHappens(t *testing.T) {
 	t.Setenv("XDG_SESSION_ID", "session-c")
 	cycle := &sleepCycle{
@@ -1313,10 +1387,10 @@ func TestUnlockFallbackGuardStopsAskingWhileNothingHappens(t *testing.T) {
 	gotLooked, gotAsked := looked, asked
 	mu.Unlock()
 	if gotLooked > 8 {
-		t.Fatalf("ran pgrep %d times in 1.5s; a fixed 100ms tick is 15 and the point is to be far under it", gotLooked)
+		t.Fatalf("scanned processes %d times in 1.5s; a fixed 100ms tick is 15 and the point is to be far under it", gotLooked)
 	}
 	if gotAsked > 8 {
-		t.Fatalf("ran ryoku-host %d times in 1.5s; the watcher is still asking on every tick", gotAsked)
+		t.Fatalf("queried the guard unit %d times in 1.5s; the watcher is still asking on every tick", gotAsked)
 	}
 	if gotLooked == 0 {
 		t.Fatal("never looked at all; the watcher has to keep a slow eye out for a guard that reappears")

@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -250,18 +249,8 @@ func qylockProcessMatches(session, token string) bool {
 	if session == "" {
 		return false
 	}
-	output, err := exec.Command(
-		"pgrep", "-u", strconv.Itoa(os.Getuid()), "-f", lockClientPattern,
-	).Output()
-	if err != nil {
-		return false
-	}
-	for _, field := range strings.Fields(string(output)) {
-		pid, err := strconv.Atoi(field)
-		if err != nil || pid <= 0 {
-			continue
-		}
-		env, err := os.ReadFile(filepath.Join("/proc", field, "environ"))
+	for _, pid := range currentUserProcessIDs(lockClientPattern) {
+		env, err := os.ReadFile(filepath.Join("/proc", pid, "environ"))
 		if err != nil || processEnvironmentValue(env, "XDG_SESSION_ID") != session {
 			continue
 		}
@@ -428,10 +417,6 @@ func dictationReady() bool {
 		return false
 	}
 	return hostUserServiceActive("voxtype.service")
-}
-
-func currentUserProcessRunning(pattern string) bool {
-	return exec.Command("pgrep", "-u", strconv.Itoa(os.Getuid()), "-f", pattern).Run() == nil
 }
 
 func stateDir() string {

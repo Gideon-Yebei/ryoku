@@ -121,6 +121,7 @@ type daemon struct {
 	ledsSig      chan struct{}        // coalescing wake for the OpenRGB worker
 	widgetSig    chan struct{}        // coalescing wake for the widget-occupancy gate
 	guardKick    chan struct{}        // coalescing wake for the qylock fallback-guard watcher
+	parkSig      chan struct{}        // coalescing wake for palette idle deadlines and saver changes
 	quit         chan struct{}
 	closed       bool
 	ln           net.Listener
@@ -175,6 +176,13 @@ func (d *daemon) currentSleepCycle() *sleepCycle {
 	d.sleepMu.RLock()
 	defer d.sleepMu.RUnlock()
 	return d.sleep
+}
+
+func (d *daemon) kickQylockGuardWatcher() {
+	select {
+	case d.guardKick <- struct{}{}:
+	default:
+	}
 }
 
 func validSuspendToken(token string) bool {
@@ -253,6 +261,7 @@ func (d *daemon) setSleepCycle(cycle *sleepCycle) {
 	d.sleepMu.Lock()
 	d.sleep = cycle
 	d.sleepMu.Unlock()
+	d.kickQylockGuardWatcher()
 }
 
 func runDaemon() error {
@@ -303,6 +312,7 @@ func runDaemon() error {
 		ledsSig:     make(chan struct{}, 1),
 		widgetSig:   make(chan struct{}, 1),
 		guardKick:   make(chan struct{}, 1),
+		parkSig:     make(chan struct{}, 1),
 		quit:        make(chan struct{}),
 		gateWant:    map[string]bool{},
 		gateWake:    map[string]chan struct{}{},
@@ -1399,12 +1409,16 @@ func (d *daemon) dispatch(line string) string {
 			if args[1] != lockSessionID() {
 				return "err lock: requested login1 session is not owned by this daemon"
 			}
-			return lockSession()
+			reply := lockSession()
+			d.kickQylockGuardWatcher()
+			return reply
 		}
 		if len(args) != 0 {
 			return "err lock: expected no arguments, status, or session <id>"
 		}
-		return lockSession()
+		reply := lockSession()
+		d.kickQylockGuardWatcher()
+		return reply
 	case "unlock-prepare":
 		if len(args) != 2 || args[0] != "session" {
 			return "err unlock-prepare: expected session <id>"
@@ -1419,10 +1433,7 @@ func (d *daemon) dispatch(line string) string {
 		if err := cycle.prepareUnlock(); err != nil {
 			return "err unlock-prepare: " + err.Error()
 		}
-		select {
-		case d.guardKick <- struct{}{}:
-		default:
-		}
+		d.kickQylockGuardWatcher()
 		return "ok"
 	case "sleep-ready":
 		if len(args) != 0 {
