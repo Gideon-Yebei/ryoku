@@ -121,6 +121,7 @@ private:
     std::array<qreal, MaxBars> m_frameLevels{};
     qsizetype m_frameBytes = 0;
     QString m_configPath;
+    bool m_configOnDisk = false;
     QString m_method = QStringLiteral("pipewire");
     QString m_source = QStringLiteral("auto");
     qreal m_energy = 0.0;

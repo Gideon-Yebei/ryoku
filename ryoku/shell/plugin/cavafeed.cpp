@@ -288,6 +288,13 @@ void CavaFeed::handleFinished() {
 }
 
 void CavaFeed::readOutput() {
+    // cava has parsed its config by the time it writes a frame, and never reads
+    // it again. Dropping it here keeps a shell that exits without unwinding
+    // (a restart, a crash) from leaving one file per feed in the runtime dir.
+    if (m_configOnDisk) {
+        QFile::remove(m_configPath);
+        m_configOnDisk = false;
+    }
     if (!m_acceptOutput) {
         std::array<char, MaxBars * 2> discard{};
         while (m_process.bytesAvailable() > 0)
@@ -416,6 +423,7 @@ bool CavaFeed::writeConfig() {
     contents += QByteArray::number(m_noiseReduction);
     contents += '\n';
 
+    m_configOnDisk = true;
     return config.write(contents) == contents.size() && config.flush();
 }
 
