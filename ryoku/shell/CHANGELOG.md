@@ -82,6 +82,15 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Phone support and closed features cost nothing at idle.** With a phone
+  paired, the shell ran an adb pipeline every 30 s, checked scrcpy with
+  `pgrep` every 10 s and kept the Android icon extractor resident. ADB state
+  now refreshes on KDE Connect and network events, scrcpy is watched only
+  while mirroring, the icon extractor starts on demand and exits after 15 s
+  idle, and the alarm sync keeps its configured cadence. The Ask bubble, the
+  Stage Editor host, the ii dock host, the keep-awake inhibitor and the
+  keyboard bounce window are built only while their feature is on
+  (`quickshell/shell/shell.qml`, `quickshell/shell/modules/phone/`).
 - **Docks rest when nothing changes.** The dock service canonicalised every
   window on every compositor update, titles included; it now caches desktop
   ids and skips title-only updates, and its icon warm-up runs only while icons

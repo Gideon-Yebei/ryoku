@@ -36,6 +36,7 @@ import "modules/ask"
 import "modules/confirm"
 import Ryoku.Ui.Singletons
 import stage.modules.common as StageIsland
+import stage as Stage
 
 /**
  * The single resident Ryoku shell instance.
@@ -297,11 +298,15 @@ ShellRoot {
             }
             Timer { id: askHold; interval: 15000 }
 
-            AskBubble {
-                screen: perScreen.modelData
-                enabled: Config.askBubble.enabled
+            LazyLoader {
+                id: askBubbleLoader
+                activeAsync: Config.askBubble.enabled
                     && Config.askBubble.screen === perScreen.modelData.name
-                suppressed: perScreen.st ? perScreen.st.askOpen : false
+                AskBubble {
+                    screen: perScreen.modelData
+                    enabled: true
+                    suppressed: perScreen.st ? perScreen.st.askOpen : false
+                }
             }
 
             // One cheap host per monitor loads only the selected dock design.
@@ -529,17 +534,27 @@ ShellRoot {
         }
     }
 
-    // The Stage Editor: the ported desktop chrome, mounted once (it is
-    // per-screen inside) and driven by the Edit widgets session. Built only
-    // while that session is on (docs/stage.md).
-    StageEditor.StageEditorHost {
+    // Keep the edit chrome alive through its closing transition, then release
+    // its component graph until another edit session starts.
+    LazyLoader {
+        id: stageEditorLoader
+        activeAsync: StageCfg.StageSession.widgets
+            || Stage.GlobalStates.editMode
+            || Stage.GlobalStates.editProgress > 0
+        onItemChanged: {
+            if (!item || !StageCfg.StageSession.widgets)
+                return;
+            Stage.GlobalStates.openEditMode(StageCfg.StageSession.monitor);
+            item.showSection();
+        }
+        StageEditor.StageEditorHost {}
     }
 
-    // The ii dock design: the ported illogical-impulse dock, its live-draw
-    // overlay, alarm popup, clock app and settings page, mounted once (the
-    // design repeats itself per screen inside) while the shared store
-    // selects it.
-    IiDockHost {
+    // The ii host publishes actions and mounts its auxiliary surfaces only for
+    // the selected, enabled design. Other docks do not instantiate the port.
+    LazyLoader {
+        activeAsync: Dock.design === "ii" && Dock.cfg("enabled", false)
+        IiDockHost {}
     }
 
 
@@ -743,21 +758,24 @@ ShellRoot {
         value: Session.wallIsVideo ? Session.livePoster : Session.wallpaper
     }
 
-    // Compositor-level idle inhibitor, mapped only while Keep-Awake is on. It
+    // Compositor-level idle inhibitor, created only while Keep-Awake is on. It
     // dies with the shell; the external caffeine bridge above keeps the durable
     // one. (pill 202-214)
-    PanelWindow {
-        id: inhibitWin
-        visible: Flags.keepAwake
-        implicitWidth: 1
-        implicitHeight: 1
-        color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.layer: WlrLayer.Background
-        WlrLayershell.namespace: "ryoku-frame-inhibit"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-        anchors { top: true; left: true }
-        IdleInhibitor { window: inhibitWin; enabled: Flags.keepAwake }
+    LazyLoader {
+        active: Flags.keepAwake
+        PanelWindow {
+            id: inhibitWin
+            visible: true
+            implicitWidth: 1
+            implicitHeight: 1
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Background
+            WlrLayershell.namespace: "ryoku-frame-inhibit"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            anchors { top: true; left: true }
+            IdleInhibitor { window: inhibitWin; enabled: true }
+        }
     }
 
     // keyboard-return bounce. The frame overlay never unmaps, and dropping an
@@ -773,17 +791,19 @@ ShellRoot {
         interval: 90
         onTriggered: root.kbBounce = false
     }
-    PanelWindow {
-        id: kbBounceWin
-        visible: root.kbBounce
-        implicitWidth: 1
-        implicitHeight: 1
-        color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "ryoku-frame-kbfocus"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-        anchors { top: true; left: true }
+    LazyLoader {
+        active: root.kbBounce
+        PanelWindow {
+            visible: true
+            implicitWidth: 1
+            implicitHeight: 1
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.namespace: "ryoku-frame-kbfocus"
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            anchors { top: true; left: true }
+        }
     }
     Connections {
         target: ShellState
