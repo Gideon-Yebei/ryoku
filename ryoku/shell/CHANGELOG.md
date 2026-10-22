@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Orpheus's system readouts hold a steady width.** Each reading now keeps
+  the width of its widest usual value, right-aligned, so a number gaining a
+  digit no longer resizes its drop. Every resize sprang the whole liquid body
+  for about a second, and background traffic moved the network rate across a
+  digit every few seconds, which kept the idle bar recomputing its shapes about
+  250 times a second (`quickshell/shell/modules/bar/barstyles/orpheus/modules/Sysmon.qml`).
 - **A still wallpaper no longer loads the video stack.** The desktop backdrop
   created its MediaPlayer for every wallpaper, and creating one loads FFmpeg
   and probes the hardware decoders (CUDA, NVDEC, VA-API): about 60 MB of the
