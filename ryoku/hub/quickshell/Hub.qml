@@ -12,6 +12,7 @@ import "Singletons"
 // fails to load.
 import "pages"
 import "schema/DesktopPage.js" as DesktopSchema
+import "schema/GlobalPage.js" as GlobalSchema
 import "schema/BarStudioPage.js" as BarStudioSchema
 import "schema/ControlsPage.js" as ControlsSchema
 import "schema/WindowSettings.js" as WindowSettingsSchema
@@ -219,7 +220,7 @@ Rectangle {
         "windowrules": WindowRulesSchema.rows, "appoverrides": AppOverridesSchema.rows,
         "layerrules": LayerRulesSchema.rows, "session": SessionSchema.rows,
         "performance": PerformanceSchema.rows,
-        "updates": UpdatesSchema.rows
+        "updates": UpdatesSchema.rows, "global": GlobalSchema.rows
     })
     readonly property var searchIndex: {
         var srcs = hub.sectionRows;

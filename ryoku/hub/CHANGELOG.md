@@ -153,6 +153,13 @@
   Hermes's model, and connecting an agent now says it routes that agent's models
   through Prowl (`quickshell/pages/RashinPage.qml`).
 ### Fixed
+- **The blur and dim behind open windows switches off from General.** Its
+  switch sat on the Desktop page as *Deck frost*, where nobody looking for it
+  would find it. It now lives on General > Appearance as *Blur and dim behind
+  windows*, with its strength beside it, and the Hub search reaches it and
+  every other General setting (`quickshell/schema/GlobalPage.js`,
+  `quickshell/schema/DesktopPage.js`, `quickshell/pages/GlobalPage.qml`,
+  `quickshell/Hub.qml`).
 - **A rice is an exact copy of the desktop it was saved from.** Saving one
   records the desktop widgets that desktop shows and where, including a
   desktop edited on its own output, so the rice looks the same on a machine
