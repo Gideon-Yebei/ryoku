@@ -82,6 +82,19 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Docks rest when nothing changes.** The dock service canonicalised every
+  window on every compositor update, titles included; it now caches desktop
+  ids and skips title-only updates, and its icon warm-up runs only while icons
+  are unresolved. The Python dock unmaps its big window after the hide
+  animation and reveals from a thin edge strip, with its visuals off while
+  hidden; the ii dock runs magnification only while revealed and moving,
+  captures live previews at 1x and drops them on hide, loads weather, sports,
+  media and preview widgets only while the dock shows, and decodes every image
+  at its display size. The music popout's bars follow the shared feed without
+  their own timer or per-bar animations
+  (`quickshell/shell/services/Dock.qml`, `quickshell/shell/modules/dock/ii/`,
+  `quickshell/shell/modules/bar/barstyles/python/dock/Dock.qml`,
+  `quickshell/shell/modules/bar/MusicBars.qml`).
 - **The desktop stops redrawing every second.** The desktop is one full-screen
   surface, and the shared clock ticked every second for faces that show only
   minutes, so the whole wallpaper and every widget re-rendered once a second.
