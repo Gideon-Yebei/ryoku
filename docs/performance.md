@@ -83,9 +83,10 @@ line visualizer about 55.
 
 **Memory.** Measured back to back on the same base (`8a17af10c`), the shell
 process holds 597 to 620 MB PSS on that base and 593 to 597 MB on this branch.
-Most of the difference is the wallpaper's video stack, which a still wallpaper
-no longer loads: 655 MB with it, 593 MB without. The wallpaper picker, kept
-resident for an instant Super+W, holds another 116 to 131 MB.
+Two restarts of the same code differ by up to about 25 MB, so only one change is
+clearly measurable on its own: a still wallpaper no longer loads the video
+stack, 655 MB with it and 593 MB without on this branch. The wallpaper picker,
+kept resident for an instant Super+W, holds another 116 to 131 MB.
 
 **The bar styles at idle**, same conditions, before → after:
 
