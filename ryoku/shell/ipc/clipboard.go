@@ -130,6 +130,7 @@ func (d *daemon) startClipboard() {
 		return s.stats(), nil
 	})
 
+	go s.restoreSelection()
 	go s.watch()
 	go s.keepSelection()
 	go s.autoPrune(func() bool {

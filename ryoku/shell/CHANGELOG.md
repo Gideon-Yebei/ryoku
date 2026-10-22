@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **A copy survives a shell restart.** The selection keeper dies with the
+  daemon, so an update, a deploy or a crash emptied the clipboard and the next
+  Ctrl+V pasted nothing, though the history still held the copy. Within the
+  same compositor session the restarted daemon now offers the newest entry
+  again when nothing owns the selection; a new login or compositor still starts
+  empty, and the history does not grow (`ipc/clipboard_restore.go`).
 - **The line visualizer rests flat after a shell reload.** Reloaded in
   silence, the scope never ticked and drew its empty levels as a full-height
   zig-zag until music played. Its resting trace is now the centre line from
