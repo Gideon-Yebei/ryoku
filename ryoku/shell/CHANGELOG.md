@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Python usage faces stop animating for noise.** The CPU, RAM and
+  temperature faces (and their circle variants) restarted an 800 ms ease on
+  every sample, so sub-percent jitter kept the bar or desktop drawing at the
+  display rate. Readings are rounded to the shown precision first, and the ease
+  only runs when the number on screen changes
+  (`barstyles/python/widgets/faces/usage/`).
 - **iRiS media faces read the playback position in-process.** The iNiR MPRIS
   controller forked `busctl` every 3 s while anything played, twenty launches a
   minute during music, to read a position Quickshell already fetches over
