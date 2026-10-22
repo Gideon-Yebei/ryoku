@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **The lid daemon stops forking while it waits.** `ryoku-clamshell daemon`
+  checked its helpers with `awk` twice a second (about 120 launches a minute
+  on a laptop doing nothing) and read its state files with `cat`, `tr`, `id`
+  and `readlink`. Those reads are bash builtins now, so an idle daemon launches
+  nothing; the lid policy is unchanged (`hardware/power/ryoku-clamshell`,
+  `tests/clamshell-policy.sh`).
+
+- **One Bluetooth codec watcher per login.** `ryoku-bt-audio watch` takes a
+  per-user lock, so a compositor reload or a switch no longer leaves a second
+  `pactl subscribe` behind (`hardware/audio/ryoku-bt-audio`).
+
 - **Logging out fully releases the graphical session.** When login1 removes the
   desktop session, the power lifecycle now stops its graphical session targets
   as well as Ryoku's services, so the next desktop can start cleanly.
