@@ -75,10 +75,12 @@ in niri and in the power readings.
 Per-process CPU misses processes that start and exit inside the window, which
 is where most of the idle cost was. The whole machine, every process and the
 kernel included, was busy for 41.6% → 27.2% of a core with Orpheus at idle,
-119% → 89% with music, and 35.7% → 24.6% and 90.6% → 63.4% for Kairos. The
-shell's video memory went from 507 to 483 MB at idle and from 562 to 488 MB with
-music. During the first before runs a model that had just been stopped still held
-5.2 GB of GPU memory in an idle `llama-server`; it used no CPU.
+119% → 89% with music, and 35.7% → 24.6% and 90.6% → 63.4% for Kairos. With
+Orpheus the shell's video memory went from 507 to 483 MB at idle and from 562 to
+488 MB with music; with Kairos at idle and the other styles it rose by 28 to 60
+MB, which this data does not explain. During the first before runs a model that
+had just been stopped still held 5.2 GB of GPU memory in an idle `llama-server`;
+it used no CPU.
 
 **Frames.** On a 165 Hz panel the shell's windows presented 5.3 frames a second
 at idle before and 1.8 after. With music, 404 before (two full-screen windows
