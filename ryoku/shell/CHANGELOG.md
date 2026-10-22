@@ -82,6 +82,20 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Orpheus is bar-sized until it needs the screen.** Its window was a full
+  2560x1600 transparent surface at all times, so every frame of the drops
+  re-rendered and recomposited the whole screen, 172 times a second on a 165 Hz
+  panel while music played. At rest it is now as tall as the bar, its deepest
+  drop and its bubbles (84 logical px on the reference box); it grows to full
+  height before a card, settings, hover-open or a span morph needs the room,
+  starts that animation once the room is there, and shrinks after the close
+  melt. The drops integrate real time but ask for at most 60 frames a second,
+  coalesce the three waves into one group update per audio frame and stop
+  once settled. Workspace rows rebuild only when workspaces change (not on a
+  window title), the voice island drops its 250 ms expiry poll for exact
+  deadlines, battery fill moves in whole percents, and the spectrum bars follow
+  the feed without per-bar animations
+  (`quickshell/shell/modules/bar/barstyles/orpheus/`, `plugin/blob*`).
 - **Music no longer costs most of a CPU core.** Playing a song ran three cava
   processes (the bar feed, the visualizer and an iNiR copy for iRiS widgets and
   the ii dock) plus a Python capture for the line visualizer, and QML split
