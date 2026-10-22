@@ -87,6 +87,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Hyprland window geometry is polled only while a window floats.** The
+  provider re-read every window's geometry from Hyprland four times a second
+  for the whole session. Tiled geometry now refreshes on the events that move
+  windows, through the control socket, and the 250 ms poll runs only while a
+  floating window is on a visible workspace, since Hyprland reports no event
+  for dragging one (`wm/hyprland/watch.go`).
 - **Ryogami waits on events instead of polling.** Its settings file is
   watched with inotify (rename-safe, with a short debounce) instead of a stat
   every two seconds, the Steam workshop tree is watched per item directory and
