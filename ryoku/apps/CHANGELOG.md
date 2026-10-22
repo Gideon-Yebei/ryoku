@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- `ryostore/`: **Built-in bar styles carry a resource tier.** Orpheus and
+  Kairos are `light`; QS Bar, Python, Nomarchy, Shima and Sumi are `heavy`,
+  so the Hub can say which styles may cost more. A catalogue snapshot from an
+  older binary with different tiers is rebuilt like a renamed built-in
+  (`ryostore/backend/provider_bars.go`).
 - `ryostore/`: **Every product says whether this edition can have it.** A
   registry entry, or a single bundle item, may carry `packageManagers`
   (`pacman`, `dnf`, `xbps`) and a `packageManagersReason`; on any other
