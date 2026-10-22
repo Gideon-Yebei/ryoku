@@ -184,15 +184,22 @@ Item {
     // listening volume, since the samples are a few percent of full scale.
     property real scopePeak: 0.15
 
+    // The scope rests on its centre line, 0.5 per band. An empty array reads as
+    // 0 in every slot, the bottom of the trace, and the shader draws that as a
+    // full-height zig-zag until music plays (a reload in silence never ticks).
+    function restScope() {
+        var flat = new Array(motion.bands);
+        for (var f = 0; f < motion.bands; f++)
+            flat[f] = 0.5;
+        motion.levels = flat;
+        motion.maxLevel = 0;
+    }
+
     function stepScope(dt) {
         var wav = Waveform.samples;
         var n = motion.bands;
         if (!wav || wav.length < 2 || Waveform.silent) {
-            var flat = new Array(n);
-            for (var f = 0; f < n; f++)
-                flat[f] = 0.5;
-            motion.levels = flat;
-            motion.maxLevel = 0;
+            motion.restScope();
             if (!motion.sourceSounding && motion.activity < 0.003)
                 motion.idleSettled = true;
             return;
@@ -222,7 +229,10 @@ Item {
     onHardFrozenChanged: if (motion.hardFrozen) {
         motion.activity = 0;
         motion.maxLevel = 0;
-        motion.levels = [];
+        if (motion.scope)
+            motion.restScope();
+        else
+            motion.levels = [];
         motion.peaks = [];
     }
 
@@ -234,9 +244,14 @@ Item {
             motion.peaks = [];
     }
     onBandsChanged: {
-        motion.levels = [];
+        if (motion.scope)
+            motion.restScope();
+        else
+            motion.levels = [];
         motion.peaks = [];
     }
+    onScopeChanged: if (motion.scope && !motion.animating) motion.restScope()
+    Component.onCompleted: if (motion.scope) motion.restScope()
     onWantIdleWaveChanged: motion.idleSettled = false
 
     // Turning the governor off must not leave a stale cap latched: re-enabling

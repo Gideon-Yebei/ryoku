@@ -82,6 +82,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The line visualizer rests flat after a shell reload.** Reloaded in
+  silence, the scope never ticked and drew its empty levels as a full-height
+  zig-zag until music played. Its resting trace is now the centre line from
+  the start, after a bar-count change and on a hard freeze
+  (`quickshell/shell/modules/visualizer/Motion.qml`).
 - **QS Bar's silent drift draws half the frames.** On Performance the idle
   stream advanced 20 times a second; it now steps at 10, which the slow drift
   does not show, and music keeps its 30 or 60 fps
