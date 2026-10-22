@@ -82,6 +82,15 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Kairos draws its music art at the size it shows.** Cover and backdrop
+  decode at their largest display size instead of the file's, the masked
+  layers and the backdrop blur exist only while the full panel is open, and
+  the cover's mask is a rounded shape fill rather than an offscreen effect.
+  Progress reads the shared music clock instead of poking MPRIS every 500 ms,
+  the low-battery ring pulses briefly every few seconds (still in reduced
+  motion), the date wheel formats its labels once per anchor, and quick
+  settings owns its device probes so page changes no longer start them twice
+  (`quickshell/shell/modules/bar/barstyles/kairos/`).
 - **Orpheus is bar-sized until it needs the screen.** Its window was a full
   2560x1600 transparent surface at all times, so every frame of the drops
   re-rendered and recomposited the whole screen, 172 times a second on a 165 Hz
