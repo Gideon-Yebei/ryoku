@@ -82,6 +82,10 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The Python battery face's wave settles.** Its liquid wave ran for as long
+  as the battery was neither empty nor full, which is almost always. It now
+  stirs for one wave period when the charge or the charging state changes and
+  then holds still (`barstyles/python/widgets/faces/battery/BatteryFace.qml`).
 - **Python usage faces stop animating for noise.** The CPU, RAM and
   temperature faces (and their circle variants) restarted an 800 ms ease on
   every sample, so sub-percent jitter kept the bar or desktop drawing at the
