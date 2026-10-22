@@ -96,6 +96,10 @@
   layer went from about 93 to 65 frames a second while music played, with no
   JavaScript drawing left (`plugin/cavaspectrum.cpp`,
   `quickshell/inir/modules/common/widgets/CavaSpectrum.qml`).
+- **The ii dock's Pin button survives the editor and a shell reload.** It now
+  writes the shared `dock.autohide` setting instead of changing a session-only
+  reveal flag, so the dock and Stage Editor show the same pinned state
+  (`quickshell/shell/modules/dock/ii/Dock.qml`).
 - **A copy survives a shell restart.** The selection keeper dies with the
   daemon, so an update, a deploy or a crash emptied the clipboard and the next
   Ctrl+V pasted nothing, though the history still held the copy. Within the

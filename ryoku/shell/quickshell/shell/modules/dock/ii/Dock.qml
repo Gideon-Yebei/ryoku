@@ -839,9 +839,8 @@ Scope {
                             currentScreen: dockRoot.screen
                             dockRevealed: dockRoot.reveal
                             dockWindowVisible: dockRoot.visible
-                            onTogglePinRequested: {
-                                dock.pinned = !dock.pinned
-                            }
+                            onTogglePinRequested:
+                                Config.options.dock.pinnedOnStartup = !dock.pinned
                         }
                     }
                 }
