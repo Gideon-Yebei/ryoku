@@ -157,11 +157,7 @@ Singleton {
             icon: "bluetooth",
             category: "system",
             keywords: ["bt", "wireless", "devices"],
-            execute: () => {
-                const adapter = Bluetooth.defaultAdapter
-                if (adapter)
-                    adapter.enabled = !adapter.enabled
-            }
+            execute: () => BluetoothStatus.toggle()
         },
         {
             id: "toggle-nightlight",

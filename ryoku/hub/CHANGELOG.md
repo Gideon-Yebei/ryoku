@@ -153,6 +153,10 @@
   Hermes's model, and connecting an agent now says it routes that agent's models
   through Prowl (`quickshell/pages/RashinPage.qml`).
 ### Fixed
+- **Bluetooth stays off after reboot.** Connections now sends adapter power
+  changes through `ryoku-bluetooth-power`, so the Hub records the user's choice
+  instead of changing only BlueZ's temporary `Powered` property
+  (`quickshell/pages/ConnectionsPage.qml`).
 - **The blur and dim behind open windows switches off from General.** Its
   switch sat on the Desktop page as *Deck frost*, where nobody looking for it
   would find it. It now lives on General > Appearance as *Blur and dim behind

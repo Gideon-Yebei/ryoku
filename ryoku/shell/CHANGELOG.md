@@ -78,6 +78,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Bluetooth stays off after reboot and login.** The shell's Bluetooth and
+  airplane-mode controls now use the shared power helper instead of changing
+  only BlueZ's temporary `Powered` property, so the saved radio choice also
+  survives the login-time A2DP service reset
+  (`quickshell/{shell,inir,stage}/`, `nomarchy/bin/omarchy-bluetooth-power`).
 - **The first thing you install from RyoStore shows up without a restart.** On
   a box that had never installed from the store, the shell started before the
   store's index folder existed, and a file watch cannot see files appear in a

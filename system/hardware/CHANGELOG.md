@@ -17,6 +17,13 @@
   headless one exits at once.
 
 ### Fixed
+- `bluetooth/ryoku-bluetooth-power`: **turning Bluetooth off now survives a
+  restart.** Every shell toggle records the choice and soft-blocks the radio,
+  letting systemd-rfkill restore it before BlueZ starts. The A2DP login reset
+  restores the recorded choice after restarting BlueZ, so `AutoEnable=true`
+  remains only the fresh-install default. Void has no systemd-rfkill boot
+  restore, so its translated login reset applies the same state immediately
+  after restarting bluetoothd. Covered by `tests/bluetooth-power-persist.sh`.
 - `power/ryoku-power-cutover`: **updates recover a niri-session environment
   without reviving its previous compositor socket.** If no process retained
   `WAYLAND_DISPLAY`, the bind failed even though the sole graphical session's

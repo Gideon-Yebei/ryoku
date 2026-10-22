@@ -15,11 +15,4 @@ done
 
 wait_dbus org.freedesktop.PipeWire "${RYOKU_WAIT_WIREPLUMBER:-90}" || exec sv down .
 
-# Bound the restart because sv has no timeout.
-if command -v timeout >/dev/null 2>&1; then
-	timeout 30 sv restart bluetoothd || true
-else
-	sv restart bluetoothd || true
-fi
-
-exec sv down .
+exec ryoku-bluetooth-reset

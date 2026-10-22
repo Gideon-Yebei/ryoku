@@ -367,7 +367,7 @@ Item {
                     selected: BluetoothStatus.enabled
                     enabled: BluetoothStatus.available
                     Accessible.name: Translation.tr("Bluetooth")
-                    onClicked: if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled
+                    onClicked: BluetoothStatus.toggle()
                 }
             }
             IrisBluetoothList {

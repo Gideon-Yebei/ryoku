@@ -281,8 +281,8 @@ grep -qF 'nmcli networking off' "$INIT/system/ryoku-network-kill-disconnect/run"
 for dir in PICTURES DOWNLOAD DOCUMENTS MUSIC VIDEOS DESKTOP PUBLICSHARE TEMPLATES; do
 	grep -qF "$dir" "$INIT/env/xdg-dirs" || parity_fail "xdg-dirs env renderer lost $dir"
 done
-# bt-agent: the systemctl restart became an sv restart of Void's service name
-grep -qF 'sv restart bluetoothd' "$INIT/user/ryoku-bluetooth-reset/run" || parity_fail "bluetooth-reset lost the sv restart translation"
+# bluetooth reset stays one shared helper; it selects sv restart on runit.
+grep -qF 'ryoku-bluetooth-reset' "$INIT/user/ryoku-bluetooth-reset/run" || parity_fail "bluetooth-reset lost the shared restart helper"
 
 # --- 6. no systemd leakage in executable lines of the translation. Comments
 # may name systemctl (they explain what was translated); code may not.
