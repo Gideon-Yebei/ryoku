@@ -82,6 +82,14 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **iNiR and iRiS visualizer widgets paint natively.** The bars and wave of
+  every iNiR spectrum (the iRiS desktop visualizer, media overlays) were a
+  JavaScript Canvas that cost the desktop two to three full-window frames per
+  analyser update. `CavaSpectrumPainter`, a C++ QPainter port of the same
+  drawing, repaints once per change; measured on a 165 Hz panel the desktop
+  layer went from about 93 to 65 frames a second while music played, with no
+  JavaScript drawing left (`plugin/cavaspectrum.cpp`,
+  `quickshell/inir/modules/common/widgets/CavaSpectrum.qml`).
 - **A copy survives a shell restart.** The selection keeper dies with the
   daemon, so an update, a deploy or a crash emptied the clipboard and the next
   Ctrl+V pasted nothing, though the history still held the copy. Within the
