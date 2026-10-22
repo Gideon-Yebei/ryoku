@@ -82,6 +82,18 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **System stats come from the native monitor and launch nothing.** `Sysinfo`
+  and `StatsFeed` were QML readers of `/proc` and sysfs that also forked
+  `nvidia-smi` every 5 s, `df` every 30 s and a discovery shell at start. They
+  are now thin views over one shared C++ `SystemMonitor` on a worker thread,
+  with the same properties and 1.5 s cadence while a widget is shown and no
+  work without one; NVML is still never asked while the dGPU sleeps. The
+  recorder trusts its status file (a 60 s watchdog at idle instead of a shell
+  every 5 s), screen time accrues on focus changes instead of sampling, the
+  media picker reacts to MPRIS signals instead of re-picking every second,
+  `Music` holds one shared position clock for every progress bar, and
+  `ryoku-rashin chat --follow` runs only while an Agent surface wants it
+  (`plugin/systemmonitor.*`, `quickshell/shell/services/{Sysinfo,StatsFeed,Recorder,ScreenTime,Media,Music,Needle}.qml`).
 - **Ryogami follows the compositor through one watcher.** The daemon ran two
   `ryoku-wm-<provider> watch` processes, one for outputs and one for windows,
   workspaces, focus and overview; it now runs one with the union of both and
