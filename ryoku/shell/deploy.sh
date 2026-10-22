@@ -768,15 +768,15 @@ done
 # above no longer matches it, so install it by name.
 install -m755 "$here/../../system/extras/ryostore-install" "$bindir/ryostore-install"
 install -m755 "$here/quickshell/plugins/ryoku-plugins-place" "$bindir/ryoku-plugins-place"
-# AI-usage collectors: refresh ~/.cache/{claude,codex,opencode}-usage.json for
-# the qsbar AI pill, driven by the ryoku-ai-usage.timer installed below. The
-# ryoku-rashin package ships them to /usr/bin; the dev loop puts the current
-# copies on PATH.
-for s in "$here/../rashin/usage"/claude-usage "$here/../rashin/usage"/codex-usage \
+# AI-usage guard and collectors: refresh the caches for the qsbar AI pill,
+# driven by the timer installed below. The package ships them to /usr/bin; the
+# dev loop puts the current copies on PATH.
+for s in "$here/../rashin/usage"/ryoku-ai-usage \
+  "$here/../rashin/usage"/claude-usage "$here/../rashin/usage"/codex-usage \
   "$here/../rashin/usage"/opencode-usage; do
   install -m755 "$s" "$bindir/${s##*/}"
 done
-say "installed the AI-usage collectors to $bindir"
+say "installed the AI-usage guard and collectors to $bindir"
 say "installed Ryoku CLI and hardware helpers"
 
 # Privileged network helpers + their polkit rules. A packaged install ships these

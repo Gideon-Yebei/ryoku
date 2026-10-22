@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **The AI usage collectors run only for tools in use.** The five-minute
+  timer launched all three collectors even on a box with none of their tools.
+  One guard, `ryoku-ai-usage`, now runs each collector only when its CLI is on
+  PATH or its local data exists, and launches nothing otherwise. Void's runit
+  service calls the same guard every period instead of the collectors
+  directly (`rashin/usage/ryoku-ai-usage`, `rashin/systemd/`,
+  `void/init/user/ryoku-ai-usage/run`).
 - **Palette Bridge works with the current config and service layout.** Vesktop
   and Zen now use a dedicated supplemental Matugen file instead of forking the
   shipped app roster, setup renders the active carrier immediately without
