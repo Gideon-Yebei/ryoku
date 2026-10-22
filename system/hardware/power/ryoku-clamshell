@@ -46,6 +46,7 @@ PGREP_BIN="${RYOKU_PGREP_BIN:-$(command -v pgrep || true)}"
 BUSCTL_BIN="${RYOKU_BUSCTL_BIN:-$(command -v busctl || true)}"
 LOGGER_BIN="${RYOKU_CLAMSHELL_LOGGER_BIN:-$(command -v logger || true)}"
 LID_POLL_INTERVAL="${RYOKU_CLAMSHELL_LID_POLL:-0.2}"
+MONITOR_FALLBACK="${RYOKU_CLAMSHELL_MONITOR_FALLBACK:-60}"
 HOST_BIN="$(command -v ryoku-host || true)"
 # Internal panels + non-display connectors. Everything else that reports
 # "connected" is an external display (HDMI-A-*, DP-*, ...).
@@ -75,6 +76,11 @@ send_event() {
   local event=$1
   [[ -p $EVENT_FIFO ]] || return 1
   printf '%s\n' "$event" | timeout 2 tee "$EVENT_FIFO" >/dev/null
+}
+announce_monitor_exit() {
+  local monitor=$1
+  [[ -p $EVENT_FIFO ]] || return 0
+  send_event "RYOKU_MONITOR_EXIT $monitor" >/dev/null 2>&1 || true
 }
 daemon_pid() {
   local pid proc_uid="" key cmdline _
@@ -752,12 +758,48 @@ monitor_login1_owner() {
       fi
     done
     clear_monitor_ready
+    [[ -p $EVENT_FIFO ]] &&
+      send_event "RYOKU_MONITOR_UNREADY owner" >/dev/null 2>&1 || true
     exec {monitor_fd}<&-
     monitor_fd=""
     wait "$monitor_pid" 2>/dev/null || true
     monitor_pid=""
     sleep 1
   done
+}
+
+monitor_login1_owner_supervised() {
+  local rc
+  if monitor_login1_owner; then rc=0; else rc=$?; fi
+  announce_monitor_exit owner
+  return "$rc"
+}
+
+monitor_system_lid_edges_supervised() {
+  local rc
+  if monitor_system_lid_edges; then rc=0; else rc=$?; fi
+  announce_monitor_exit lid
+  return "$rc"
+}
+
+monitor_hardware_events() {
+  local child="" rc
+  # shellcheck disable=SC2329
+  cleanup_hardware_monitor() {
+    [[ -z $child ]] || kill "$child" 2>/dev/null || true
+    [[ -z $child ]] || wait "$child" 2>/dev/null || true
+    exit 0
+  }
+  trap cleanup_hardware_monitor TERM INT HUP
+  udevadm monitor --udev \
+    --subsystem-match=power_supply --subsystem-match=drm \
+    >"$EVENT_FIFO" 2>/dev/null &
+  child=$!
+  if wait "$child"; then rc=0; else rc=$?; fi
+  child=""
+  trap - TERM INT HUP
+  announce_monitor_exit hardware
+  return "$rc"
 }
 
 recover_login1_owner() {
@@ -830,7 +872,7 @@ reclaim_stale_clamshell_lock() {
 run_daemon() {
   local monitor_pid="" owner_monitor_pid="" lid_monitor_pid=""
   local event hardware_dirty monitor_ready=0 monitor_missing_since=-1 owner_state=""
-  local lid_edge_source
+  local lid_edge_source monitor_stopped read_timeout monitor_grace_remaining
   if ! hw_laptop; then
     [[ ${RYOKU_CLAMSHELL_VERBOSE:-0} == 1 ]] && log "desktop detected; clamshell disabled"
     exit 0
@@ -905,7 +947,7 @@ run_daemon() {
   rm -f "$EVENT_FIFO" "$OWNER_MONITOR_STATE"
   mkfifo -m 600 "$EVENT_FIFO"
   exec 8<>"$EVENT_FIFO"
-  monitor_login1_owner &
+  monitor_login1_owner_supervised &
   owner_monitor_pid=$!
   for _ in {1..40}; do
     owner_state=""
@@ -932,33 +974,44 @@ run_daemon() {
   esac
   if [[ $lid_edge_source == system ]]; then
     ( exec 9>&-
-      monitor_system_lid_edges ) &
+      monitor_system_lid_edges_supervised ) &
     lid_monitor_pid=$!
   fi
-  # React to AC (power_supply) and display (drm) changes. udevadm monitor is
-  # event-driven (no polling, zero cost when idle) and runs unprivileged. If it
-  # ever exits, the outer loop re-attaches after a short back-off.
+  # Hardware notifications are event-driven. The timeout only catches a
+  # monitor killed too abruptly to publish its exit.
   while :; do
     ( exec 9>&-
-      exec udevadm monitor --udev \
-        --subsystem-match=power_supply --subsystem-match=drm \
-        >"$EVENT_FIFO" 2>/dev/null ) &
+      monitor_hardware_events ) &
     monitor_pid=$!
-    while process_alive "$monitor_pid"; do
+    monitor_stopped=0
+    while :; do
+      if ! process_alive "$monitor_pid"; then
+        break
+      fi
       if [[ $lid_edge_source == system ]] &&
          ! process_alive "$lid_monitor_pid"; then
         log "system lid edge monitor stopped; refusing unsupervised lid ownership" >&2
         return 1
       fi
+
+      read_timeout=$MONITOR_FALLBACK
       if owner_monitor_ready; then
         monitor_missing_since=-1
       elif (( monitor_missing_since < 0 )); then
         monitor_missing_since=$SECONDS
-      elif (( SECONDS - monitor_missing_since >= 3 )); then
-        log "login1 owner monitor stopped; refusing unsupervised lid ownership" >&2
-        return 1
+        read_timeout=3
+      else
+        monitor_grace_remaining=$((3 - (SECONDS - monitor_missing_since)))
+        if (( monitor_grace_remaining <= 0 )); then
+          log "login1 owner monitor stopped; refusing unsupervised lid ownership" >&2
+          return 1
+        fi
+        if (( monitor_grace_remaining < read_timeout )); then
+          read_timeout=$monitor_grace_remaining
+        fi
       fi
-      if ! IFS= read -r -t 1 event <&8; then
+
+      if ! IFS= read -r -t "$read_timeout" event <&8; then
         continue
       fi
       hardware_dirty=0
@@ -981,6 +1034,12 @@ run_daemon() {
               recover_login1_owner
             fi
             ;;
+          'RYOKU_MONITOR_EXIT hardware') monitor_stopped=1 ;;
+          'RYOKU_MONITOR_EXIT lid')
+            log "system lid edge monitor stopped; refusing unsupervised lid ownership" >&2
+            return 1
+            ;;
+          'RYOKU_MONITOR_EXIT owner'|'RYOKU_MONITOR_UNREADY owner') ;;
           *) hardware_dirty=1 ;;
         esac
         IFS= read -r -t 0.2 event <&8 || break
@@ -989,6 +1048,7 @@ run_daemon() {
         sleep 0.3
         evaluate
       fi
+      (( monitor_stopped == 0 )) || break
     done
     kill "$monitor_pid" 2>/dev/null || true
     wait "$monitor_pid" 2>/dev/null || true

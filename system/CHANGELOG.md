@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The lid daemon sleeps between events.** `ryoku-clamshell daemon` woke
+  every second to check whether its hardware, lid and login1 monitors were
+  still alive. Each monitor now announces its own exit into the daemon's
+  event pipe, so the main loop blocks for a minute at a time and keeps the
+  owner monitor's 3 s grace as a deadline only while that monitor is down; a
+  monitor killed without a chance to announce is still noticed within the
+  minute (`hardware/power/ryoku-clamshell`, `tests/clamshell-policy.sh`).
+
 - **The lid daemon stops forking while it waits.** `ryoku-clamshell daemon`
   checked its helpers with `awk` twice a second (about 120 launches a minute
   on a laptop doing nothing) and read its state files with `cat`, `tr`, `id`
