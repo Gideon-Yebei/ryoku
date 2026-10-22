@@ -33,46 +33,47 @@ host=${RYOKU_GREETER_GUARD_HOST:-ryoku-host}
 
 log() { logger -t ryoku-greeter-guard -p "daemon.$1" -- "$2" 2>/dev/null || echo "ryoku-greeter-guard: $2" >&2; }
 
-# comm names come from the kernel, so no command-line parsing can be fooled by
-# an argument that merely mentions a process name. A process can vanish between
-# the directory listing and the read; stderr is silenced before the redirect so
-# that race leaves no noise.
-comm_of() { tr -d '\n' 2>/dev/null <"$1/comm"; }
-
+# Match the kernel's comm value itself; a process may vanish between the glob
+# and the builtin read, so each failed read is silent and clears the name.
 daemon_running() {
-  local dir
+  local dir name
   for dir in "$proc"/[0-9]*; do
-    [ "$(comm_of "$dir")" = sddm ] && return 0
+    name=
+    IFS= read -r name 2>/dev/null <"$dir/comm" || true
+    [ "$name" = sddm ] && return 0
   done
   return 1
 }
 
 # Every greeter or user session SDDM starts runs under an sddm-helper.
 helper_running() {
-  local dir
+  local dir name
   for dir in "$proc"/[0-9]*; do
-    [ "$(comm_of "$dir")" = sddm-helper ] && return 0
+    name=
+    IFS= read -r name 2>/dev/null <"$dir/comm" || true
+    [ "$name" = sddm-helper ] && return 0
   done
   return 1
 }
 
-restart_count() { cat "$state/restarts" 2>/dev/null || echo 0; }
-
 check_once() {
-  local now since count
-  mkdir -p "$state"
+  local now since=0 count=0
   if ! daemon_running || helper_running; then
-    rm -f "$state/missing-since"
+    if [ -e "$state/missing-since" ] || [ -L "$state/missing-since" ]; then
+      rm -f "$state/missing-since"
+    fi
     return 0
   fi
-  now=$(date +%s)
+  printf -v now '%(%s)T' -1
   if [ ! -f "$state/missing-since" ]; then
     printf '%s\n' "$now" >"$state/missing-since"
     return 0
   fi
-  since=$(cat "$state/missing-since")
+  read -r since 2>/dev/null <"$state/missing-since" || true
   [ $(( now - since )) -ge "$grace" ] || return 0
-  count=$(restart_count)
+  if [ -r "$state/restarts" ]; then
+    read -r count 2>/dev/null <"$state/restarts" || true
+  fi
   if [ "$count" -ge "$limit" ]; then
     if [ ! -f "$state/gave-up" ]; then
       : >"$state/gave-up"
@@ -87,6 +88,8 @@ check_once() {
   "$host" svc --system restart sddm
   return 3
 }
+
+mkdir -p "$state"
 
 case "${1:-}" in
   --once)

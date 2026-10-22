@@ -20,6 +20,13 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **The greeter guard no longer forks for every process on the machine.** Each
+  5 s round read every `/proc/*/comm` through `tr`, twice, so a normal desktop
+  paid about 5,500 process launches a minute for a check that finds nothing to
+  do. The guard now reads them with shell builtins and touches its state
+  files only when SDDM really lost its greeter: zero launches per round on a
+  logged-in box, same rules, same restart cap (`sddm/ryoku-greeter-guard`,
+  `tests/sddm-greeter-guard.sh`).
 - **The lock screen's restart and shut down buttons work again on systemd.**
   Since the init seam they ran `loginctl reboot` and `loginctl poweroff`, verbs
   only elogind's loginctl has; systemd's answers "Unknown command verb" and the
