@@ -449,6 +449,7 @@ func setupQmlImportPath() {
 // components.
 func (d *daemon) bootstrap() {
 	d.startSettings()
+	d.startPresence()
 	d.startKeypress()
 	d.startRecord()
 	d.startMouseMap()

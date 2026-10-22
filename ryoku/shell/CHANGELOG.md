@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **System readouts pause while nobody can see them.** A `presence` topic
+  tells the shell when the session is locked or the idle policy has turned the
+  displays off, and the shared system monitor stops sampling until the desktop
+  can be seen again. A fault reads as visible, so a readout can only keep
+  running (`ipc/presence.go`, `quickshell/shell/services/{Presence,Sysinfo}.qml`).
 - **Visualizer colours can be entered as hex values.** The desktop editor now
   has a live-swatch field for a static colour and one for each gradient stop.
   It accepts `rrggbb` or `#rrggbb`, marks invalid input without saving it, and

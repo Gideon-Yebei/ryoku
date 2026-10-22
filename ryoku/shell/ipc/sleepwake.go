@@ -1357,10 +1357,7 @@ func applyWakeLighting(ctx context.Context) {
 }
 
 func outputStatePaths() (string, string) {
-	dir := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "ryoku-idle-output")
-	if os.Getenv("XDG_RUNTIME_DIR") == "" {
-		dir = filepath.Join(os.TempDir(), "ryoku-idle-output")
-	}
+	dir := idleOutputStateDir()
 	return filepath.Join(dir, "lock"), filepath.Join(dir, "generation")
 }
 

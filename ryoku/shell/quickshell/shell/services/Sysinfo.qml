@@ -33,6 +33,8 @@ Singleton {
         samplePeriodMs: 1500
         historyLimit: 48
         includeVirtualNetwork: true
-        active: root.active || root._statsActive
+        // Every reading here feeds something on screen, so nothing samples
+        // while the session is locked or the displays are off.
+        active: (root.active || root._statsActive) && !Presence.dark
     }
 }
