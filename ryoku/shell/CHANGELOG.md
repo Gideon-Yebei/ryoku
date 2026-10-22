@@ -381,6 +381,13 @@
   style is gone (`barstyles/python/`).
 
 ### Changed
+- **Docks stay on screen unless auto-hide is turned on.** `dock.autohide`
+  defaulted to true, so the Stage Editor showed the dock while editing and
+  Done handed it back to auto-hide: on any workspace with windows it slid away
+  and read as lost. A missing setting now means visible in every design (Ryoku,
+  Python, Shima, ii), the daemon and the editor pages; a saved auto-hide choice
+  is kept as it is (`quickshell/shell/services/Config.qml`, `ipc/bar.go`,
+  `quickshell/shell/modules/dock/`).
 - **Fresh Ryogami profiles start with a new picker setup.** Slices open wider
   with the Ash flip and wobble, the picker uses 1.2x scale and faster
   filtering, overview blur starts at 45 px, new images are optimised with the

@@ -48,7 +48,7 @@ function config() {
   },
   "dock": {
    "enable": true,
-   "autoHide": true,
+   "autoHide": false,
    "reserveSpace": true,
    "blur": false,
    "material": "inherit",

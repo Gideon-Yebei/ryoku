@@ -299,7 +299,7 @@ ClippingRectangle {
             readonly property real naturalWidth: Math.round((dockRoot.vertical ? 620 : 760) * root.d)
             readonly property real naturalHeight: dockRoot.vertical ? Math.max(Math.round(300 * root.d), Math.round(dockRoot.length + 64 * root.d)) : Math.round(300 * root.d)
             readonly property bool enabledDock: root.opt("iris.dock.enable", true)
-            readonly property bool autoHide: root.opt("iris.dock.autoHide", true)
+            readonly property bool autoHide: root.opt("iris.dock.autoHide", false)
             readonly property bool reserve: !dockRoot.autoHide && root.opt("iris.dock.reserveSpace", true)
             readonly property bool revealOnEmpty: root.opt("iris.dock.revealOnEmpty", true)
             readonly property bool notch: root.opt("iris.dock.notch", true)

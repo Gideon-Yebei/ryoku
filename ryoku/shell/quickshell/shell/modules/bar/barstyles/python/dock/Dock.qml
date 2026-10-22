@@ -174,7 +174,7 @@ Variants {
                         enabled: Ryoku.Dock.cfg("enabled", false),
                         position: Ryoku.Dock.resolvedEdge(),
                         elementSize: Ryoku.Dock.cfg("size", 44),
-                        autohide: Ryoku.Dock.cfg("autohide", true),
+                        autohide: Ryoku.Dock.cfg("autohide", false),
                         magnify: Ryoku.Dock.cfg("magnify", true),
                         apps: apps
                     })

@@ -315,7 +315,7 @@ Singleton {
                 "enabled": false,
                 "design": "ryoku",
                 "edge": "auto",
-                "autohide": true,
+                "autohide": false,
                 "size": 44,
                 "pinned": [],
                 "magnify": true,

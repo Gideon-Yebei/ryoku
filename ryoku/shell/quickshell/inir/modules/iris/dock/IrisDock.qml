@@ -30,7 +30,7 @@ Item {
     readonly property var options: {
         const design = Ryoku.Dock.cfg("shima", {})
         return Object.assign({}, design, {
-            autoHide: Ryoku.Dock.cfg("autohide", true),
+            autoHide: Ryoku.Dock.cfg("autohide", false),
             iconSize: Ryoku.Dock.cfg("size", 44),
             magnification: Ryoku.Dock.cfg("magnify", true)
         })
@@ -58,7 +58,7 @@ Item {
     }
     readonly property string shape: String(root.options?.shape ?? "auto")
     readonly property bool notch: root.options?.notch ?? true
-    readonly property bool autoHide: root.options?.autoHide ?? true
+    readonly property bool autoHide: root.options?.autoHide ?? false
     readonly property bool reserveSpace: root.options?.reserveSpace ?? true
     readonly property bool magnify: (root.options?.magnification ?? true) && IrisStyle.motionEnabled
     readonly property bool badges: root.options?.badges ?? true
