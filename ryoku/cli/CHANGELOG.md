@@ -72,6 +72,11 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **Doctor removes Stage Editor keys retired by the widget settings update.**
+  Existing `stage-editor.json` files kept fourteen settings whose controls and
+  readers were removed, so Stage reported them after every shell restart.
+  Doctor now removes those paths while preserving every current widget setting
+  (`internal/doctor/doctor.go`).
 - **`ryoku update` never rolls the desktop back.** Offline, it could not read
   the Testing gate, stayed on a checkout a week behind the running desktop and
   deployed it anyway, which took the default bar away with every newer

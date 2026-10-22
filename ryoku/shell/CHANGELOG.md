@@ -78,6 +78,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Stage stops announcing old settings after every update.** Two banner
+  switches now have explicit defaults, so the schema checker recognises them,
+  and Doctor removes fourteen widget settings retired by the latest editor
+  controls. The warning now names `stage-editor.json`, the file it actually
+  checks (`quickshell/stage/modules/common/Config.qml`,
+  `../cli/internal/doctor/doctor.go`).
 - **Palette Bridge follows the current Matugen pipeline without freezing its app roster.**
   The shell renders the bridge's opt-in supplemental template file after its
   shipped app templates, so Vesktop and Zen keep repainting while new Ryoku app
