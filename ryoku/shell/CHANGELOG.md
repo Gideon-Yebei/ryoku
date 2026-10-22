@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **A still wallpaper no longer loads the video stack.** The desktop backdrop
+  created its MediaPlayer for every wallpaper, and creating one loads FFmpeg
+  and probes the hardware decoders (CUDA, NVDEC, VA-API): about 60 MB of the
+  shell's memory on this NVIDIA laptop, measured 655 MB against 593 MB after.
+  The player, its audio output and the video surface now exist only while an
+  in-shell clip is set (`quickshell/shell/modules/wallpaper/Backdrop.qml`).
 - **Orpheus's spinning cover no longer redraws the bar at the panel's rate.**
   The cover turned on an animation that ran the bar at 165 frames a second for
   the whole song, and the media card's seek squiggle did the same. Both now
