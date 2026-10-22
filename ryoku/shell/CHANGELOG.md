@@ -82,6 +82,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Phone discovery stops retrying every 15 s without Avahi.** With no
+  avahi-daemon running, the wireless-ADB browse exited at once and was
+  relaunched every 15 s through bash and setpriv, twelve launches a minute for
+  good. The retry now doubles up to ten minutes and resets once a browse stays
+  up (`quickshell/shell/modules/phone/KdeConnectService.qml`).
 - **The shell daemon sleeps when nothing happens.** The qylock release check
   ran `pgrep` plus `ryoku-host` (and its `systemctl`) every 5 s for the whole
   session, 36 launches a minute; it now scans `/proc` in-process, asks the

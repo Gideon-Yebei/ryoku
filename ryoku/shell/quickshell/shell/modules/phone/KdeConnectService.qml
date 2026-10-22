@@ -1412,9 +1412,15 @@ Singleton {
         && root.adbPresent
     // "iface;proto;name" -> "ip:port" for every resolved IPv4 service.
     property var _mdnsServices: ({})
+    property int _mdnsBrowseRetryMs: 15000
+    property double _mdnsBrowseStartedAtMs: 0
 
     on_MdnsBrowseWantedChanged: {
         mdnsBrowseRestart.stop()
+        if (root._mdnsBrowseWanted) {
+            root._mdnsBrowseRetryMs = 15000
+            root._mdnsBrowseStartedAtMs = 0
+        }
         mdnsBrowseProc.running = root._mdnsBrowseWanted
     }
 
@@ -1429,13 +1435,26 @@ Singleton {
             }
         }
         onRunningChanged: {
-            if (running) return
+            if (running) {
+                root._mdnsBrowseStartedAtMs = Date.now()
+                return
+            }
             root._mdnsServices = ({})
             root._pickMdnsHost()
         }
-        // avahi-daemon restarts or a missing binary end the browse; retry
-        // slowly rather than leaving discovery dead until the next reload.
-        onExited: if (root._mdnsBrowseWanted) mdnsBrowseRestart.restart()
+        // A missing avahi-daemon exits immediately, so repeated wrapper
+        // launches back off rather than waking forever at a fixed interval.
+        onExited: {
+            if (!root._mdnsBrowseWanted) return
+            const wasStable = root._mdnsBrowseStartedAtMs > 0
+                && Date.now() - root._mdnsBrowseStartedAtMs >= 30000
+            if (wasStable) root._mdnsBrowseRetryMs = 15000
+            root._mdnsBrowseStartedAtMs = 0
+            mdnsBrowseRestart.interval = root._mdnsBrowseRetryMs
+            mdnsBrowseRestart.restart()
+            if (!wasStable)
+                root._mdnsBrowseRetryMs = Math.min(root._mdnsBrowseRetryMs * 2, 10 * 60 * 1000)
+        }
     }
 
     Timer {
