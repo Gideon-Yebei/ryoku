@@ -78,6 +78,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The first thing you install from RyoStore shows up without a restart.** On
+  a box that had never installed from the store, the shell started before the
+  store's index folder existed, and a file watch cannot see files appear in a
+  folder that is not there, so a first OSD, notification, sidebar, dock or
+  launcher design kept drawing Ryoku's own until the shell restarted. The
+  daemon now makes that folder before it starts the shell (`ipc/daemon.go`).
 - **Tansu shows each notification once, and Nomarchy and Tansu keep their
   sound.** Tansu's phone alerts now replace the shell's banners instead of
   doubling them. Owning the banners also used to silence the arrival cue, but

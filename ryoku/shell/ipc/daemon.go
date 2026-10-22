@@ -939,6 +939,14 @@ func surfaceLog(name string) string {
 	return filepath.Join(dir, name+".log")
 }
 
+// ensureStoreIndexDir makes the folder RyoStore publishes its indexes in. The
+// shell watches those indexes, and a file watch only notices a new file inside a
+// folder that already exists, so on a box that had never installed from the
+// store the first install went unseen until the shell restarted.
+func ensureStoreIndexDir() {
+	_ = os.MkdirAll(filepath.Join(stateDir(), "ryoku", "store"), 0o755)
+}
+
 func tailLine(path string) string {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -993,6 +1001,7 @@ func (d *daemon) supervise(name string) {
 		// component is a leftover (our own child is tracked, so it is excluded),
 		// and it goes before we draw over it.
 		d.reapStrays()
+		ensureStoreIndexDir()
 		cmd := exec.Command("qs", qsSelect(name)...)
 		cmd.Env = qsEnv()
 		// Keep the surface's own output: a config that fails to load reports on
