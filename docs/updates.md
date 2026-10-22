@@ -504,9 +504,11 @@ second channel state to drift from it:
   `ryoku/shell/deploy.sh` builds and deploys the checkout. Updates fast-forward
   only to the last commit the Testing gate passed. A bot-authored
   `release: bump unstable to ...` commit on top does not hold the source lane.
-  `ryoku update --wait` polls a running gate, while `ryoku update --force`
-  deploys the current tip without waiting. `testing` remains a quiet synonym
-  for `unstable`.
+  When the gate cannot be read, `ryoku update` keeps the desktop that is
+  running and deploys nothing, and it never lays down a checked commit older
+  than the one already deployed. `ryoku update --wait` polls a running gate,
+  while `ryoku update --force` deploys the current tip without waiting.
+  `testing` remains a quiet synonym for `unstable`.
 - `ryoku track stable` returns the box to signed stable packages. `ryoku track
   stable --source` follows `main` from a checkout. `ryoku track <version>`
   selects a frozen packaged release or unstable build and pins the box until it
