@@ -82,6 +82,18 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The desktop stops redrawing every second.** The desktop is one full-screen
+  surface, and the shared clock ticked every second for faces that show only
+  minutes, so the whole wallpaper and every widget re-rendered once a second.
+  `Now` now runs a minute clock and starts a seconds clock only while a face
+  that shows seconds is loaded; the flip clock's colon pulses on the minute.
+  A static wallpaper paints directly with no resident transition capture, the
+  glass mirror exists only for a visible glass widget and decodes at a
+  quarter of the resolution, the overview backdrop blurs a quarter-resolution
+  copy of its one sharp image and frees it when the blur eases out, and the
+  shared battery percentage moves in whole percents
+  (`quickshell/shell/modules/desktop/`, `quickshell/shell/modules/wallpaper/`,
+  `quickshell/stage/services/Battery.qml`).
 - **Kairos draws its music art at the size it shows.** Cover and backdrop
   decode at their largest display size instead of the file's, the masked
   layers and the backdrop blur exist only while the full panel is open, and

@@ -95,7 +95,12 @@ Item {
     // load target for the incoming image.
     property bool aFront: true
     property bool rendered: false
+    // Capture/FBO nodes exist only for the short reveal. At rest the committed
+    // WallpaperFramedPlane paints directly, avoiding a full-output texture.
+    property bool transitioning: false
     readonly property bool decoded: imgA.status === Image.Ready || imgB.status === Image.Ready
+    readonly property real committedImageWidth: (view.aFront ? imgA : imgB).sourceSize.width
+    readonly property real committedImageHeight: (view.aFront ? imgA : imgB).sourceSize.height
 
     // The player is presenting frames: the reveal shader yields to the video
     // surface, exactly where the old ryogami-live READY flip hid the still.
@@ -316,8 +321,10 @@ Item {
     function commit() {
         view.aFront = !view.aFront;
         reveal.progress = 0;
-        // Drop the outgoing image: it was only needed for the reveal, and held
-        // a second full decode of the wallpaper for the rest of the session.
+        view.transitioning = false;
+        // Drop the outgoing image and both capture providers. The committed
+        // frame now paints directly, so neither a stale decode nor a
+        // full-output ShaderEffectSource texture survives the transition.
         const stale = view.aFront ? imgB : imgA;
         const staleFrame = view.aFront ? frameB : frameA;
         stale.source = "";
@@ -345,6 +352,11 @@ Item {
     // (t.shader set) loads its own ported fragment shader and eases inside it, so
     // progress runs linear over the configured duration.
     function startReveal() {
+        view.transitioning = true;
+        // sourceItem bindings attach on this assignment. Explicit updates keep
+        // these non-live captures to exactly one frame per reveal.
+        srcA.scheduleUpdate();
+        srcB.scheduleUpdate();
         const t = view.transition;
         if (Motion.reduce || !t) {
             reveal.fragmentShader = "reveal.frag.qsb";
@@ -407,6 +419,7 @@ Item {
         imageWidth: imgA.sourceSize.width
         imageHeight: imgA.sourceSize.height
 
+        visible: view.transitioning || (view.aFront && !view.videoOn)
         Image {
             id: imgA
             anchors.fill: parent
@@ -436,6 +449,7 @@ Item {
         imageWidth: imgB.sourceSize.width
         imageHeight: imgB.sourceSize.height
 
+        visible: view.transitioning || (!view.aFront && !view.videoOn)
         Image {
             id: imgB
             anchors.fill: parent
@@ -485,29 +499,28 @@ Item {
         function onFramingAngleChanged() { frameBRefresh.restart() }
     }
 
-    // live:false + an explicit scheduleUpdate() on load or framing movement:
-    // static wallpapers cost no continuous texture capture.
+    // The capture providers attach only during a reveal and update once.
+    // sourceItem becomes null on commit, releasing the full-output textures;
+    // the front WallpaperFramedPlane then paints directly at rest.
     ShaderEffectSource {
         id: srcA
-        sourceItem: frameA
+        sourceItem: view.transitioning ? frameA : null
         hideSource: true
         live: false
     }
     ShaderEffectSource {
         id: srcB
-        sourceItem: frameB
+        sourceItem: view.transitioning ? frameB : null
         hideSource: true
         live: false
     }
 
-    // The reveal: mix(oldTex, newTex, mask) over the shared duration. oldTex is the
-    // committed front buffer, newTex the incoming back buffer; they swap on commit,
-    // so at rest (progress 0) the shader simply shows the committed image. It
-    // yields to the video surfaces only while the clip owns the slot (videoOn).
+    // The reveal exists only while switching. Once committed, the front frame
+    // bypasses this shader and its two capture textures are released.
     ShaderEffect {
         id: reveal
         anchors.fill: parent
-        visible: !view.videoOn
+        visible: view.transitioning && !view.videoOn
 
         property variant oldTex: view.aFront ? srcA : srcB
         property variant newTex: view.aFront ? srcB : srcA

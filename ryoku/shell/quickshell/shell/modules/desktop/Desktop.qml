@@ -844,32 +844,31 @@ Scope {
             }
         }
 
-        // Mirror of the same image for glass widgets: Qt cannot sample another
-        // scene graph, so ShaderEffectSource captures the pixels beneath a
-        // frosted widget from this offscreen copy. WidgetGlass hides this
-        // source after taking its crop. Hidden while a video plays: the glass
-        // samples the still, and a live clip would freeze the capture.
+        // Glass only needs colour and broad wallpaper structure. Keep one
+        // quarter-linear decode while a visible glass consumer exists; the
+        // widget-local crop performs the blur at its final size.
         readonly property bool glassWanted: root.widgetsEnabled && root.videoUrl === ""
-            && ((root.widgetValue("calendar", "Enabled") === true && Config.calendarStyle === "glass")
-                || (root.widgetValue("music", "Enabled") === true && Config.musicStyle === "glass"))
+            && ((calendarLoader.active && calendarLoader.visible
+                    && calendarLoader.item !== null && Config.calendarStyle === "glass")
+                || (musicLoader.active && musicLoader.visible
+                    && musicLoader.item !== null && Config.musicStyle === "glass"))
         Image {
             id: glassBackdrop
             anchors.fill: parent
-            // An invisible Image still decodes while its source is set: hold the
-            // url back until a glass widget actually samples it, or this mirror
-            // costs a full-screen decode on every box that has a wallpaper.
             source: desktopContent.glassWanted ? root.wallpaperUrl : ""
             cache: false
             asynchronous: true
-            sourceSize.width: Math.ceil(width * backdrop.screenDpr)
-            sourceSize.height: Math.ceil(height * backdrop.screenDpr)
+            smooth: true
+            sourceSize.width: Math.max(1, Math.ceil(width * backdrop.screenDpr / 4))
+            sourceSize.height: Math.max(1, Math.ceil(height * backdrop.screenDpr / 4))
             visible: desktopContent.glassWanted
             fillMode: {
                 switch (root.wallpaperFit) {
                 case "Contain": return Image.PreserveAspectFit;
                 case "Fill": return Image.Stretch;
                 case "ScaleDown":
-                    return sourceSize.width <= width && sourceSize.height <= height
+                    return backdrop.committedImageWidth <= width
+                            && backdrop.committedImageHeight <= height
                         ? Image.Pad : Image.PreserveAspectFit;
                 default: return Image.PreserveAspectCrop;
                 }
