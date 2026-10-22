@@ -146,7 +146,7 @@ func runDaemon() error {
 		video:          newVideoPlayer(),
 	}
 	d.workspaces = newWorkspaceManager(d)
-	d.ui = newPickerProcess(d.pickerGpuEnv)
+	d.ui = newPickerProcess(d.pickerGpuEnv, d.pickerIdleGrace)
 	d.tasks = newTaskRegistry(d)
 	d.playlists = newPlaylistManager(cfg.cacheDir(), d)
 	d.sources = newSources(d)
@@ -188,11 +188,11 @@ func runDaemon() error {
 		os.Exit(0)
 	}()
 
-	// The picker runs resident like the shell's overview: one quickshell
-	// instance preloads hidden at boot and Super+W only flips its surface, so
-	// a press never pays a cold QML boot and rapid presses cannot race a
-	// kill/spawn cycle.
+	// Preloading keeps the first login open warm. Once the picker has been
+	// hidden and idle for its configured grace, the supervisor releases it;
+	// every later entry point cold-starts directly onto the requested view.
 	go d.ui.launch()
+	go d.ui.idlePark()
 
 	// Publish the empty snapshot so a subscriber before the first set sees a
 	// defined frame, then restore the last wallpaper and rescan the catalog.

@@ -433,6 +433,15 @@
   style is gone (`barstyles/python/`).
 
 ### Changed
+- **The wallpaper picker frees its memory a minute after closing.** "Keep
+  loaded after closing" in the picker's Performance tab now defaults to 1
+  minute (a new first choice after Always), and the daemon does the parking:
+  it waits until the picker reports itself hidden and idle, with no settings
+  write, rice capture, export, import or workshop discovery in flight, stops it
+  gracefully, and cold-starts the next open straight onto the requested view.
+  A press during the stop waits for it and starts exactly one picker. Always
+  keeps it resident as before (`ryogami/daemon/process.go`,
+  `ryogami/picker/qml/`, `ryogami/picker/src/core/settings.{cpp,h}`).
 - **Docks stay on screen unless auto-hide is turned on.** `dock.autohide`
   defaulted to true, so the Stage Editor showed the dock while editing and
   Done handed it back to auto-hide: on any workspace with windows it slid away
