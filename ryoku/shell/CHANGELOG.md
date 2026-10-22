@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Python material clocks without seconds tick once a minute.** The analog
+  face woke every second and Lumen every second (25 times a second with
+  seconds shown); with the seconds hand off both now wake at the next minute,
+  and Lumen's seconds sweep runs at 10 ticks a second
+  (`barstyles/python/widgets/faces/clock/ClockFaceMaterialAnalog.qml`,
+  `ClockFaceMaterialLumen.qml`).
 - **The Python battery face's wave settles.** Its liquid wave ran for as long
   as the battery was neither empty nor full, which is almost always. It now
   stirs for one wave period when the charge or the charging state changes and
