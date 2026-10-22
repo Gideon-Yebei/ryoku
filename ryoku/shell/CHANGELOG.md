@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- **Visualizer colours can be entered as hex values.** The desktop editor now
+  has a live-swatch field for a static colour and one for each gradient stop.
+  It accepts `rrggbb` or `#rrggbb`, marks invalid input without saving it, and
+  stores accepted colours as lowercase (`quickshell/shell/modules/{desktop,visualizer}/`).
 - **`deckFrostEnabled` turns the deck frost off.** A validated shell.json bool,
   default true, that the desktop haze and the bar's matching translucency both
   obey, so the strength survives switching it off and back on
