@@ -105,6 +105,14 @@ output_on() {
     flock -u 8
     sleep "$OUTPUT_ON_RETRY_DELAY"
   done
+  flock 8
+  current="$(cat "$OUTPUT_STATE_DIR/generation" 2>/dev/null || true)"
+  if [[ $current != "$token" ]]; then
+    flock -u 8
+    return 0
+  fi
+  rm -f "$OUTPUT_STATE_DIR/generation"
+  flock -u 8
   printf 'ryoku-idle: could not restore display power\n' >&2
   return 1
 }

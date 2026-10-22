@@ -182,6 +182,20 @@ unset RYOKU_IDLE_WM_FAIL_ON_COUNT
 [[ $(grep -Fxc 'wm act output.power on' "$RYOKU_IDLE_WM_LOG") == 3 ]]
 [[ ! -e $RYOKU_IDLE_OUTPUT_STATE_DIR/generation ]]
 
+# A failed wake still clears its own generation: output-on means the user is
+# back, and stale dark state must not hide visible shell surfaces.
+: >"$RYOKU_IDLE_WM_LOG"
+rm -f "$RYOKU_IDLE_WM_COUNT"
+"$helper" output-off
+touch "$tmp/fail-on"
+export RYOKU_IDLE_WM_FAIL_ALWAYS="$tmp/fail-on"
+if "$helper" output-on; then
+  printf 'an exhausted output-on retry unexpectedly succeeded\n' >&2
+  exit 1
+fi
+unset RYOKU_IDLE_WM_FAIL_ALWAYS
+[[ ! -e $RYOKU_IDLE_OUTPUT_STATE_DIR/generation ]]
+
 # A newer off edge cancels an older wake generation between bounded retries;
 # no stale retry is allowed to turn the newly idle display back on.
 : >"$RYOKU_IDLE_WM_LOG"

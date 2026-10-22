@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **A failed display wake no longer leaves the displays marked off.** When
+  every `ryoku-idle output-on` retry failed, its generation file stayed
+  behind, and the shell's new presence topic reads that file as "displays
+  off" and pauses its readouts. Exhausted retries now clear their own
+  generation, while a newer output-off still wins
+  (`hardware/power/ryoku-idle`, `tests/idle-policy.sh`).
+
 - **The lid daemon sleeps between events.** `ryoku-clamshell daemon` woke
   every second to check whether its hardware, lid and login1 monitors were
   still alive. Each monitor now announces its own exit into the daemon's
