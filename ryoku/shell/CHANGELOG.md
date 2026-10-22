@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Orpheus's spinning cover no longer redraws the bar at the panel's rate.**
+  The cover turned on an animation that ran the bar at 165 frames a second for
+  the whole song, and the media card's seek squiggle did the same. Both now
+  step on one 30 Hz clock that rides the analyser's own updates, which redraw
+  the bar anyway (`barstyles/orpheus/kit/MotionClock.qml`, `CoverArt.qml`,
+  `Squiggle.qml`).
 - **iNiR and iRiS visualizer widgets paint natively.** The bars and wave of
   every iNiR spectrum (the iRiS desktop visualizer, media overlays) were a
   JavaScript Canvas that cost the desktop two to three full-window frames per
