@@ -82,6 +82,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **iRiS media faces read the playback position in-process.** The iNiR MPRIS
+  controller forked `busctl` every 3 s while anything played, twenty launches a
+  minute during music, to read a position Quickshell already fetches over
+  D-Bus. It asks the player to refresh `Position` instead and keeps the same
+  stale-publisher handling (`quickshell/inir/services/MprisController.qml`).
 - **Phone discovery stops retrying every 15 s without Avahi.** With no
   avahi-daemon running, the wireless-ADB browse exited at once and was
   relaunched every 15 s through bash and setpriv, twelve launches a minute for
