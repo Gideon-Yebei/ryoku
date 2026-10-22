@@ -72,6 +72,14 @@ in niri and in the power readings.
 | Kairos, idle | 4.57 → 2.25 | 2.22 → 1.53 | 72 → 27 | 0.25 → 0.23 | 5,411 → 13 | 15.0 → 12.5 | 3.65 → 4.89 |
 | Kairos, music | 60.0 → 38.2 | 44.9 → 28.5 | 4,388 → 1,897 | 10.2 → 7.3 | 5,446 → 16 | 24.6 → 19.1 | 11.4 → 10.8 |
 
+Per-process CPU misses processes that start and exit inside the window, which
+is where most of the idle cost was. The whole machine, every process and the
+kernel included, was busy for 41.6% → 27.2% of a core with Orpheus at idle,
+119% → 89% with music, and 35.7% → 24.6% and 90.6% → 63.4% for Kairos. The
+shell's video memory went from 507 to 483 MB at idle and from 562 to 488 MB with
+music. During the first before runs a model that had just been stopped still held
+5.2 GB of GPU memory in an idle `llama-server`; it used no CPU.
+
 **Frames.** On a 165 Hz panel the shell's windows presented 5.3 frames a second
 at idle before and 1.8 after. With music, 404 before (two full-screen windows
 at the panel's rate) and 273 after; per surface, the Orpheus bar (now 84 px
@@ -123,10 +131,13 @@ one native sampler, and the phone module follows KDE Connect and network events
 instead of polling `adb`.
 
 **Audio.** Music ran three cava processes, a Python waveform capture and
-`pw-record`, each feeding its own consumer. One analyser in C++ (`CavaFeed`) now
-feeds the Orpheus drops, the voice bars, the desktop widgets and the iNiR
-services, and the line visualizer reads a C++ capture (`WaveCapture`) instead of
-Python. Both stop in silence, and the visualizer rests instead of ticking.
+`pw-record`, and the Python capture and `pw-record` kept running in silence.
+Now one cava feed read in C++ (`CavaFeed`) serves every bar style, the desktop
+music widgets and the iNiR services; the line visualizer keeps its own feed (64
+bands at 60 fps, which its look needs) and reads its waveform through a C++
+capture (`WaveCapture`) instead of Python. With music that is two cava processes
+and `pw-record`; at idle none of them runs, and the visualizer rests instead of
+ticking.
 
 **Whole-window redraws.** Orpheus kept a full-screen window at all times, so
 every frame of its drops re-rendered and recomposited the whole output, at the

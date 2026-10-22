@@ -251,10 +251,11 @@ The October 2026 pass (`docs/performance.md` has the method and every number)
 took the next layer off. On the same box, an idle desktop went from about 5,800
 process launches a minute to 13, playing music from 81% to 60% of a core for
 the base desktop with Orpheus (64% to 48% for the shell itself), and the RTX
-4060 from 16 W to 10.6 W while music plays. One native analyser now serves every
-music surface, system stats come from one native sampler, Orpheus rests at bar
-height, and a still wallpaper no longer loads the video stack (about 60 MB of
-the shell's memory).
+4060 from 16 W to 10.6 W while music plays. The bar styles, desktop widgets and
+iNiR services share one C++ cava feed (the line visualizer keeps its own), the
+Python waveform capture that ran even in silence is gone, system stats come from
+one native sampler, Orpheus rests at bar height, and a still wallpaper no longer
+loads the video stack (about 60 MB of the shell's memory).
 
 What is left, in the order to take it:
 
