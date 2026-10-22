@@ -82,6 +82,23 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Music no longer costs most of a CPU core.** Playing a song ran three cava
+  processes (the bar feed, the visualizer and an iNiR copy for iRiS widgets and
+  the ii dock) plus a Python capture for the line visualizer, and QML split
+  and parsed every text frame. The new C++ `CavaFeed` reads cava's binary
+  output straight into a fixed buffer and does the all-sound peak follower,
+  noise floor and stale flattening natively; `AudioBars`, `VoiceBars` and the
+  visualizer's `Spectrum` run on it with the same API and feel, and the iNiR
+  `CavaService` is now a view of `AudioBars`, so one analyser serves the bar,
+  the dock and the desktop. `WaveCapture` replaces `wavecap.py`: it runs
+  `pw-record` itself and decimates in C++. The visualizer stops ticking once
+  silence settles (the idle wave stays drawn, still), its window covers only
+  what it draws outside the editor, and audio-reactive desktop faces follow
+  the 30 fps feed instead of animating at the display's refresh rate
+  (`plugin/cavafeed.*`, `plugin/wavecapture.*`,
+  `quickshell/shell/services/{AudioBars,VoiceBars}.qml`,
+  `quickshell/shell/modules/visualizer/`,
+  `quickshell/inir/services/deferred/CavaService.qml`).
 - **System stats come from the native monitor and launch nothing.** `Sysinfo`
   and `StatsFeed` were QML readers of `/proc` and sysfs that also forked
   `nvidia-smi` every 5 s, `df` every 30 s and a discovery shell at start. They

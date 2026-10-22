@@ -110,9 +110,10 @@ depends=(
   'grim'
   'slurp'
   'cava'
-  # the visualiser's line style is an oscilloscope: wavecap.py (python) drives
-  # pw-record (pipewire) to capture the sink monitor and downsample its waveform.
-  # pactl (already used by the shell's audio-watch) resolves the monitor node.
+  # the visualiser's line style is an oscilloscope: the shell's WaveCapture runs
+  # pw-record (pipewire) on the sink monitor and downsamples it in C++. pactl
+  # (already used by the shell's audio-watch) resolves the monitor node, and
+  # python runs the shell's helper scripts.
   'python'
   'pipewire'
   'jq'

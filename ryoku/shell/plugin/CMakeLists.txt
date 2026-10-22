@@ -34,6 +34,8 @@ qt_add_qml_module(ryoku-blobs
         borderbeam.cpp borderbeam.hpp
         bordermaterial.cpp bordermaterial.hpp
         camerafeed.cpp camerafeed.hpp
+        cavafeed.cpp cavafeed.hpp
+        wavecapture.cpp wavecapture.hpp
         systemmonitor.cpp systemmonitor.hpp
         systemgraph.cpp systemgraph.hpp
         thinkingorb.cpp thinkingorb.hpp
