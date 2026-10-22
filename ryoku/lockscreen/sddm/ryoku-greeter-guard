@@ -26,10 +26,12 @@ set -u
 
 interval=${RYOKU_GREETER_GUARD_INTERVAL:-5}
 grace=${RYOKU_GREETER_GUARD_GRACE:-20}
+fallback=${RYOKU_GREETER_GUARD_FALLBACK:-60}
 limit=${RYOKU_GREETER_GUARD_LIMIT:-3}
 state=${RYOKU_GREETER_GUARD_STATE:-/run/ryoku/greeter-guard}
 proc=${RYOKU_GREETER_GUARD_PROC:-/proc}
 host=${RYOKU_GREETER_GUARD_HOST:-ryoku-host}
+dbus_monitor=${RYOKU_GREETER_GUARD_DBUS_MONITOR:-dbus-monitor}
 
 log() { logger -t ryoku-greeter-guard -p "daemon.$1" -- "$2" 2>/dev/null || echo "ryoku-greeter-guard: $2" >&2; }
 
@@ -84,10 +86,89 @@ check_once() {
   count=$(( count + 1 ))
   printf '%s\n' "$count" >"$state/restarts"
   rm -f "$state/missing-since"
+  printf '%s\n' "$now" >"$state/restarted-at"
   log err "SDDM has shown no login screen and runs no session for ${grace}s; restarting the display manager ($count of $limit this boot)"
   "$host" svc --system restart sddm
   return 3
 }
+next_wait() {
+  local now restarted
+  if [ -f "$state/missing-since" ] && [ ! -f "$state/gave-up" ]; then
+    printf '%s\n' "$interval"
+    return
+  fi
+  if read -r restarted 2>/dev/null <"$state/restarted-at"; then
+    case "$restarted" in
+      ''|*[!0-9]*) ;;
+      *)
+        printf -v now '%(%s)T' -1
+        if (( now - restarted < grace )); then
+          printf '%s\n' "$interval"
+          return
+        fi
+        ;;
+    esac
+  fi
+  printf '%s\n' "$fallback"
+}
+
+poll_loop() {
+  while :; do
+    check_once || true
+    sleep "$interval"
+  done
+}
+
+event_loop() {
+  local line wait_for monitor_pid="" monitor_fd="" warned=0
+  local match_new="type='signal',sender='org.freedesktop.login1',interface='org.freedesktop.login1.Manager',member='SessionNew'"
+  local match_removed="type='signal',sender='org.freedesktop.login1',interface='org.freedesktop.login1.Manager',member='SessionRemoved'"
+
+  cleanup_monitor() {
+    if [ -n "$monitor_pid" ]; then
+      kill "$monitor_pid" 2>/dev/null || true
+      wait "$monitor_pid" 2>/dev/null || true
+      monitor_pid=
+    fi
+    if [[ $monitor_fd =~ ^[0-9]+$ ]]; then
+      exec {monitor_fd}<&-
+      monitor_fd=
+    fi
+  }
+  trap cleanup_monitor EXIT
+  trap 'exit 0' TERM INT HUP
+
+  while :; do
+    coproc LOGIN1_SESSION_EVENTS {
+      exec "$dbus_monitor" --system "$match_new" "$match_removed" 2>/dev/null
+    }
+    monitor_pid=$LOGIN1_SESSION_EVENTS_PID
+    exec {monitor_fd}<&"${LOGIN1_SESSION_EVENTS[0]}"
+
+    while kill -0 "$monitor_pid" 2>/dev/null; do
+      wait_for=$(next_wait)
+      if IFS= read -r -t "$wait_for" line <&"$monitor_fd"; then
+        case "$line" in
+          *'interface=org.freedesktop.login1.Manager; member=SessionNew'*|\
+          *'interface=org.freedesktop.login1.Manager; member=SessionRemoved'*)
+            check_once || true
+            ;;
+        esac
+      else
+        check_once || true
+        kill -0 "$monitor_pid" 2>/dev/null || break
+      fi
+    done
+
+    cleanup_monitor
+    if (( warned == 0 )); then
+      log warning "login1 session monitor stopped; using timed checks until it recovers"
+      warned=1
+    fi
+    sleep "$(next_wait)"
+  done
+}
+
 
 mkdir -p "$state"
 
@@ -96,10 +177,13 @@ case "${1:-}" in
     check_once
     ;;
   '')
-    while :; do
-      check_once
-      sleep "$interval"
-    done
+    check_once || true
+    if command -v "$dbus_monitor" >/dev/null 2>&1; then
+      event_loop
+    else
+      log warning "dbus-monitor is unavailable; checking the login screen every ${interval}s"
+      poll_loop
+    fi
     ;;
   *)
     echo "usage: ryoku-greeter-guard [--once]" >&2
