@@ -113,10 +113,10 @@ func TestPowerCueWaitUsesEventsAndKeepsLowRepeat(t *testing.T) {
 		bus, usb, deviceCues bool
 		want                 time.Duration
 	}{
-		{"fully event driven", powerCue{}, true, true, true, powerReconcile},
-		{"bus fallback", powerCue{}, false, true, false, powerPoll},
-		{"USB fallback only when used", powerCue{}, true, false, true, powerPoll},
-		{"disabled USB cues need no USB poll", powerCue{}, true, false, false, powerReconcile},
+		{"fully event driven", powerCue{}, true, true, true, 0},
+		{"bus fallback", powerCue{}, false, true, false, powerReconcile},
+		{"USB fallback only when used", powerCue{}, true, false, true, powerReconcile},
+		{"disabled USB cues need no USB poll", powerCue{}, true, false, false, 0},
 		{"low battery repeat deadline", powerCue{lowActive: true, lastLow: now.Add(-15 * time.Second)}, true, true, false, 45 * time.Second},
 	}
 	for _, tc := range cases {

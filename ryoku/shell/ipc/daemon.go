@@ -122,6 +122,7 @@ type daemon struct {
 	widgetSig    chan struct{}        // coalescing wake for the widget-occupancy gate
 	guardKick    chan struct{}        // coalescing wake for the qylock fallback-guard watcher
 	parkSig      chan struct{}        // coalescing wake for palette idle deadlines and saver changes
+	sunSig       chan struct{}        // wakes the sun-mode worker on knob/window changes
 	quit         chan struct{}
 	closed       bool
 	ln           net.Listener
@@ -313,6 +314,7 @@ func runDaemon() error {
 		widgetSig:   make(chan struct{}, 1),
 		guardKick:   make(chan struct{}, 1),
 		parkSig:     make(chan struct{}, 1),
+		sunSig:      make(chan struct{}, 1),
 		quit:        make(chan struct{}),
 		gateWant:    map[string]bool{},
 		gateWake:    map[string]chan struct{}{},

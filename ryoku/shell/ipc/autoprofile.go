@@ -90,18 +90,20 @@ func addUPowerSignalMatch(conn *dbus.Conn) error {
 	)
 }
 
-// watchAutoPowerSaver reacts to UPower and power-profiles D-Bus signals. A
-// slow reconciliation timer covers missed signals and service restarts without
-// waking the daemon every two seconds.
+// watchAutoPowerSaver reacts to UPower and power-profiles D-Bus signals. The
+// watchdog is armed only after that event source is unavailable.
 func (d *daemon) watchAutoPowerSaver() {
 	if d.pp == nil || d.pp.conn == nil {
 		return
 	}
-	_ = addUPowerSignalMatch(d.pp.conn)
+	eventsHealthy := true
+	if err := addUPowerSignalMatch(d.pp.conn); err != nil {
+		log.Printf("ryoku-shell: auto power profile signal match failed, using slow reconciliation: %v", err)
+		eventsHealthy = false
+	}
 	signals := make(chan *dbus.Signal, 16)
 	d.pp.conn.Signal(signals)
 	defer d.pp.conn.RemoveSignal(signals)
-
 	var a autoProfile
 	prevAC, first := true, true
 	reconcile := func() {
@@ -130,21 +132,33 @@ func (d *daemon) watchAutoPowerSaver() {
 	}
 
 	reconcile()
-	timer := time.NewTimer(autoProfileReconcile)
+	timer := time.NewTimer(time.Hour)
+	if !timer.Stop() {
+		<-timer.C
+	}
 	defer timer.Stop()
+	var timerC <-chan time.Time
+	if !eventsHealthy {
+		timer.Reset(autoProfileReconcile)
+		timerC = timer.C
+	}
+	disconnected := d.pp.conn.Context().Done()
 	for {
 		select {
 		case <-d.quit:
 			return
+		case <-disconnected:
+			disconnected = nil
+			signals = nil
+			eventsHealthy = false
 		case sig, ok := <-signals:
 			if !ok {
 				signals = nil
+				eventsHealthy = false
+			} else if !powerStateSignal(sig) {
 				continue
 			}
-			if !powerStateSignal(sig) {
-				continue
-			}
-		case <-timer.C:
+		case <-timerC:
 		}
 		reconcile()
 		if !timer.Stop() {
@@ -153,6 +167,10 @@ func (d *daemon) watchAutoPowerSaver() {
 			default:
 			}
 		}
-		timer.Reset(autoProfileReconcile)
+		timerC = nil
+		if !eventsHealthy {
+			timer.Reset(autoProfileReconcile)
+			timerC = timer.C
+		}
 	}
 }

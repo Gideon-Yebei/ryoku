@@ -1767,34 +1767,67 @@ func writeKittyFont(mono string, size int) {
 	_ = os.WriteFile(filepath.Join(dir, "current-font.conf"), []byte(body), 0o644)
 }
 
-// watchSunMode retints the desktop when the day/night edge crosses while the
-// mode knob is "sun": resolveMode only runs on a theme pass, and nothing else
-// wakes one at sunrise/sunset. The check compares the resolved value, so a
-// re-observed sun window that does not flip light/dark costs nothing. The
-// cadence matches the night light schedule's: sun times are whole minutes and
-// a few minutes of drift at the edge is invisible next to twilight.
+func (d *daemon) kickSunMode() {
+	select {
+	case d.sunSig <- struct{}{}:
+	default:
+	}
+}
+
+func currentSunWindow(now, sunrise, sunset time.Time) (time.Time, time.Time) {
+	for !sunset.After(now) {
+		sunrise = sunrise.AddDate(0, 0, 1)
+		sunset = sunset.AddDate(0, 0, 1)
+	}
+	return sunrise, sunset
+}
+
+// watchSunMode sleeps on the next actual day/night edge. Knob saves and fresh
+// weather data interrupt that deadline, so every other theme mode stays fully
+// event-driven.
 func (d *daemon) watchSunMode() {
 	last := ""
-	for range time.Tick(nlTickEvery) {
+	for {
 		if readMatugenKnobs().Mode != "sun" {
 			last = ""
+			select {
+			case <-d.quit:
+				return
+			case <-d.sunSig:
+			}
 			continue
 		}
 		sunrise, sunset, ok := daySun.window()
 		if !ok {
-			continue // no window yet: the smart fallback only flips on a real theme pass
-		}
-		got := "dark"
-		if isDaytime(time.Now(), sunrise, sunset) {
-			got = "light"
-		}
-		if last == "" {
-			last = got
+			select {
+			case <-d.quit:
+				return
+			case <-d.sunSig:
+			}
 			continue
 		}
-		if got != last {
-			last = got
+
+		now := time.Now()
+		sunrise, sunset = currentSunWindow(now, sunrise, sunset)
+		got := "dark"
+		next := sunrise
+		if isDaytime(now, sunrise, sunset) {
+			got = "light"
+			next = sunset
+		}
+		if last != "" && got != last {
 			d.scheduleTheme()
+		}
+		last = got
+
+		timer := time.NewTimer(time.Until(next))
+		select {
+		case <-d.quit:
+			timer.Stop()
+			return
+		case <-d.sunSig:
+			timer.Stop()
+		case <-timer.C:
 		}
 	}
 }
@@ -1815,6 +1848,7 @@ func (d *daemon) watchMatugenKnobs() {
 			last = m
 			if changed {
 				d.scheduleTheme()
+				d.kickSunMode()
 			}
 		}
 	}

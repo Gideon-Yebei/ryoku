@@ -94,14 +94,7 @@ func usbDevices(root string) map[string]bool {
 type deviceCue struct {
 	seen          bool
 	last          map[string]bool
-	stamp         time.Time
 	suspendOffset time.Duration
-}
-
-func (c *deviceCue) step(now map[string]bool, at time.Time) []string {
-	reseed := !c.seen || at.Sub(c.stamp) > 3*powerPoll
-	c.stamp = at
-	return c.stepNow(now, reseed)
 }
 
 func (c *deviceCue) stepWithSuspend(now map[string]bool, suspendOffset time.Duration) []string {

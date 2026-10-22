@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 // newTestStore builds a settings store over a fresh temp shell.json path. The
@@ -916,5 +917,76 @@ func TestSettingsBoolAt(t *testing.T) {
 	}
 	if s.boolAt("clipboard.pruneWeekly") {
 		t.Error("boolAt still true after the key was patched off")
+	}
+}
+
+func TestSettingsWatchFollowsRenameReplace(t *testing.T) {
+	s := newTestStore(t)
+	if err := s.patch("weatherLocation", rm(`"before"`)); err != nil {
+		t.Fatal(err)
+	}
+	changed := make(chan []byte, 1)
+	s.onChange = func(frame []byte) { changed <- frame }
+	quit := make(chan struct{})
+	ready := make(chan struct{})
+	defer close(quit)
+	go s.watch(quit, ready)
+	<-ready
+
+	body, err := os.ReadFile(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(body, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["weatherLocation"] = "after"
+	body, err = json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmp := s.path + ".editor"
+	if err := os.WriteFile(tmp, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(tmp, s.path); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case frame := <-changed:
+		if got := frameGet(t, frame, "weatherLocation"); got != "after" {
+			t.Fatalf("weatherLocation = %v, want after", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("rename-replaced shell.json did not reload")
+	}
+}
+
+func TestSettingsWatchFollowsMissingParent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "missing", "ryoku", "shell.json")
+	s := newSettingsStore(path)
+	changed := make(chan []byte, 1)
+	s.onChange = func(frame []byte) { changed <- frame }
+	quit := make(chan struct{})
+	ready := make(chan struct{})
+	defer close(quit)
+	go s.watch(quit, ready)
+	<-ready
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(`{"weatherLocation":"after"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case frame := <-changed:
+		if got := frameGet(t, frame, "weatherLocation"); got != "after" {
+			t.Fatalf("weatherLocation = %v, want after", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("shell.json under a newly-created parent did not reload")
 	}
 }

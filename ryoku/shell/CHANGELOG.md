@@ -82,6 +82,16 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **The shell daemon waits on events instead of polling at idle.** shell.json
+  is watched with inotify (rename-safe, following a config tree that appears
+  later) instead of a stat every 500 ms. The memory guard samples every 1 to 15
+  seconds by headroom and growth instead of every second. Night light waits on
+  its state files and the backend's pidfd instead of scanning `/proc` twice
+  every 30 seconds while off, the qylock unlock guard holds a pidfd on the lock
+  client instead of rescanning the process table, power cues and the automatic
+  power profile rely on UPower and USB events with a watchdog only while a
+  source is lost, and Matugen's sun mode sleeps until the next sunrise or
+  sunset and re-checks on resume (`ipc/`).
 - **Sumi's edge reservations exist only while Sumi is active.** The frame's
   four reservation windows reserve space for Sumi alone, yet every other style
   kept all four mapped, each with its own render thread, GL context and

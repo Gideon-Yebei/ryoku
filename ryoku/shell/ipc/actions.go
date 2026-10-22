@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -245,20 +246,29 @@ func processEnvironmentValue(data []byte, key string) string {
 	return ""
 }
 
-func qylockProcessMatches(session, token string) bool {
+func qylockProcessPIDs(session, token string) []int {
 	if session == "" {
-		return false
+		return nil
 	}
-	for _, pid := range currentUserProcessIDs(lockClientPattern) {
-		env, err := os.ReadFile(filepath.Join("/proc", pid, "environ"))
+	var matches []int
+	for _, value := range currentUserProcessIDs(lockClientPattern) {
+		env, err := os.ReadFile(filepath.Join("/proc", value, "environ"))
 		if err != nil || processEnvironmentValue(env, "XDG_SESSION_ID") != session {
 			continue
 		}
-		if token == "" || processEnvironmentValue(env, "QYLOCK_PROOF_TOKEN") == token {
-			return true
+		if token != "" && processEnvironmentValue(env, "QYLOCK_PROOF_TOKEN") != token {
+			continue
+		}
+		pid, err := strconv.Atoi(value)
+		if err == nil {
+			matches = append(matches, pid)
 		}
 	}
-	return false
+	return matches
+}
+
+func qylockProcessMatches(session, token string) bool {
+	return len(qylockProcessPIDs(session, token)) != 0
 }
 
 func readLockProof(path string) string {
@@ -290,8 +300,15 @@ var (
 	lockPoll           = 50 * time.Millisecond
 	lockRequestMu      sync.Mutex
 	lockProcessRunning = func() bool { return qylockProcessMatches(lockSessionID(), "") }
-	lockProofValid     = currentLockProofValid
-	lockStarter        = spawnLocker
+	lockProcessPID     = func() int {
+		pids := qylockProcessPIDs(lockSessionID(), "")
+		if len(pids) == 0 {
+			return 0
+		}
+		return pids[0]
+	}
+	lockProofValid = currentLockProofValid
+	lockStarter    = spawnLocker
 )
 
 // lockClientPattern matches live and retained-stage qylock clients. Proof

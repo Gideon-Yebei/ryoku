@@ -23,7 +23,6 @@ const powerSupplyRoot = "/sys/class/power_supply"
 const (
 	batteryLowPercent = 4
 	batteryLowRepeat  = 60 * time.Second
-	powerPoll         = 2 * time.Second
 	powerReconcile    = 5 * time.Minute
 )
 
@@ -148,9 +147,6 @@ func (c *powerCue) step(st powerState, now time.Time) []string {
 }
 
 func powerCueWait(c powerCue, busEvents, usbEvents, deviceCues bool, now time.Time) time.Duration {
-	if !busEvents || (deviceCues && !usbEvents) {
-		return powerPoll
-	}
 	if c.lowActive {
 		wait := batteryLowRepeat - now.Sub(c.lastLow)
 		if wait < time.Second {
@@ -160,7 +156,10 @@ func powerCueWait(c powerCue, busEvents, usbEvents, deviceCues bool, now time.Ti
 			return wait
 		}
 	}
-	return powerReconcile
+	if !busEvents || (deviceCues && !usbEvents) {
+		return powerReconcile
+	}
+	return 0
 }
 
 func (d *daemon) watchPowerSounds() {
@@ -182,6 +181,10 @@ func (d *daemon) watchPowerSounds() {
 		defer conn.Close()
 		defer conn.RemoveSignal(signals)
 	}
+	var busLost <-chan struct{}
+	if conn != nil {
+		busLost = conn.Context().Done()
+	}
 
 	usbChanges, stopUSBWatch, usbErr := watchUSBChanges(usbDevicesRoot)
 	if usbErr == nil {
@@ -190,8 +193,12 @@ func (d *daemon) watchPowerSounds() {
 		usbChanges = nil
 	}
 
-	timer := time.NewTimer(0)
+	timer := time.NewTimer(time.Hour)
+	if !timer.Stop() {
+		<-timer.C
+	}
 	defer timer.Stop()
+	var timerC <-chan time.Time
 	for {
 		now := time.Now()
 		for _, cue := range c.step(readPowerState(), now) {
@@ -214,12 +221,19 @@ func (d *daemon) watchPowerSounds() {
 			default:
 			}
 		}
-		timer.Reset(wait)
+		timerC = nil
+		if wait > 0 {
+			timer.Reset(wait)
+			timerC = timer.C
+		}
 
 	wait:
 		select {
 		case <-d.quit:
 			return
+		case <-busLost:
+			busLost = nil
+			signals = nil
 		case sig, ok := <-signals:
 			if !ok {
 				signals = nil
@@ -232,7 +246,7 @@ func (d *daemon) watchPowerSounds() {
 			if !ok {
 				usbChanges = nil
 			}
-		case <-timer.C:
+		case <-timerC:
 		}
 	}
 }
