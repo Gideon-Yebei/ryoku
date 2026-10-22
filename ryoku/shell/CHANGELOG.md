@@ -82,6 +82,10 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Sumi's edge reservations exist only while Sumi is active.** The frame's
+  four reservation windows reserve space for Sumi alone, yet every other style
+  kept all four mapped, each with its own render thread, GL context and
+  swapchain (`quickshell/shell/modules/bar/{Frame,FrameEdge}.qml`).
 - **Hidden shell surfaces no longer redraw every second.** The compositor
   gives a covered surface one frame callback a second, and Qt's 100 ms callback
   timeout turned each into an unexpose and re-expose that rebuilt the surface's
