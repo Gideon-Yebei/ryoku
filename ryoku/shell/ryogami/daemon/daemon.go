@@ -45,7 +45,9 @@ type daemon struct {
 	upscaler  *Upscaler
 	playlists *playlistManager
 
-	workspaces *workspaceManager
+	workspaces       *workspaceManager
+	wmEffectsMu      sync.Mutex
+	wmEffectsStarted bool
 
 	// Paint generations are per output, so a delayed video READY on one monitor
 	// cannot cancel another monitor's independent wallpaper switch.
@@ -221,7 +223,7 @@ func runDaemon() error {
 	}()
 	go d.watchSettingsFile()
 	go d.startLibraryWatch()
-	go d.watchOutputs()
+	go d.watchWindowManager()
 	go d.workshop.watch()
 
 	for {

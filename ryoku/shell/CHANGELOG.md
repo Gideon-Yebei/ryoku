@@ -82,6 +82,12 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Ryogami follows the compositor through one watcher.** The daemon ran two
+  `ryoku-wm-<provider> watch` processes, one for outputs and one for windows,
+  workspaces, focus and overview; it now runs one with the union of both and
+  hands each frame to the same consumers in order. Playback and workspace
+  reactions still wait for startup to finish, as before
+  (`ryogami/daemon/restore_watch.go`, `ryogami/daemon/pause_rules.go`).
 - **Stage stops announcing old settings after every update.** Two banner
   switches now have explicit defaults, so the schema checker recognises them,
   and Doctor removes fourteen widget settings retired by the latest editor
