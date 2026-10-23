@@ -1249,12 +1249,6 @@ func (d *daemon) handle(conn net.Conn) {
 		d.serveCalls(conn, r, cmd)
 		return
 	}
-	// A clipboard capture helper streams new selection bytes after its header
-	// line, so they never reach a command line.
-	if strings.HasPrefix(cmd, "clip-ingest ") {
-		fmt.Fprintln(conn, d.clipIngest(cmd, r))
-		return
-	}
 	if strings.HasPrefix(cmd, "clip-copy ") {
 		fmt.Fprintln(conn, d.clipCopy(cmd))
 		return

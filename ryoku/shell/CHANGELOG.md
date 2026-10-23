@@ -101,6 +101,19 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **A big copied image pastes whole.** Copies over 10 MiB were cut at 10 MiB,
+  so a large screenshot from ryoshot or a capture went onto the clipboard as a
+  broken PNG, and a large image picked from the history pasted broken too. The
+  selection now always carries the complete file; history skips what exceeds
+  its cap instead of storing a partial copy, and drops the truncated images an
+  older build stored (`ipc/clipboard.go`).
+- **Copies made in quick succession all reach the history.** The daemon now
+  watches the clipboard itself over the compositor's data-control protocol
+  (`ext-data-control-v1`, `wlr-data-control` as the fallback) and reads each
+  selection from the offer that announced it. The old `wl-paste --watch`
+  helper re-read whatever was current, so a copy replaced within a few
+  milliseconds was lost or recorded as the next one, and every copy was read
+  two or three times (`ipc/clipwatch.go`).
 - **Ryogami survives an account rename.** The daemon resolves the picker from
   the active user's XDG data home, stores home-owned catalogue and wallpaper
   paths as `~/...`, and Doctor rewrites old-home paths in existing config,
