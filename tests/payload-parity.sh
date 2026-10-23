@@ -75,9 +75,11 @@ prepare_prebuilt() {
       fake_binary "$dir/ryoku-wm-hyprland"
       ;;
     ryoku-blobs)
-      mkdir -p "$dir/qml/Ryoku/Blobs"
+      mkdir -p "$dir/qml/Ryoku/Blobs" "$dir/qml/Ryoku/Spatial3D"
       printf 'module Ryoku.Blobs\n' > "$dir/qml/Ryoku/Blobs/qmldir"
       fake_binary "$dir/qml/Ryoku/Blobs/libryoku-blobs.so"
+      printf 'module Ryoku.Spatial3D\n' > "$dir/qml/Ryoku/Spatial3D/qmldir"
+      fake_binary "$dir/qml/Ryoku/Spatial3D/libryoku-spatial3d.so"
       ;;
     ryogami)
       fake_binary "$dir/ryogami"

@@ -141,6 +141,8 @@ depends=(
   # official repo, hard depends so they reach existing boxes on `ryoku update`.
   'qt6-multimedia'
   'qt6-declarative'
+  # Qt Quick 3D renders the Stage depth mesh (Ryoku.Spatial3D).
+  'qt6-quick3d'
   # Hub's ISO picker (GPU passthrough VM) shells out to a file chooser
   'zenity'
   # Game Mode wifi power-save toggle (ryoku-wifi-powersave runs iw)

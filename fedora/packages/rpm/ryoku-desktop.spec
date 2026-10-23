@@ -41,6 +41,7 @@ Requires:       qt6-qtsvg
 Requires:       qt6-qtimageformats
 Requires:       qt6-qtmultimedia
 Requires:       qt6-qtdeclarative
+Requires:       qt6-qtquick3d
 Requires:       gtk3
 Requires:       webkit2gtk4.1
 Requires:       weston

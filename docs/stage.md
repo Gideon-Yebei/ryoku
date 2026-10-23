@@ -4,9 +4,8 @@ The desktop as a stage: the wallpaper is the backdrop, the subject and any
 extra cut-outs are the layers, and the clock, widgets and the audio
 visualizer are the cast, arranged in front of or behind them. Depth and
 Parallax used to be two features with two engines, two settings files, two
-sidebar tabs and two artifact folders. They are one thing: **Depth is a
-stage with a single still layer in front of the widgets; Parallax is the
-same stage with motion on.** Ryostage is that one thing.
+sidebar tabs and two artifact folders. They are one thing: **one Stage, one
+mode per wallpaper: Plain, Depth, or Parallax.** Ryostage is that one thing.
 
 Names, so the parts are findable:
 
@@ -27,10 +26,18 @@ migrates all of them (below).
 
 ## The mental model a user needs
 
-One feature: **Depth**. It lifts the wallpaper's subject in front of your
-widgets. **Parallax** is a switch inside Depth: the same cut, the same look,
-now drifting with the pointer over an inpainted backdrop. Nothing is configured
-twice.
+Two engines, one mode per wallpaper:
+
+- **Plain** draws the flat desktop.
+- **Depth** is the 3D scene: a depth-displaced mesh of the wallpaper that
+  reacts to the pointer. It runs on the original wallpaper, cut or not (the
+  cut-out engine is not required for it).
+- **Parallax** is the cut-out engine: it lifts the wallpaper's subject in
+  front of your widgets and drifts it with the pointer over an inpainted
+  backdrop, with the depth mesh under it when the wall has a depth map
+  (without one, the backdrop stays a flat plane).
+
+Pick one in the Stage Editor's Depth catalogue; nothing is configured twice.
 
 Two places, each with one job:
 
@@ -61,8 +68,12 @@ Plain, Depth, and Parallax are chosen from the Stage Editor's Depth catalogue:
 - Depth: `set-effect depth`.
 - Parallax: `set-effect parallax`.
 
-Depth and Parallax use the same cut-outs. The first enable cuts the current
-wallpaper if necessary; progress and Stop stay visible while the engine runs.
+Each effect only asks for its own engine. Enabling Depth never cuts anything:
+it generates the depth map when the depth model is installed and textures the
+mesh with the original wallpaper (or the inpainted backdrop when a cut already
+exists). Enabling Parallax cuts the subject and inpaints the background; if a
+depth map exists for the same wall it doubles as the mesh texture, and the
+cut stack drifts over it.
 
 ## Catalogue routes
 
@@ -230,6 +241,10 @@ The Depth catalogue has five tabs:
 - **Scene:** a wallpaper preview and Plain, Depth, or Parallax. A running cut
   shows progress and Stop; a blocked cut shows its notice and Retry. Draft,
   Standard, or Fine quality offers Download or Remove for its model and Re-cut.
+  When the depth feature is on, a depth model row renders the engine's
+  estimator catalogue (see Models below): one chip per model with its size and
+  installed state, a pick that re-runs the depth map on disk and a missing pick
+  that downloads first, plus Rebuild map.
 - **Layers:** **Cut a layer from a picture** and **Add a PNG** file pickers,
   per-layer cards, and a confirmed Clear cut-outs action. Each layer can be
   shown, placed behind or in front, given a Parallax distance, or removed. The
@@ -322,6 +337,28 @@ first download, into the shared cache. Nothing ML ships in the base image.
 The engine header and this table keep the model provenance visible to
 packagers.
 
+### Depth estimators
+
+The 3D backdrop's depth map comes from a second, separate opt-in catalogue of
+Depth Anything V2 ONNX exports (Apache-2.0 weights, repo
+[Depth-Anything-ONNX](https://github.com/fabio-sim/Depth-Anything-ONNX)), each
+one file, each pinned by SHA-256 so a download is verifiable:
+
+| id | Label | Download | Pins |
+|---|---|---:|---|
+| `small` | Depth Anything V2 Small | 99 MB | ViT-S, ~1.2 s at 1080p on CPU |
+| `base` | Depth Anything V2 Base | 389 MB | ViT-B, finer structure |
+| `large` | Depth Anything V2 Large | 1.34 GB | ViT-L, best gradients |
+
+`depth-check --json [--model <id>]` reports the selected model's installed flag
+and the whole catalogue for the Stage tab to render; `depth-install`,
+`depth-remove` and `depth` all take `--model` and default to `small` so the
+legacy one-model invocations keep working. The pick lives in
+`stage.json` `depthModel` (default `small`); the daemon probes with the same id
+and, when the model is on disk, generates each wall's `depth.png`. A chip for a
+model already on disk re-runs the depth map at once; a missing model downloads
+first, and the finished install re-runs the map itself.
+
 ## Engine: `ryostage`
 
 One bash helper, the only place model logic lives. Backend resolution is
@@ -381,8 +418,10 @@ One worker, one registry (below), one topic.
   Parallax's first use on a wallpaper adds the inpaint); a wall left on whose
   artifacts vanished is re-cut by the next wake (the registry is the intent);
   a blocked or failed cut keeps the effect recorded, logs the reason, and
-  publishes it as the frame's `notice`. The subject is still handed to ryogami
-  as `depth` for the Depth effect only, unchanged on the wire.
+  publishes it as the frame's `notice`. The frame only carries the cut stack
+  (subject + layers) for Parallax; Depth publishes no subject or layers and
+  falls back to the original wallpaper as the mesh texture when no inpainted
+  background exists.
 
 ## Settings: `~/.config/ryoku/stage.json`
 
@@ -403,20 +442,24 @@ Global only; anything per-wallpaper is in the registry.
 | `motion.mouse` | `true` | Parallax follows the pointer at all |
 | `motion.sensitivity` | `1.0` | the pointer's pull (0..2) |
 | `motion.range` | `1.0` | how far a layer may travel (0..2) |
-| `motion.backdrop` | `0` | the inpainted backdrop's own drift (0..1); above 0 a sliver of the base wallpaper shows at the trailing edge |
+| `motion.backdrop` | `0.5` | the inpainted backdrop's own drift (0..1); above 0 a sliver of the base wallpaper shows at the trailing edge |
 | `front` | `[]` | widget and plugin ids drawn above the layers marked "in front"; written by the Depth catalogue's **Front** tab |
+| `depthModel` | `small` | the depth estimator behind the 3D backdrop: `small` / `base` / `large`, each its own opt-in download |
 
 The daemon reads `quality`; the shell reads the rest. On the first start after
-v2 a v1 `stage.json` (one still carrying `feather`, `lift`, `preset` or the
-`motion.{mouse,sensitivity,range,wallpaper}` sub-knobs) is folded once and
-rewritten atomically: `feather` -> `edge`, `lift` and `preset` dropped, and the
-motion sub-knobs reduce to `motion.amount` (`mouse: false` -> `subtle`,
-else `sensitivity >= 1.5` -> `strong`, else `normal`) with `motion.idle`/
-`motion.music` defaulted. An already-v2 file is left alone; the daemon never
-creates the GUI-owned file. A stable box that skipped v1 has no `stage.json` but
-still carries the retired `depth.json`/`parallax.json`; those are folded instead
-(model+matting -> `quality`, higher tier winning; `feather` -> `edge`;
-`shadow`/`shadowAngle` scalars kept, per-layer arrays skipped).
+v2 a v1 `stage.json` (one still carrying `feather`, `lift` or `preset`) is folded
+once and rewritten atomically: `feather` -> `edge`, `lift`/`preset` dropped, and
+the motion word keeps `amount` (`mouse: false` -> `subtle`, a high
+`sensitivity` -> `strong`, else `normal`) while the tunable knobs
+the v2 UI still owns carry over (`mouse`, `sensitivity`, `range`,
+`musicLevel`, `speed`; the retired `wallpaper`/`wallpaperParallax` becomes
+`backdrop`), with `motion.idle`/`motion.music` defaulted. An already-v2 file is
+left alone; the daemon never creates the GUI-owned file. A stable box that
+skipped v1 has no `stage.json` but still carries the retired
+`depth.json`/`parallax.json`; those are folded instead (model+matting ->
+`quality`, higher tier winning; `feather` -> `edge`; `shadow`/`shadowAngle`
+scalars kept, per-layer arrays skipped, the parallax globals mapped onto their
+v2 keys).
 
 ## Registry: per-wallpaper stage
 
@@ -447,25 +490,81 @@ converge on one registry.
 
 ## Rendering: `modules/stage/`
 
-One surface, one stack. The desktop surface draws, back to front:
-`StageBackdrop.qml` (Parallax only: the inpainted `background.png`, framed by
-`WallpaperFramedPlane` with the wallpaper's zoom, offset, rotation, and mirror),
-then the layers marked behind the widgets (z 2), then the widgets (z 3), then
-the layers marked in front (`StageLayer.qml`, also framed by
-`WallpaperFramedPlane`: edge, shadow and angle from the global look, drift by
-the layer's `depth` x the shared motion Amount x Sensitivity x Range while
-Follow mouse is on, idle and music; z 4), then any widget the user lifted into
-`front` (z 5). Taking the same framing keeps the subject and added cut-outs
-registered with the shown picture.
+One surface, one stack. The desktop surface draws, back to front: the base
+wallpaper; then `StageBackdrop.qml` just above it: the wall's inpainted
+`background.png` when the wall has one, else the original wallpaper, framed by
+`WallpaperFramedPlane` with the wallpaper's zoom, offset, rotation, and mirror.
+It owns the per-monitor cursor feed: over the desktop it is an event-driven
+HoverHandler, `StageBackend` smooths the value per output, and hovered widget
+slots feed the same value so motion keeps running over them. When the wall has
+a depth map and the fit is Cover or Fill, the same item loads
+`StageSpatialScene.qml` instead of moving flat: a depth-displaced mesh
+(`Ryoku.Spatial3D.DepthMeshGeometry`, the cut's matte optional) textured with
+the backdrop picture, its camera orbiting the map's 0.5 pivot plane per the
+shared cursor; without a depth map it stays a flat plane and drifts only while
+`motion.backdrop` is above 0.
 
-Depth is the same stack with `motionEnabled: false` and no backdrop, so the
-still cut is pixel-locked over the wallpaper's own subject. While the stage is
-on and a visualizer is `On desktop`, the desktop hosts it inside this stack
-(`InlineVisualizer` at z 1.5: above the backdrop, below every cut-out and
-widget) and its own surface is suppressed (cava keeps running); `Above windows`
-keeps that surface outside the editor. There is no second subject renderer and
-no path that can draw the subject twice. While the engine cuts, the subject
-layer dims and draws its own progress ring.
+Then the layers marked behind the widgets (z 2, `StageLayer.qml`, also framed
+by `WallpaperFramedPlane`: edge, shadow and angle from the global look; in
+Parallax they drift by the layer's `depth` x the shared motion Amount x
+Sensitivity x Range while Follow mouse is on, plus idle and music; on the
+spatial stage they hold the mesh's zoom instead of drifting flat), then the
+widgets (z 3, lifted to their own depth as described under "Widgets in the
+depth"), then the layers marked in front (z 4), then any widget the user
+lifted into `front` (z 5). Taking the same framing keeps the subject and added
+cut-outs registered with the shown picture.
+
+Depth and Parallax differ only in what the daemon cuts and what still moves:
+Parallax cuts a subject and renders the drifting stack; Depth needs no cut and
+renders the mesh over the wallpaper itself, a cut the wall already had drawing
+still. While the stage is on and a visualizer is `On desktop`, the desktop
+hosts it inside this stack (at z 1.5: above the backdrop, below every cut-out
+and widget) and its own surface is suppressed (cava keeps running);
+`Above windows` keeps that surface outside the editor. There is no second
+subject renderer and no path that can draw the subject twice. While the engine
+cuts, the subject layer dims and draws its own progress ring.
+
+### Widgets in the depth
+
+With the depth model installed, desktop widgets can hold their own place in the
+3D scene instead of staying flat on the desk. Each widget carries a "wall depth"
+0..1 — the wallpaper depth-map value it sits on, `0.5` being the map's pivot
+plane and the extremes nearest and farthest. Its laid-out centre becomes a
+fixed world point on the wallpaper plane, pushed toward or away from the camera
+by that depth; the point is projected through the same camera the backdrop mesh
+uses (`StageSpatialScene.updateCamera`: orbit radius R, yaw 2.5° / pitch 1.8°
+per pointer extreme, gain clamped at 1.5), so a widget nearer than the wall renders
+larger while holding the spot the editor gave it — its world size is the
+authored size at the pivot — and the orbit moves, re-magnifies and
+sub-parallaxes it by both position and depth, like any object genuinely
+placed there. The
+editor's 2D slot stays the layout truth; the projection is the render. The
+shared math lives in `StageBackend.widgetSceneAt()`, mirrored by the built-in
+and extension widget slots alike, and within the widget band a nearer widget
+stacks above a farther one (the manual **Front** toggle stays the control
+against the cut-outs).
+
+A widget on the 3D stage also throws its shadow onto the cut-outs. The shadow
+follows the cut-out light angle (`shadowAngle`) and reaches farther, wider and
+softer as its depth comes nearer, so a front widget reads as lifted off the
+subject where a far one keeps a tight edge. Off the stage the flat lift stays
+unchanged.
+
+The depth is set from the widgets page: a slider for the current value and a
+Pick that opens `StageDepthPick.qml`, a tinted read-out of `depth.png` with a
+crosshair and live sample; a click commits the sampled value. All widgets —
+built-ins, iris/python extension faces and plugin tiles — keep their depth in
+one `widgetDepths` map in `widgets.json`, keyed by widget prefix; plugin
+tiles' placements carry their own `depth` in the plugin store instead. The
+map is written as a whole (JsonAdapter cannot observe in-place edits).
+
+A hovered widget settles gently to 0.85 opacity and back. The pointer's
+parallax never pauses: the camera, layers and widgets follow one smoothed
+cursor shared in `StageBackend`, fed by whichever hover target currently owns
+the pointer — the backdrop over empty desktop, each widget slot when the
+pointer rests on it — so resting on a widget keeps the scene tracking
+continuously. The camera ride itself is unfiltered, so widgets register with
+the mesh without trailing behind it.
 
 The Stage Editor is the only UI writer for composition. Typed stage updates go
 to the shell's canonical `modules/stage/Singletons/Config.qml`; per-wallpaper

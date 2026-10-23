@@ -185,6 +185,7 @@ qt6-declarative	qt6-declarative	desktop
 qt6-imageformats	qt6-imageformats	desktop	
 qt6-multimedia	qt6-multimedia	desktop	
 qt6-multimedia-ffmpeg	-	desktop	Included in Void qt6-multimedia.
+qt6-quick3d	qt6-quick3d	desktop	
 qt6-svg	qt6-svg	desktop	
 qt6-wayland	qt6-wayland	desktop	
 qt6ct	qt6ct	desktop	

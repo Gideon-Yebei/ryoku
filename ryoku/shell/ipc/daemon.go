@@ -1514,10 +1514,12 @@ func (d *daemon) dispatch(line string) string {
 		// One verb surface for Ryostage (docs/stage.md): set-effect records the
 		// three-way effect per wallpaper; set-layer applies a layer's arrangement
 		// flags (enabled/front/depth); add-layer / cut-layer / remove-layer manage
-		// the manual layers; refresh forces a re-cut; cancel kills a running engine
-		// child; clear drops the current wall's generated artifacts; status
-		// snapshots the topic; models proxies the engine catalogue. QML normally
-		// subscribes to the `stage` topic; these verbs carry intent the other way.
+		// the manual layers; refresh forces a re-cut; depth-refresh rebuilds only
+		// the 3D depth map; depth-sample reads one depth value for the widget
+		// depth-pick; cancel kills a running engine child; clear drops the
+		// current wall's generated artifacts; status snapshots the topic; models
+		// proxies the engine catalogue. QML normally subscribes to the `stage`
+		// topic; these verbs carry intent the other way.
 		if len(args) == 0 {
 			return "err stage: expected a verb"
 		}
@@ -1539,6 +1541,24 @@ func (d *daemon) dispatch(line string) string {
 			d.stageForce.Store(true)
 			d.scheduleStage()
 			return "ok"
+		case "depth-refresh":
+			d.stageDepthRefresh()
+			return "ok"
+		case "depth-sample":
+			// <wall> <nx> <ny> <width> <height> <fit>: one depth value for the
+			// widget depth-pick. The wall path may carry spaces, so it is the
+			// join of the fields between the verb and the fixed numeric tail.
+			if len(args) < 7 {
+				return "err stage depth-sample: expected <wall> <nx> <ny> <width> <height> <fit>"
+			}
+			val, err := d.stageDepthSampleCall(
+				strings.Join(args[1:len(args)-5], " "),
+				args[len(args)-5], args[len(args)-4], args[len(args)-3],
+				args[len(args)-2], args[len(args)-1])
+			if err != nil {
+				return "err stage depth-sample: " + err.Error()
+			}
+			return "ok " + val
 		case "cancel":
 			stageCancel()
 			return "ok"

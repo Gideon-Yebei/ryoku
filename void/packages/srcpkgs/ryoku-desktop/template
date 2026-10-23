@@ -52,6 +52,7 @@ depends="
  curl
  qt6-multimedia
  qt6-declarative
+ qt6-quick3d
  zenity
  iw
  nftables
