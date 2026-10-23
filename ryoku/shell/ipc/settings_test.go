@@ -998,3 +998,59 @@ func TestSettingsWatchFollowsMissingParent(t *testing.T) {
 		t.Fatal("shell.json under a newly-created parent did not reload")
 	}
 }
+
+func TestSettingsWatchReloadsAFinishedRewriteThatKeepsItsStat(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "shell.json")
+	s := newSettingsStore(path)
+	changed := make(chan []byte, 2)
+	s.onChange = func(frame []byte) { changed <- frame }
+	startSettingsWatch(t, s)
+
+	if err := os.WriteFile(path, []byte(`{"weatherLocation":"alpha"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-changed:
+	case <-time.After(time.Second):
+		t.Fatal("initial shell.json did not load")
+	}
+	// the create and the finished write can each publish; settle first
+settle:
+	for {
+		select {
+		case <-changed:
+		case <-time.After(50 * time.Millisecond):
+			break settle
+		}
+	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stamp := fi.ModTime()
+
+	// rewrite in place and put the old mtime back before closing: the watcher
+	// only sees the finished write, with the stat it already latched
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(`{"weatherLocation":"bravo"}`); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(path, stamp, stamp); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case frame := <-changed:
+		if got := frameGet(t, frame, "weatherLocation"); got != "bravo" {
+			t.Fatalf("weatherLocation = %v, want bravo", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("a finished rewrite under the latched stat did not reload")
+	}
+}
