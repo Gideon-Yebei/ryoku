@@ -95,6 +95,10 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Python loads instead of falling back to Sumi.** Its Bluetooth service import
+  is qualified so it no longer shadows the notification namespace that builds
+  Python's popup host
+  (`quickshell/shell/modules/bar/barstyles/python/Main.qml`).
 - **qsbar stays solid with windows open.** It faded with every open window
   until it vanished, because it reused the desktop's deck frost strength for
   its own fill. qsbar now keeps its own opacity and the frost stays on the
