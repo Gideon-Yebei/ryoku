@@ -224,6 +224,40 @@ ryoku_cachyos_target_uses_nvidia_dkms() {
   return 1
 }
 
+# Kernel transactions run while pacman's mkinitcpio install hook is masked.
+# Replay the packaged hook once with every installed kernel so /boot images and
+# presets cannot lag behind the modules that pacman just upgraded.
+ryoku_cachyos_refresh_kernel_assets() {
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log 'DRYRUN: feed every installed usr/lib/modules/<ver>/vmlinuz with a pkgbase to /usr/share/libalpm/scripts/mkinitcpio install so /boot kernel images and presets match the upgraded modules'
+    return 0
+  fi
+
+  local target=${RYOKU_CACHYOS_TARGET_ROOT:-/mnt}
+  local target_chroot=${RYOKU_TARGET_CHROOT:-arch-chroot}
+  local pkgbase module_dir version source
+  local -a targets=()
+  for pkgbase in "$target"/usr/lib/modules/*/pkgbase; do
+    [[ -r $pkgbase ]] || continue
+    module_dir=${pkgbase%/pkgbase}
+    version=${module_dir##*/}
+    source="$module_dir/vmlinuz"
+    if [[ ! -r $source ]]; then
+      log 'CachyOS layer: kernel %s has no packaged vmlinuz source at %s' "$(<"$pkgbase")" "$source"
+      return 1
+    fi
+    targets+=("usr/lib/modules/$version/vmlinuz")
+  done
+  if (( ${#targets[@]} == 0 )); then
+    log 'CachyOS layer: no installed kernel pkgbase files were found; kernel boot assets were not refreshed'
+    return 1
+  fi
+
+  log 'CachyOS layer: refreshing /boot images and presets for every installed kernel'
+  printf '%s\n' "${targets[@]}" |
+    "$target_chroot" "$target" /usr/share/libalpm/scripts/mkinitcpio install
+}
+
 ryoku_cachyos_layer() {
   [[ ${RYOKU_VARIANT:-plain} == plain && ${RYOKU_CACHYOS_LAYER:-0} == 1 ]] || return 0
   RYOKU_CACHYOS_LAYER_ACTIVE=0
@@ -241,6 +275,7 @@ ryoku_cachyos_layer() {
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log 'DRYRUN: check the target CPU for x86-64-v3 and the CachyOS mirror for reachability, enable [cachyos-v3], [cachyos], and multilib with the shipped helpers, then run pacman -Syu for %s' "${packages[*]}"
     log 'DRYRUN: on NVIDIA, add linux-cachyos-nvidia-open for Arch nvidia-open or verify the DKMS module with modinfo; use linux-cachyos as default when its NVIDIA module is usable'
+    ryoku_cachyos_refresh_kernel_assets
     RYOKU_CACHYOS_LAYER_ACTIVE=1
     RYOKU_CACHYOS_DEFAULT_KERNEL=1
     export RYOKU_CACHYOS_LAYER_ACTIVE RYOKU_CACHYOS_DEFAULT_KERNEL
@@ -268,10 +303,7 @@ ryoku_cachyos_layer() {
     log 'CachyOS layer: its packages did not install; the install goes on without it. Add it later from Ryostore > CachyOS Layer.'
     return 0
   fi
-  RYOKU_CACHYOS_LAYER_ACTIVE=1
-  export RYOKU_CACHYOS_LAYER_ACTIVE
-
-  local nvidia_pci=
+  local nvidia_pci='' nvidia_ready=1
   if command -v lspci >/dev/null 2>&1; then
     nvidia_pci=$(lspci -d 10de: 2>/dev/null || true)
   fi
@@ -283,14 +315,29 @@ ryoku_cachyos_layer() {
       log 'CachyOS layer: adding the linux-cachyos module for Arch nvidia-open'
       if ! run arch-chroot /mnt pacman -S --needed --noconfirm --noprogressbar linux-cachyos-nvidia-open; then
         log 'CachyOS layer: linux-cachyos-nvidia-open did not install; keeping stock linux as the default kernel'
-        return 0
+        nvidia_ready=0
       fi
     elif ryoku_cachyos_target_uses_nvidia_dkms; then
       log 'CachyOS layer: checking the DKMS NVIDIA module for linux-cachyos'
     else
       log 'CachyOS layer: the NVIDIA GPU has no prebuilt or DKMS driver for linux-cachyos; keeping stock linux as the default kernel'
-      return 0
+      nvidia_ready=0
     fi
+  fi
+
+  if ! ryoku_cachyos_refresh_kernel_assets; then
+    log 'CachyOS layer: kernel boot assets could not be refreshed; keeping stock linux as the only boot entry'
+    return 0
+  fi
+  if [[ ! -f /mnt/boot/vmlinuz-linux-cachyos ]]; then
+    log 'CachyOS layer: /boot/vmlinuz-linux-cachyos was not created; keeping stock linux as the only boot entry'
+    return 0
+  fi
+  RYOKU_CACHYOS_LAYER_ACTIVE=1
+  export RYOKU_CACHYOS_LAYER_ACTIVE
+
+  if [[ -n $nvidia_pci ]]; then
+    (( nvidia_ready == 1 )) || return 0
     if ! ryoku_cachyos_kernel_has_nvidia; then
       log 'CachyOS layer: no usable NVIDIA module was built for linux-cachyos; keeping stock linux as the default kernel'
       return 0

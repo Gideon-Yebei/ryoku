@@ -262,12 +262,60 @@ grep -qF 'linux-cachyos linux-cachyos-headers cachyos-settings scx-scheds cachyo
   || fail "plain CachyOS layer did not read its gaming package set from components.tsv"
 grep -qF 'add linux-cachyos-nvidia-open for Arch nvidia-open or verify the DKMS module with modinfo' <<<"$out" \
   || fail "plain CachyOS layer did not narrate NVIDIA kernel-module safety"
+grep -qF 'feed every installed usr/lib/modules/<ver>/vmlinuz with a pkgbase to /usr/share/libalpm/scripts/mkinitcpio install' <<<"$out" \
+  || fail "plain CachyOS layer did not narrate refreshing every installed kernel boot asset"
 grep -qxF '        |     kernel_path: boot():/vmlinuz-linux-cachyos' <<<"$out" \
   || fail "plain CachyOS layer did not make linux-cachyos the default flat entry"
 grep -qxF '        | /Arch Linux (fallback)' <<<"$out" \
   || fail "plain CachyOS layer did not retain Arch linux as the fallback entry"
 grep -qxF '        |     kernel_path: boot():/vmlinuz-linux' <<<"$out" \
   || fail "plain CachyOS layer fallback does not point at stock linux"
+
+# Pacman's install hook is masked during the layer transaction. Exercise the
+# explicit replay against a fake target and chroot to prove both an upgraded
+# stock kernel and the newly installed CachyOS kernel reach the packaged hook.
+kernel_target="$tmp/kernel-target"
+hook_input="$tmp/mkinitcpio-hook.stdin"
+mkdir -p "$kernel_target/usr/lib/modules/6.12-arch" \
+  "$kernel_target/usr/lib/modules/6.12-cachy" "$kernel_target/boot" \
+  "$kernel_target/etc/mkinitcpio.d"
+printf '%s\n' linux >"$kernel_target/usr/lib/modules/6.12-arch/pkgbase"
+printf '%s\n' linux-cachyos >"$kernel_target/usr/lib/modules/6.12-cachy/pkgbase"
+printf '%s\n' stock-image >"$kernel_target/usr/lib/modules/6.12-arch/vmlinuz"
+printf '%s\n' cachyos-image >"$kernel_target/usr/lib/modules/6.12-cachy/vmlinuz"
+cat >"$tmp/fake-kernel-chroot" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+target=$1
+shift
+[[ $* == '/usr/share/libalpm/scripts/mkinitcpio install' ]]
+cat >"$RYOKU_HOOK_STDIN"
+while IFS= read -r source; do
+  module_dir=${source%/vmlinuz}
+  pkgbase=$(<"$target/$module_dir/pkgbase")
+  cp "$target/$source" "$target/boot/vmlinuz-$pkgbase"
+  : >"$target/etc/mkinitcpio.d/$pkgbase.preset"
+done <"$RYOKU_HOOK_STDIN"
+EOF
+chmod +x "$tmp/fake-kernel-chroot"
+(
+  log() { :; }
+  # shellcheck source=../installation/backend/lib/cachyos.sh
+  source "$root/installation/backend/lib/cachyos.sh"
+  export RYOKU_HOOK_STDIN="$hook_input"
+  RYOKU_DRYRUN='' \
+    RYOKU_CACHYOS_TARGET_ROOT="$kernel_target" \
+    RYOKU_TARGET_CHROOT="$tmp/fake-kernel-chroot" \
+    ryoku_cachyos_refresh_kernel_assets
+) || fail "CachyOS layer kernel hook replay failed"
+grep -qxF 'usr/lib/modules/6.12-arch/vmlinuz' "$hook_input" \
+  || fail "kernel hook replay omitted upgraded stock linux"
+grep -qxF 'usr/lib/modules/6.12-cachy/vmlinuz' "$hook_input" \
+  || fail "kernel hook replay omitted linux-cachyos"
+grep -qxF 'stock-image' "$kernel_target/boot/vmlinuz-linux" \
+  || fail "kernel hook replay did not refresh the stock fallback image"
+grep -qxF 'cachyos-image' "$kernel_target/boot/vmlinuz-linux-cachyos" \
+  || fail "kernel hook replay did not install the CachyOS boot image"
 
 # A missing manifest row disables only the optional layer and leaves the install
 # on its stock kernel instead of silently falling back to a duplicated list.
