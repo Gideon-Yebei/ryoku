@@ -203,7 +203,7 @@ func visibleFloatingWindow(state *watchState) bool {
 			continue
 		}
 		for _, monitor := range state.monitors {
-			if monitor.Width <= 0 || monitor.Height <= 0 {
+			if monitorDisabled(monitor) {
 				continue
 			}
 			if window.Workspace == workspaceKey(monitor.ActiveWorkspace.ID, monitor.ActiveWorkspace.Name) {
@@ -228,8 +228,8 @@ type hyprMonitor struct {
 	Make          string  `json:"make"`
 	Model         string  `json:"model"`
 	PhysicalWidth int     `json:"physicalWidth"`
-	// Hyprland-git can report disabled=true for a live DPMS-awake output.
-	// Keep the wire field for fixtures, but derive state from its real mode.
+	// Read through monitorDisabled, never on its own: hyprland-git reported it
+	// true for a live DPMS-awake output.
 	Disabled              bool     `json:"disabled"`
 	X                     int      `json:"x"`
 	Y                     int      `json:"y"`
@@ -248,6 +248,21 @@ type hyprMonitor struct {
 		ID   int    `json:"id"`
 		Name string `json:"name"`
 	} `json:"specialWorkspace"`
+}
+
+// monitorDisabled says whether an output is off. Hyprland's own flag is not
+// enough: hyprland-git reported it true on a plainly active output, focused and
+// holding a workspace. Neither is the size: 0.56 keeps a disabled output's last
+// mode, so a phantom turned off in Displays read as on and the next Apply turned
+// it back on. An output is off when it has no mode, or when Hyprland flags it and
+// it holds no workspace and mirrors nothing (a mirror has no workspace of its
+// own). The same rule lives in ryoku-monitor's monitors_json.
+func monitorDisabled(m hyprMonitor) bool {
+	if m.Width <= 0 || m.Height <= 0 {
+		return true
+	}
+	mirroring := m.MirrorOf != "" && m.MirrorOf != "none"
+	return m.Disabled && m.ActiveWorkspace.ID == 0 && m.ActiveWorkspace.Name == "" && !mirroring
 }
 
 // Read once per resync and threaded through, so workspaces and windows do not
@@ -280,7 +295,7 @@ func monitorOutputs(mons []hyprMonitor, full bool) []wm.Output {
 			Make:            m.Make,
 			Model:           m.Model,
 			PhysicalWidth:   m.PhysicalWidth,
-			Disabled:        m.Width <= 0 || m.Height <= 0,
+			Disabled:        monitorDisabled(m),
 			X:               m.X,
 			Y:               m.Y,
 		}

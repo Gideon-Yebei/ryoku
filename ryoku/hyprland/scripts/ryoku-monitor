@@ -145,8 +145,10 @@ require_jq() {
 # not either: Hyprland 0.56 keeps a disabled output's last mode, so a turned-off
 # phantom read as enabled, the Hub showed it on again, and every persist wrote it
 # back into monitors.lua enabled. An output is off when it has no resolution, or
-# when Hyprland flags it disabled and it holds no workspace; the active panel of
-# the old bug always holds one, and a sleeping (DPMS-off) panel stays enabled.
+# when Hyprland flags it disabled and it holds no workspace and mirrors nothing
+# (a mirror has no workspace of its own); the active panel of the old bug always
+# holds one, and a sleeping (DPMS-off) panel stays enabled. The Hyprland
+# provider's monitorDisabled applies the same rule.
 #
 # FALLBACK is the placeholder Hyprland creates when no real output is enabled
 # (the internal panel saved as disabled and the external monitor unplugged). It
@@ -162,7 +164,8 @@ monitors_json() {
   printf '%s' "$raw" | jq -c 'if type == "array" then map(select(.name != "FALLBACK")
       | .disabled = (((.width // 0) <= 0) or ((.height // 0) <= 0)
           or ((.disabled == true) and ((.activeWorkspace.id // 0) == 0)
-              and ((.activeWorkspace.name // "") == "")))) else . end' 2>/dev/null \
+              and ((.activeWorkspace.name // "") == "")
+              and ((.mirrorOf // "none") == "none" or (.mirrorOf // "") == "")))) else . end' 2>/dev/null \
     || printf '%s' "$raw"
 }
 
