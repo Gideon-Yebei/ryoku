@@ -1055,8 +1055,18 @@ func (w *workshopLib) installChain(id string, fetch func(item string) error) err
 
 func reconcileWeItem(weDir, id, actual string) {
 	target := filepath.Join(weDir, id)
-	if _, err := os.Lstat(target); err == nil {
-		return
+	if info, err := os.Lstat(target); err == nil {
+		if info.Mode()&os.ModeSymlink == 0 {
+			return
+		}
+		link, readErr := os.Readlink(target)
+		if readErr == nil && !filepath.IsAbs(link) {
+			link = filepath.Join(filepath.Dir(target), link)
+		}
+		if readErr == nil && dirExists(link) {
+			return
+		}
+		_ = os.Remove(target)
 	}
 	if actual == "" || !dirExists(actual) || actual == target {
 		return

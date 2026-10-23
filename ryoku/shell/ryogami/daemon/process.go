@@ -59,17 +59,21 @@ func newPickerProcess(gpuEnv func() []string, idleGrace func() time.Duration) *m
 	}
 }
 
-// resolveShellQML finds the picker entry point: env override first (the dev
-// deploy sets it on the unit), then the packaged default.
+// resolveShellQML finds the picker entry point: an explicit immutable override
+// first, then the entry installed in this user's runtime XDG data home, then the
+// packaged default.
 func resolveShellQML() string {
 	if p := os.Getenv("RYOGAMI_SHELL_QML"); p != "" {
-		return p
+		return resolvePath(p)
 	}
 	if p := "shell.qml"; fileExists(p) {
 		abs, err := filepath.Abs(p)
 		if err == nil {
 			return abs
 		}
+	}
+	if p := filepath.Join(dataHome(), "ryogami", "shell.qml"); fileExists(p) {
+		return p
 	}
 	return "/usr/share/ryogami/shell.qml"
 }

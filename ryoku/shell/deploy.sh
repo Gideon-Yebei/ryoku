@@ -682,7 +682,7 @@ piece_end
 install -m755 "$here/ryogami/daemon/ryogami" "$bindir/ryogami"
 say "installed $bindir/ryogami"
 
-# The picker entry the daemon spawns; the unit rewrite points RYOGAMI_SHELL_QML here.
+# The daemon finds the picker entry from the session's XDG data home at runtime.
 datadir="${XDG_DATA_HOME:-$HOME/.local/share}"
 nomarchy_source="$datadir/ryoku/nomarchy-package"
 rm -rf "$nomarchy_source"
@@ -1464,7 +1464,7 @@ if [ -d /run/systemd/system ]; then
     {
       printf '[Service]\n'
       grep -oE '^Exec[A-Za-z]+=' "$unit" | sort -u
-      grep -E '^Exec[A-Za-z]+=' "$unit" | sed "s|/usr/bin/|$bindir/|"
+      grep -E '^Exec[A-Za-z]+=' "$unit" | sed 's|/usr/bin/|%h/.local/bin/|'
       printf '%s\n' "$@"
     } >"$dir/ryoku-dev-bin.conf"
   }
@@ -1472,8 +1472,8 @@ if [ -d /run/systemd/system ]; then
   dev_bin_dropin ryoku-idle.service
   dev_bin_dropin ryoku-clamshell.service
   dev_bin_dropin ryoku-ai-usage.service
-  # ryogami also reads the staged picker QML.
-  dev_bin_dropin ryogami.service "Environment=RYOGAMI_SHELL_QML=$datadir/ryogami/shell.qml"
+  # Ryogami resolves the staged picker from XDG_DATA_HOME when it starts.
+  dev_bin_dropin ryogami.service
   systemctl --user daemon-reload 2>/dev/null || true
   # daemon-reload only re-reads the unit; it never restarts a running service, so
   # without this the freshly built ryogami binary sits on disk while the old
@@ -1487,7 +1487,9 @@ if [ -d /run/systemd/system ]; then
   # start it now so a converted dev box pairs BLE HID without a relogin.
   systemctl --user enable --now ryoku-bt-agent.service 2>/dev/null || true
 else
-  printf %s "$datadir/ryogami/shell.qml" >"$runit_env_root/RYOGAMI_SHELL_QML"
+  # Older deploys pinned the account's home here. The daemon now derives the
+  # picker entry from the session's XDG data home on every start.
+  rm -f "$runit_env_root/RYOGAMI_SHELL_QML"
 fi
 # pip (PEP 668 --user): Ryoku-owned, so a dev box tracks it the way the package
 # materializes it for an installed one.

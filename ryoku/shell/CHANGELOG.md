@@ -95,6 +95,11 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Ryogami survives an account rename.** The daemon resolves the picker from
+  the active user's XDG data home, stores home-owned catalogue and wallpaper
+  paths as `~/...`, and Doctor rewrites old-home paths in existing config,
+  output state, thumbnail indexes, trash manifests, service overrides and
+  compatibility symlinks (`ryogami/daemon/`, `../cli/internal/doctor/`).
 - **Python loads instead of falling back to Sumi.** Its Bluetooth service import
   is qualified so it no longer shadows the notification namespace that builds
   Python's popup host

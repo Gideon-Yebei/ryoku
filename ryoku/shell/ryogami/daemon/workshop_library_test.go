@@ -312,3 +312,28 @@ func TestWorkshopDownloadWithoutAFetcher(t *testing.T) {
 		t.Fatalf("native Steam: got %q", status)
 	}
 }
+
+func TestReconcileWeItemReplacesBrokenHomeSymlink(t *testing.T) {
+	root := t.TempDir()
+	workshop := filepath.Join(root, "workshop")
+	actual := filepath.Join(root, "new-home", "scene")
+	if err := os.MkdirAll(actual, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(workshop, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(workshop, "123")
+	if err := os.Symlink("/home/old-user/.steam/scene", target); err != nil {
+		t.Fatal(err)
+	}
+
+	reconcileWeItem(workshop, "123", actual)
+	got, err := os.Readlink(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != actual {
+		t.Fatalf("scene link = %q, want %q", got, actual)
+	}
+}
