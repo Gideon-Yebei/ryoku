@@ -95,6 +95,16 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **qsbar stays solid with windows open.** It faded with every open window
+  until it vanished, because it reused the desktop's deck frost strength for
+  its own fill. qsbar now keeps its own opacity and the frost stays on the
+  desktop (`quickshell/shell/modules/bar/barstyles/qsbar/BarSlot.qml`).
+- **Shima's Dock takes pointer input again.** Its full-output layer mapped the
+  small Dock input mask through the Stage frame and collapsed it to the
+  screen's top-left corner, so the visible icons ignored clicks and drags.
+  The mask now follows the Dock's actual scene rectangle both on the desktop
+  and inside the Stage Editor card
+  (`quickshell/inir/modules/iris/dock/IrisDockSurface.qml`).
 - **Shima caught up with its upstream fixes.** Spotlight no longer reshuffles
   while you type and keeps a query passed over IPC, wallpaper shuffle and fill
   mode follow Ryogami, the music bubble and battery glyph match upstream, and
@@ -109,6 +119,9 @@
   grey, `osd volume|brightness|mic|keyboard|media` reach the Island, the
   desktop clock and calendar pick legible ink, notification tiles are filled,
   and fresh Shima setups get the Shima Dock.
+- **Orpheus cards close cleanly.** Clicking a bar module to close its card no
+  longer leaves that module's hover hint hanging from the bar
+  (`quickshell/shell/modules/bar/barstyles/orpheus/kit/Hint.qml`).
 - **Hyprland window geometry is polled only while a window floats.** The
   provider re-read every window's geometry from Hyprland four times a second
   for the whole session. Tiled geometry now refreshes on the events that move

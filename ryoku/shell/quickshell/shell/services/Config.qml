@@ -30,9 +30,9 @@ Singleton {
     property alias osdRadius:  adapter.osdRadius
     property alias osdOpacity: adapter.osdOpacity
 
-    // The desktop and the bar read one shell.json pair, so their haze agrees.
-    // deckFrostEnabled is the on/off switch; deckFrost is its strength, and zero
-    // is a hard off too even when several windows are stacked.
+    // Deck frost belongs to the desktop behind client windows. Bar styles keep
+    // their own opacity controls so a growing window count cannot erase them.
+    // deckFrostEnabled is the on/off switch; zero strength is a hard off.
     property alias deckFrostEnabled: adapter.deckFrostEnabled
     property alias deckFrost: adapter.deckFrost
 
