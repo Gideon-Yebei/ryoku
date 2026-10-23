@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Added
+- **The launcher can hide apps.** `launcher.json` gains `hiddenApps`, a list of
+  desktop entry ids, and the Hero and Main launchers skip those entries. It
+  also carries the keys a store launcher reads for its own overlay, grid,
+  sections and favorites (`quickshell/shell/modules/launcher/shared/Singletons/LauncherConfig.qml`,
+  `quickshell/shell/modules/launcher/shared/providers/apps/Apps.qml`,
+  `quickshell/shell/modules/launcher/catalog.json`).
 - **System readouts pause while nobody can see them.** A `presence` topic
   tells the shell when the session is locked or the idle policy has turned the
   displays off, and the shared system monitor stops sampling until the desktop
