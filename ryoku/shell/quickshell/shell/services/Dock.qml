@@ -228,7 +228,11 @@ Singleton {
 
     function cfg(key, fallback) {
         const d = Config.dock;
-        return (d && d[key] !== undefined && d[key] !== null) ? d[key] : fallback;
+        if (d && d[key] !== undefined && d[key] !== null)
+            return d[key];
+        if (key === "design" && Config.barStyle === "iris")
+            return "shima";
+        return fallback;
     }
     function designCfg(designName, key, fallback) {
         const d = root.cfg(designName, {});

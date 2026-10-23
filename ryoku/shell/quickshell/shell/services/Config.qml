@@ -66,10 +66,10 @@ Singleton {
     property alias kairos: adapter.kairos
     property alias orpheus: adapter.orpheus
 
-    // python: the serpantinum bar style's own settings namespace (shell.json
-    // "python"), read and written by the style's own Config mirror.
+    // Style stores are loaded here, but each style persists through the daemon.
     property alias python: adapter.python
     property alias nomarchy: adapter.nomarchy
+    readonly property var inir: adapter.inir
 
 
     // A folder style may draw its own notification banners and its own volume/
@@ -79,6 +79,7 @@ Singleton {
         && !(root.python && root.python.general && root.python.general.notifications === false))
         || (barStyle === "nomarchy"
         && !(root.nomarchy && root.nomarchy.notifications === false))
+        || (barStyle === "iris" && (root.inir?.iris?.modules?.notificationPopup ?? true))
         || barStyle === "tansu"
     // Only a style that plays its own notification sound silences the shell's
     // cue; Nomarchy and Tansu draw banners but play nothing themselves.
@@ -88,6 +89,15 @@ Singleton {
         && !(root.python && root.python.general && root.python.general.osd === false))
         || (barStyle === "nomarchy"
         && !(root.nomarchy && root.nomarchy.osd === false))
+
+    // Shima's banner slider owns the fallback only while Shima draws the banners.
+    readonly property int styleNotificationMs: {
+        if (barStyle !== "iris")
+            return 0
+        const raw = Number(root.inir?.iris?.notifications?.duration ?? 4000)
+        const seconds = isFinite(raw) ? raw / 1000 : 4
+        return Math.round(Math.max(2, Math.min(12, seconds)) * 1000)
+    }
 
     // dock: the universal app dock store. It is top-level because design,
     // placement and pins survive bar-style and dock-design changes. Stage
@@ -311,6 +321,7 @@ Singleton {
                 "notifications": true,
                 "osd": true
             })
+            property var inir: ({})
             property var dock: ({
                 "enabled": false,
                 "design": "ryoku",
