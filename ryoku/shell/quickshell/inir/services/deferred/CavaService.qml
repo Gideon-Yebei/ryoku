@@ -4,6 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import shell.services as ShellServices
+import inir.modules.common
 import inir.services
 
 Singleton {

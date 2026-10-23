@@ -15,6 +15,8 @@ Singleton {
 
     property string query: ""
     property string _debouncedQuery: ""
+    // The query after the debounce interval, matching the query that produced results.
+    readonly property string settledQuery: root._debouncedQuery
     
     // Debounce timer for search - prevents lag while typing
     Timer {
