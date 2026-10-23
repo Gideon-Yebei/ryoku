@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **`ryoku-host users` manages local accounts on every edition.** The typed
+  JSON API lists human users, roles, curated permissions, sessions and Btrfs
+  home usage; privileged verbs add, remove and edit accounts without putting
+  passwords in argv. It rejects unsafe names, active or self deletion, and
+  deleting or demoting the last Administrator (`internal/host/users.go`).
 - **`ryoku-host pkg status` answers a whole batch.** It prints one line per
   package, `name<TAB>installed|available|unavailable<TAB>repo|aur<TAB>reason`,
   on pacman, dnf and xbps alike, with the edition table's sentence as the

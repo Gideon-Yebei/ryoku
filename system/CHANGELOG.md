@@ -1,6 +1,11 @@
 # Changelog: system/
 
 ## Unreleased
+- **User changes have a narrow administrator authorization.** `pkexec` selects
+  `dev.ryoku.users.manage` only when `/usr/bin/ryoku-host` receives `users` as
+  its first argument, keeps a successful administrator authentication for the
+  session, and leaves every later argument to the helper's typed validation
+  (`policy/dev.ryoku.users.policy`, `policy/54-ryoku-users.rules`).
 
 - **A failed display wake no longer leaves the displays marked off.** When
   every `ryoku-idle output-on` retry failed, its generation file stayed

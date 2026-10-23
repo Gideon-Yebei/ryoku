@@ -522,6 +522,13 @@ EOF
   install -Dm644 "$_repo/system/policy/52-ryoku-timedate.rules" \
     "$pkgdir/usr/share/polkit-1/rules.d/52-ryoku-timedate.rules"
 
+  # Account changes use their own retained administrator authorization. The
+  # argv1 annotation keeps the grant on the typed users API.
+  install -Dm644 "$_repo/system/policy/dev.ryoku.users.policy" \
+    "$pkgdir/usr/share/polkit-1/actions/dev.ryoku.users.policy"
+  install -Dm644 "$_repo/system/policy/54-ryoku-users.rules" \
+    "$pkgdir/usr/share/polkit-1/rules.d/54-ryoku-users.rules"
+
   install -Dm755 "$_repo/system/policy/ryoku-polkit-reload" \
     "$pkgdir/usr/bin/ryoku-polkit-reload"
 

@@ -246,7 +246,7 @@ power-profiles-daemon without replacing the active provider. The host-facing
 verbs include:
 
 - `capabilities` prints the detected package manager and init system plus
-  snapshot and AUR support as one JSON object.
+  snapshot, AUR, and local-user-management support as one JSON object.
 - `pkg why <name>` explains a catalogue package deliberately unavailable on
   Void or Fedora. A package that can be installed or an unknown name produces
   no output and returns the false-condition exit code.
@@ -262,6 +262,14 @@ verbs include:
   or elogind.
 - `time zones` prints the sorted IANA zone list. It uses `timedatectl` under
   systemd and the installed zoneinfo database on other init systems.
+- `users list` and `users caps` return the local human accounts and the
+  permissions/storage facilities this host can manage. Mutating verbs are
+  `users add`, `delete`, `set-role`, `set-perms`, `set-password`, and
+  `set-limit`; call those through `pkexec`. Passwords are one line on standard
+  input, never a command argument. The helper rejects deleting the caller, a
+  signed-in user, or the last Administrator, and refuses to demote the last
+  Administrator. Btrfs homes are individual subvolumes with optional qgroup
+  limits; other filesystems report storage limits as unsupported.
 
 ### `ryoku materialize`
 
