@@ -1521,8 +1521,16 @@ func (s *settingsStore) watch(quit <-chan struct{}, ready chan struct{}) {
 					rewatch = true
 					continue
 				}
-				if event.name == filepath.Base(s.path) {
-					reload = true
+				if event.name != filepath.Base(s.path) {
+					continue
+				}
+				reload = true
+				if event.mask&(unix.IN_CLOSE_WRITE|unix.IN_MOVED_TO) != 0 {
+					// A reconciliation can race a newly-created file while it is
+					// still being written. The bad-file path records its final
+					// stat after the read, so the close must not be filtered out
+					// as unchanged.
+					forceReload = true
 				}
 			}
 		}

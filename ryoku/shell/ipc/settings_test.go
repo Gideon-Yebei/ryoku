@@ -920,6 +920,22 @@ func TestSettingsBoolAt(t *testing.T) {
 	}
 }
 
+func startSettingsWatch(t *testing.T, s *settingsStore) {
+	t.Helper()
+	quit := make(chan struct{})
+	ready := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.watch(quit, ready)
+	}()
+	<-ready
+	t.Cleanup(func() {
+		close(quit)
+		<-done
+	})
+}
+
 func TestSettingsWatchFollowsRenameReplace(t *testing.T) {
 	s := newTestStore(t)
 	if err := s.patch("weatherLocation", rm(`"before"`)); err != nil {
@@ -927,11 +943,7 @@ func TestSettingsWatchFollowsRenameReplace(t *testing.T) {
 	}
 	changed := make(chan []byte, 1)
 	s.onChange = func(frame []byte) { changed <- frame }
-	quit := make(chan struct{})
-	ready := make(chan struct{})
-	defer close(quit)
-	go s.watch(quit, ready)
-	<-ready
+	startSettingsWatch(t, s)
 
 	body, err := os.ReadFile(s.path)
 	if err != nil {
@@ -969,11 +981,7 @@ func TestSettingsWatchFollowsMissingParent(t *testing.T) {
 	s := newSettingsStore(path)
 	changed := make(chan []byte, 1)
 	s.onChange = func(frame []byte) { changed <- frame }
-	quit := make(chan struct{})
-	ready := make(chan struct{})
-	defer close(quit)
-	go s.watch(quit, ready)
-	<-ready
+	startSettingsWatch(t, s)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
