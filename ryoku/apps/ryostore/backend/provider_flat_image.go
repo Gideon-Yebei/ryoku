@@ -121,13 +121,17 @@ func (p flatImageProvider) InstallVariant(ctx context.Context, id string, dither
 	if dither {
 		variant = "dither.png"
 	}
+	reportProgress(ctx, "download", 0, 0)
 	data, _, err := p.cache.Fetch(ctx, path.Join(entry.Path, "content", variant), true)
 	if err != nil {
 		return fmt.Errorf("%s/%s: fetch %s: %w", p.category.ID, id, variant, err)
 	}
+	reportProgressNow(ctx, "download", int64(len(data)), int64(len(data)))
+	reportProgressNow(ctx, "extract", 1, 1)
 	if err := os.MkdirAll(p.dirPath, 0o755); err != nil {
 		return err
 	}
+	reportProgressNow(ctx, "apply", 0, 1)
 	return atomicWrite(p.installedPath(id), data, 0o644)
 }
 

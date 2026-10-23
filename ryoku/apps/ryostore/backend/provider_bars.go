@@ -206,6 +206,7 @@ func (p barProvider) Install(ctx context.Context, id string) error {
 	if id == "sumi" || id == "qsbar" || id == "kairos" || id == "orpheus" || id == "iris" || id == "python" || id == "nomarchy" {
 		return fmt.Errorf("the built-in %s bar style is already installed", id)
 	}
+	reportProgress(ctx, "download", 0, 0)
 	entries, _, err := loadProductRegistry(ctx, p.cache, "barstyles", false)
 	if err != nil {
 		return err
