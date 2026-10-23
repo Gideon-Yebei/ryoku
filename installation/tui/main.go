@@ -583,20 +583,12 @@ func stepsForVariant(variant string) []step {
 		{key: "review", title: i18n.T("Review"), kind: kConfirm,
 			desc: []string{i18n.T("Last safe point, nothing written yet.")}},
 	}
-	if variant == "plain" {
+	if component, ok := installerChoicesForVariant(variant).GamingComponent(); ok {
 		index := flowIndex(all, "apps")
-		cachyos := step{key: "cachyos", title: i18n.T("CachyOS layer"), kind: kConfirm,
-			desc: []string{
-				i18n.T("Adds the CachyOS repositories and kernel."),
-				i18n.T("The Arch kernel stays as a boot fallback."),
-				i18n.T("Also installs system tuning, sched-ext"),
-				i18n.T("schedulers, ananicy-cpp and CachyOS Proton."),
-				i18n.T("Needs a network connection. If the mirror is"),
-				i18n.T("down, setup goes on; add it later in Ryostore."),
-			}}
+		gaming := gamingStep(variant, component.Component.Label)
 		all = append(all, step{})
 		copy(all[index+1:], all[index:])
-		all[index] = cachyos
+		all[index] = gaming
 	}
 	// On the graphical relaunch (keymapRelaunch), the keyboard layout is already
 	// chosen and cage runs under it; drop the step so the wizard resumes at locale,
@@ -608,6 +600,54 @@ func stepsForVariant(variant string) []step {
 		all = append([]step{notice}, all...)
 	}
 	return all
+}
+
+func gamingStep(variant, title string) step {
+	gaming := step{key: "gaming", title: i18n.T(title), kind: kConfirm}
+	switch variant {
+	case "plain":
+		gaming.desc = []string{
+			i18n.T("Adds the CachyOS kernel, CachyOS tuning and"),
+			i18n.T("sched-ext schedulers, Steam, and Proton-CachyOS"),
+			i18n.T("with Wine and umu-launcher."),
+			i18n.T("The CachyOS kernel boots by default; the Arch"),
+			i18n.T("kernel stays in the boot menu as a fallback."),
+			i18n.T("Needs a network connection and an x86-64-v3 CPU."),
+			i18n.T("If the download fails, setup goes on; add it later"),
+			i18n.T("in Ryostore."),
+		}
+	case variantCachyOS:
+		gaming.desc = []string{
+			i18n.T("Installs Steam and CachyOS's gaming packages:"),
+			i18n.T("Proton-CachyOS, Wine-CachyOS, umu-launcher and"),
+			i18n.T("winetricks."),
+			i18n.T("The CachyOS kernel and tuning are already part of"),
+			i18n.T("this edition. Everything is on this image,"),
+			i18n.T("no network needed."),
+		}
+	case variantVoid:
+		gaming.desc = []string{
+			i18n.T("Installs Steam with 32-bit graphics support."),
+			i18n.T("GameMode, MangoHud and Gamescope are in Apps & tools."),
+			i18n.T("The CachyOS kernel and Proton-CachyOS are not"),
+			i18n.T("available on Void; Steam uses its own Proton."),
+			i18n.T("Everything is on this image, no network needed."),
+		}
+	}
+	return gaming
+}
+
+func (m model) gamingUnavailableReason() string {
+	if m.variant != "plain" {
+		return ""
+	}
+	if !m.netOnline {
+		return i18n.T("Needs a network connection; this machine is offline.")
+	}
+	if !m.cpuV3 {
+		return i18n.T("Needs an x86-64-v3 CPU; this one is older.")
+	}
+	return ""
 }
 
 // editionNotice is the short note an edition image shows before setup.
@@ -914,6 +954,7 @@ type model struct {
 	diskTotal                                    int    // its size in GiB (layout math)
 	diskBytes                                    int64  // its exact size in bytes (dual-unit display)
 	netOnline                                    bool
+	cpuV3                                        bool
 	netStage                                     int    // 0 pick SSID · 1 Wi-Fi password (offline only)
 	netErr                                       string // Wi-Fi connect failure (offline flow)
 	failStep                                     string
@@ -1046,8 +1087,11 @@ func newModel() model {
 	m.picks["login-shell"] = installerplan.FreshDefault(installerplan.LoginShell)
 	m.picks["file-manager"] = installerplan.FreshDefault(installerplan.FileManager)
 	m.picks["rashin"] = "1"
-	m.picks["cachyos"] = "0"
-	m.netOnline = netOnline()
+	m.picks["gaming"] = "0"
+	m.netOnline = probeNetworkOnline()
+	if variant == "plain" {
+		m.cpuV3 = probeX8664V3()
+	}
 	m.loadStep()
 	return m
 }
@@ -1146,7 +1190,7 @@ func (m *model) loadStep() {
 	case kAdministrator, kRootAccount, kOtherPeople:
 		m.loadAccountsStep(s.key)
 	case kNet:
-		m.netOnline = netOnline()
+		m.netOnline = probeNetworkOnline()
 		m.netStage, m.input = 0, ""
 		// No Wi-Fi scan on a bundled image: it needs no network, netBody says so,
 		// and scanning here only makes the step wait on the radio.
@@ -1172,14 +1216,15 @@ func (m *model) loadStep() {
 		if s.key == "rashin" {
 			m.yes = def(m.picks["rashin"], "1") == "1"
 		}
-		if s.key == "cachyos" {
-			m.yes = m.netOnline && m.picks["cachyos"] == "1"
-			if !m.netOnline {
-				m.picks["cachyos"] = "0"
+		if s.key == "gaming" {
+			reason := m.gamingUnavailableReason()
+			m.yes = reason == "" && m.picks["gaming"] == "1"
+			if reason != "" {
+				m.picks["gaming"] = "0"
 			}
 		}
 		if s.key == "review" {
-			m.netOnline = netOnline() // re-probe: Review needs it only on a non-offline image
+			m.netOnline = probeNetworkOnline() // re-probe: Review needs it only on a non-offline image
 		}
 	}
 }
@@ -1456,7 +1501,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				// wifiConnect's result was ignored and netOnline forced true, so a
 				// wrong passphrase silently marched on to install with no network.
 				// Require a real connection AND a live probe; otherwise stay here.
-				if wifiConnect(m.netSSID, m.input) && netOnline() {
+				if wifiConnect(m.netSSID, m.input) && probeNetworkOnline() {
 					m.netOnline, m.picks["network"], m.input, m.netErr = true, "wifi", "", ""
 					m.advance()
 				} else {
@@ -1467,7 +1512,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				m.editInput(k, &m.input)
 			}
 		} else if k == "r" && !m.pick.searching {
-			m.netOnline = netOnline()
+			m.netOnline = probeNetworkOnline()
 			if !m.netOnline {
 				m.pick = newPicker(ssids(), true)
 				m.pick.height = 5
@@ -1505,10 +1550,10 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 			m.editInput(k, &m.input)
 		}
 	case kConfirm:
-		if s.key == "cachyos" && !m.netOnline {
+		if s.key == "gaming" && m.gamingUnavailableReason() != "" {
 			m.yes = false
 			if k == "enter" {
-				m.picks["cachyos"] = "0"
+				m.picks["gaming"] = "0"
 				m.advance()
 			}
 			return m, nil
@@ -1574,7 +1619,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 		case "n":
 			m.yes = false
 		case "enter":
-			if s.key == "rashin" || s.key == "cachyos" {
+			if s.key == "rashin" || s.key == "gaming" {
 				value := "0"
 				if m.yes {
 					value = "1"
@@ -2902,8 +2947,8 @@ func (m model) viewWizard() string {
 		for _, d := range s.desc {
 			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
 		}
-		if s.key == "cachyos" && !m.netOnline {
-			c.WriteString(fg(cYell, i18n.T("No network connection. This option stays off.")) + "\n")
+		if reason := m.gamingUnavailableReason(); s.key == "gaming" && reason != "" {
+			c.WriteString(sty().Foreground(cYell).Width(inner).Render(reason) + "\n")
 		}
 		if s.key == "diskpick" && m.diskHint != "" {
 			c.WriteString("\n" + sty().Foreground(cYell).Width(inner).Render("⚠ "+m.diskHint) + "\n")
@@ -3551,12 +3596,12 @@ func (m model) reviewBody(w int) string {
 		row(i18n.T("Rashin"), rashin),
 		row(i18n.T("apps"), m.appsReviewCell()),
 	}
-	if m.variant == "plain" {
-		cachyos := i18n.T("No")
-		if m.picks["cachyos"] == "1" {
-			cachyos = i18n.T("Yes")
+	if flowIndex(m.flow, "gaming") >= 0 {
+		gaming := i18n.T("No")
+		if m.picks["gaming"] == "1" {
+			gaming = i18n.T("Yes")
 		}
-		lines = append(lines, row(i18n.T("CachyOS"), cachyos))
+		lines = append(lines, row(i18n.T("Gaming"), gaming))
 	}
 	lines = append(lines,
 		row(i18n.T("disk"), m.diskDev),

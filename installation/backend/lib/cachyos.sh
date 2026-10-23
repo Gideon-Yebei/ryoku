@@ -180,17 +180,70 @@ ryoku_cachyos_identity() {
   run arch-chroot /mnt /usr/share/libalpm/scripts/cachyos-branding
 }
 
-# Optional CachyOS layer for the plain Arch variant. It keeps Arch userland and
-# the stock kernel, adding only the v3 kernel/tuning repository used by the
-# Ryostore bundle.
+# Optional CachyOS gaming layer for the plain Arch variant. Arch repositories
+# remain authoritative while the lower CachyOS repositories provide names Arch
+# does not ship.
+ryoku_cachyos_layer_packages() {
+  local here manifest packages
+  here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  for manifest in \
+    "${RYOKU_INSTALLER_COMPONENTS_FILE:-}" \
+    "${RYOKU_REPO:-/usr/share/ryoku}/installation/installerplan/components.tsv" \
+    "$here/../../installerplan/components.tsv"; do
+    [[ -n $manifest && -f $manifest ]] || continue
+    packages=$(awk -F '\t' '
+      $1 == "cachyos-layer" {
+        if ($5 != "" && $5 != "-") { print $5; found = 1 }
+        exit
+      }
+      END { if (!found) exit 1 }
+    ' "$manifest") || return 1
+    printf '%s\n' "$packages"
+    return 0
+  done
+  return 1
+}
+
+ryoku_cachyos_kernel_has_nvidia() {
+  local pkgbase version
+  for pkgbase in /mnt/usr/lib/modules/*/pkgbase; do
+    [[ -r $pkgbase ]] || continue
+    [[ $(<"$pkgbase") == linux-cachyos ]] || continue
+    version=${pkgbase%/pkgbase}
+    version=${version##*/}
+    arch-chroot /mnt modinfo -k "$version" nvidia >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
+ryoku_cachyos_target_uses_nvidia_dkms() {
+  local package
+  for package in nvidia-open-dkms nvidia-dkms nvidia-580xx-dkms nvidia-470xx-dkms; do
+    arch-chroot /mnt pacman -Q "$package" >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+
 ryoku_cachyos_layer() {
   [[ ${RYOKU_VARIANT:-plain} == plain && ${RYOKU_CACHYOS_LAYER:-0} == 1 ]] || return 0
   RYOKU_CACHYOS_LAYER_ACTIVE=0
-  export RYOKU_CACHYOS_LAYER_ACTIVE
+  RYOKU_CACHYOS_DEFAULT_KERNEL=0
+  export RYOKU_CACHYOS_LAYER_ACTIVE RYOKU_CACHYOS_DEFAULT_KERNEL
+
+  local package_csv
+  if ! package_csv=$(ryoku_cachyos_layer_packages); then
+    log 'CachyOS layer: the cachyos-layer package row is missing; skipping the layer. Add it later from Ryostore > CachyOS Layer.'
+    return 0
+  fi
+  local -a packages=()
+  IFS=, read -ra packages <<<"$package_csv"
+
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
-    log 'DRYRUN: check the target CPU for x86-64-v3 and the CachyOS mirror for reachability, enable [cachyos-v3] and multilib with the shipped helpers, then run pacman -Syu for linux-cachyos linux-cachyos-headers cachyos-settings ananicy-cpp cachyos-ananicy-rules scx-scheds proton-cachyos-native'
+    log 'DRYRUN: check the target CPU for x86-64-v3 and the CachyOS mirror for reachability, enable [cachyos-v3], [cachyos], and multilib with the shipped helpers, then run pacman -Syu for %s' "${packages[*]}"
+    log 'DRYRUN: on NVIDIA, add linux-cachyos-nvidia-open for Arch nvidia-open or verify the DKMS module with modinfo; use linux-cachyos as default when its NVIDIA module is usable'
     RYOKU_CACHYOS_LAYER_ACTIVE=1
-    export RYOKU_CACHYOS_LAYER_ACTIVE
+    RYOKU_CACHYOS_DEFAULT_KERNEL=1
+    export RYOKU_CACHYOS_LAYER_ACTIVE RYOKU_CACHYOS_DEFAULT_KERNEL
     return 0
   fi
   if ! arch-chroot /mnt sh -c \
@@ -210,10 +263,6 @@ ryoku_cachyos_layer() {
     return 0
   fi
 
-  local -a packages=(
-    linux-cachyos linux-cachyos-headers cachyos-settings ananicy-cpp
-    cachyos-ananicy-rules scx-scheds proton-cachyos-native
-  )
   log 'CachyOS layer: installing %s' "${packages[*]}"
   if ! run arch-chroot /mnt pacman -Syu --needed --noconfirm --noprogressbar "${packages[@]}"; then
     log 'CachyOS layer: its packages did not install; the install goes on without it. Add it later from Ryostore > CachyOS Layer.'
@@ -221,6 +270,35 @@ ryoku_cachyos_layer() {
   fi
   RYOKU_CACHYOS_LAYER_ACTIVE=1
   export RYOKU_CACHYOS_LAYER_ACTIVE
+
+  local nvidia_pci=
+  if command -v lspci >/dev/null 2>&1; then
+    nvidia_pci=$(lspci -d 10de: 2>/dev/null || true)
+  fi
+  if [[ -z $nvidia_pci && ${RYOKU_PROFILE:-} == amd-nvidia ]]; then
+    nvidia_pci=profile
+  fi
+  if [[ -n $nvidia_pci ]]; then
+    if [[ $(arch-chroot /mnt pacman -Qq nvidia-open 2>/dev/null) == nvidia-open ]]; then
+      log 'CachyOS layer: adding the linux-cachyos module for Arch nvidia-open'
+      if ! run arch-chroot /mnt pacman -S --needed --noconfirm --noprogressbar linux-cachyos-nvidia-open; then
+        log 'CachyOS layer: linux-cachyos-nvidia-open did not install; keeping stock linux as the default kernel'
+        return 0
+      fi
+    elif ryoku_cachyos_target_uses_nvidia_dkms; then
+      log 'CachyOS layer: checking the DKMS NVIDIA module for linux-cachyos'
+    else
+      log 'CachyOS layer: the NVIDIA GPU has no prebuilt or DKMS driver for linux-cachyos; keeping stock linux as the default kernel'
+      return 0
+    fi
+    if ! ryoku_cachyos_kernel_has_nvidia; then
+      log 'CachyOS layer: no usable NVIDIA module was built for linux-cachyos; keeping stock linux as the default kernel'
+      return 0
+    fi
+  fi
+
+  RYOKU_CACHYOS_DEFAULT_KERNEL=1
+  export RYOKU_CACHYOS_DEFAULT_KERNEL
 }
 
 # The helpers ship with the desktop; the payload copy covers a target that does
@@ -228,7 +306,7 @@ ryoku_cachyos_layer() {
 ryoku_cachyos_layer_helper() {
   local name=$1 source="$RYOKU_REPO/system/extras/$1" target="/root/$1" rc=0
   if [[ -x /mnt/usr/bin/$name ]]; then
-    run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp "/usr/bin/$name"
+    run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "/usr/bin/$name"
     return
   fi
   if [[ ! -x $source ]]; then
@@ -238,7 +316,7 @@ ryoku_cachyos_layer_helper() {
   if ! run cp "$source" "/mnt$target" || ! run chmod 755 "/mnt$target"; then
     return 1
   fi
-  run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp "$target" || rc=$?
+  run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "$target" || rc=$?
   run rm -f "/mnt$target"
   return "$rc"
 }

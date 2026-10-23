@@ -38,17 +38,30 @@ that contract is documented in `../backend/README.md`.
 The wizard (`steps()` in `main.go`) walks these steps in order:
 
 `keyboard -> locale -> timezone -> network -> hardware -> profile -> gpu ->
-compositor -> browser -> login-shell -> file-manager -> Rashin -> apps ->
-diskpick (target disk) -> disk (strategy) -> partitions (layout) -> hostname ->
-administrator account -> root account -> other people -> encryption -> review`
+compositor -> browser -> login-shell -> file-manager -> Rashin -> Gaming ->
+Apps & tools -> diskpick (target disk) -> disk (strategy) -> partitions
+(layout) -> hostname -> administrator account -> root account -> other people
+-> encryption -> review`
+
+Gaming appears on the Arch, CachyOS, and Void images, after Rashin and before
+Apps & tools. It defaults to No. Fedora has no Gaming component, so the shared
+flow omits the step there.
+
+On Arch the step is **Gaming with CachyOS**. It needs both a live network
+connection and x86-64-v3 support; the control is disabled with the missing
+requirement when either check fails. A Yes becomes
+`RYOKU_CACHYOS_LAYER=1`, which lets the backend add the network-only CachyOS
+kernel, tuning, schedulers, Steam, and gaming meta-package. CachyOS and Void use
+their offline image contents instead: No adds that edition's Gaming component
+packages to `RYOKU_DROP_PACKAGES`, while Yes leaves them in the install.
 
 `system.go` reads `/usr/share/ryoku/variant` before the wizard is built. The
-Arch flow picks Hyprland or niri, Firefox, Chromium, Zen, or none, and Fish, Zsh, or
-Bash. The Void flow opens with a short edition notice after Welcome; Arch and
-CachyOS skip it. It then keeps the same backend environment contract, but greys
-out Hyprland with its packaging reason, offers niri, Firefox or Chromium, and
-omits AUR-only apps. The snapshot toggle, all three login shells, and the four
-hardware profiles remain available from the Void package table.
+Arch flow picks Hyprland or niri, Firefox, Chromium, Zen, or none, and Fish,
+Zsh, or Bash. The Void flow opens with a short edition notice after Welcome;
+Arch and CachyOS skip it. It then keeps the same backend environment contract,
+but greys out Hyprland with its packaging reason, offers niri, Firefox or
+Chromium, and omits AUR-only apps. The snapshot toggle, all three login shells,
+and the four hardware profiles remain available from the Void package table.
 
 Some steps are conditional: the `gpu` (graphics mode) step matters only on a
 hybrid iGPU + dGPU laptop, and the pickers fall back to a small built-in list

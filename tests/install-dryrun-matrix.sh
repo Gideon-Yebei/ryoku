@@ -237,9 +237,9 @@ for bad_env in RYOKU_RASHIN RYOKU_CACHYOS_LAYER; do
     || fail "$bad_env gate did not explain its allowed values"
 done
 
-# The optional CachyOS layer is plain-only and needs a reachable CachyOS mirror,
-# but an offline-base install still completes when the layer cannot be fetched.
-# Its packages are upgraded as one transaction and stock linux stays available.
+# The optional gaming layer is plain-only and network-backed. Its package list
+# comes from the installer component manifest, and a successful layer makes
+# linux-cachyos the default while retaining stock linux as the flat fallback.
 mkdir -p "$tmp/offline-repo"
 : >"$tmp/offline-repo/offline.db"
 out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
@@ -256,12 +256,35 @@ out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
   RYOKU_CACHYOS_LAYER=1 RYOKU_ONLINE=1 \
   bash "$root/installation/backend/ryoku-install" 2>&1)" \
   || fail "plain online CachyOS layer dry run exited nonzero: $out"
-grep -qF 'enable [cachyos-v3] and multilib with the shipped helpers' <<<"$out" \
+grep -qF 'enable [cachyos-v3], [cachyos], and multilib with the shipped helpers' <<<"$out" \
   || fail "plain CachyOS layer did not narrate repository setup"
-grep -qF 'linux-cachyos linux-cachyos-headers cachyos-settings' <<<"$out" \
-  || fail "plain CachyOS layer did not narrate its package set"
-grep -qF '/CachyOS Linux' <<<"$out" \
-  || fail "plain CachyOS layer did not add the CachyOS kernel boot entry"
+grep -qF 'linux-cachyos linux-cachyos-headers cachyos-settings scx-scheds cachyos-gaming-meta steam' <<<"$out" \
+  || fail "plain CachyOS layer did not read its gaming package set from components.tsv"
+grep -qF 'add linux-cachyos-nvidia-open for Arch nvidia-open or verify the DKMS module with modinfo' <<<"$out" \
+  || fail "plain CachyOS layer did not narrate NVIDIA kernel-module safety"
+grep -qxF '        |     kernel_path: boot():/vmlinuz-linux-cachyos' <<<"$out" \
+  || fail "plain CachyOS layer did not make linux-cachyos the default flat entry"
+grep -qxF '        | /Arch Linux (fallback)' <<<"$out" \
+  || fail "plain CachyOS layer did not retain Arch linux as the fallback entry"
+grep -qxF '        |     kernel_path: boot():/vmlinuz-linux' <<<"$out" \
+  || fail "plain CachyOS layer fallback does not point at stock linux"
+
+# A missing manifest row disables only the optional layer and leaves the install
+# on its stock kernel instead of silently falling back to a duplicated list.
+missing_components="$tmp/components-without-cachyos-layer.tsv"
+printf 'id\tlabel\tgroup\tgroup_label\tpackages\tdesktop_ids\tdefault\tstep\tneeds_network\teditions\tlock_editions\tlock_reason\tdetail\n' \
+  >"$missing_components"
+out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
+  RYOKU_PASSWORD_HASH='$6$fake$hash' RYOKU_DISK_STRATEGY=whole \
+  RYOKU_CACHYOS_LAYER=1 RYOKU_INSTALLER_COMPONENTS_FILE="$missing_components" \
+  bash "$root/installation/backend/ryoku-install" 2>&1)" \
+  || fail "missing CachyOS component row made the whole install fail: $out"
+grep -qF 'the cachyos-layer package row is missing; skipping the layer' <<<"$out" \
+  || fail "missing CachyOS component row was not reported"
+grep -qxF '        | linux' <<<"$out" \
+  || fail "missing CachyOS component row did not leave stock linux as default"
+grep -qF '        | /Arch Linux (fallback)' <<<"$out" \
+  && fail "missing CachyOS component row still added the layer fallback entry"
 
 # Void applies the same file-manager/apps/hidden-marker/Rashin contract and
 # ignores the CachyOS-only switch.

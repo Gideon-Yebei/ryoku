@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+- `cachyos.packages`: **the CachyOS edition now carries CachyOS's current
+  defaults and identity.** `shelly`, `lsb-release`, and `cachyos-hello` join
+  the kernel pair, repositories, hooks, `chwd`, tuning, schedulers, and desktop
+  tools. Ryoku suppresses CachyOS Welcome's autostart but keeps it in the
+  launcher. Steam and `cachyos-gaming-meta` now follow the installer's
+  default-off Gaming choice instead of landing on every CachyOS install.
+
 ### Added
 - `base.packages`: **khal, vdirsyncer and translate-shell.** The dock's
   calendar reads and syncs calendars through khal and vdirsyncer, and the

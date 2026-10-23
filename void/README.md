@@ -76,6 +76,23 @@ The shell installer does not provision a bootloader or snapshot layout on an
 existing Void machine. Snapshot restore works when that machine already has a
 btrfs root and snapper; `ryoku doctor` converges the root snapper config.
 
+## Gaming
+
+The Void ISO has a Gaming question after Rashin. It defaults to No and works
+offline. Choosing Yes installs Steam from Void nonfree plus the 32-bit graphics
+baseline: libgcc, libstdc++, libdrm, libglvnd, libva, Mesa DRI, and the Vulkan
+loader. The existing hardware lanes add the matching 32-bit Vulkan package for
+AMD, Intel, nouveau, or a VM. NVIDIA follows the installed driver's branch and
+adds its matching 32-bit libraries.
+
+The script installer offers the same set interactively, or through `--gaming`
+and `RYOKU_GAMING=1`.
+
+This is Void gaming, not the CachyOS layer. There is no maintained
+`linux-cachyos` XBPS package, and Void's stock kernel has sched-ext disabled, so
+the CachyOS kernel, sched-ext tuning, and Proton-CachyOS are not available.
+Steam uses its own Proton.
+
 ## Remaining limits
 
 - niri only, because Ryoku's Hyprland needs GCC 15 and Void ships GCC 14

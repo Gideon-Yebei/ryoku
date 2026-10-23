@@ -72,12 +72,19 @@ capable hardware over a lightweight one.
 | **NixOS** | Hyprland, niri | [Ryoku on NixOS](https://aethctl.github.io/Ryoku-on-NixOS/), a port for flake-based systems | community |
 
 Every edition is `x86_64` and ships the same shell from a signed native
-repository (pacman, XBPS or RPM). Hyprland and niri are the first-class
-compositors; Wayfire 0.11 is the experimental third on Arch and CachyOS, reached
-by switching desktops in the Hub or with `ryoku wm use wayfire`. Void is
-niri-only until it ships GCC 15 ([why](void/README.md)). Fedora converts an
-existing mutable system in place, keeps GRUB with a Ryoku snapshots submenu, and
-leaves NVIDIA on nouveau ([details](fedora/README.md)).
+repository (pacman, XBPS or RPM). The Arch edition keeps an Arch userland and
+can opt into **Gaming with CachyOS** during installation or add the same
+**CachyOS Gaming** bundle from RyoStore later. The CachyOS ISO is CachyOS from
+the live kernel through the installed system: CachyOS repositories, kernels,
+identity, tuning, hooks, and tools with Ryoku as its desktop. The Void ISO can
+add Steam and its 32-bit graphics stack with the installer Gaming question.
+
+Hyprland and niri are the first-class compositors; Wayfire 0.11 is the
+experimental third on Arch and CachyOS, reached by switching desktops in the
+Hub or with `ryoku wm use wayfire`. Void is niri-only until it ships GCC 15
+([why](void/README.md)). Fedora converts an existing mutable system in place,
+keeps GRUB with a Ryoku snapshots submenu, and leaves NVIDIA on nouveau
+([details](fedora/README.md)).
 
 ## The desktop
 
@@ -156,10 +163,10 @@ runs straight from the repo at a TTY:
 curl -fsSL https://raw.githubusercontent.com/ryoku-dev/ryoku/main/bin/ryoku-recovery | bash
 ```
 
-On Arch the CachyOS kernel is one click in the Hub's Extras
-([`docs/kernels.md`](docs/kernels.md)). [`docs/updates.md`](docs/updates.md)
-is how a change reaches you; [`docs/cli.md`](docs/cli.md) is every `ryoku`
-command.
+On Arch, **Gaming with CachyOS** is offered during installation and the same
+bundle is available later in RyoStore ([`docs/kernels.md`](docs/kernels.md)).
+[`docs/updates.md`](docs/updates.md) is how a change reaches you;
+[`docs/cli.md`](docs/cli.md) is every `ryoku` command.
 
 ## Hardware
 
