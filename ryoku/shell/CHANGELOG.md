@@ -114,6 +114,15 @@
   helper re-read whatever was current, so a copy replaced within a few
   milliseconds was lost or recorded as the next one, and every copy was read
   two or three times (`ipc/clipwatch.go`).
+- **The dock's clipboard tile and the iRiS palette show the real clipboard.**
+  Both read a separate cliphist database nothing fed any more, so they listed
+  months-old items and picking one copied stale content. They now list the
+  daemon's history (text previews, image thumbnails, stars as pins), copy,
+  delete and clear through it, and picking a dock entry closes its panel so the
+  next Ctrl+V reaches your app instead of the panel
+  (`quickshell/shell/modules/dock/ii/utilities/`,
+  `quickshell/inir/services/deferred/Cliphist.qml`,
+  `quickshell/inir/modules/iris/palette/IrisPalette.qml`).
 - **Ryogami survives an account rename.** The daemon resolves the picker from
   the active user's XDG data home, stores home-owned catalogue and wallpaper
   paths as `~/...`, and Doctor rewrites old-home paths in existing config,

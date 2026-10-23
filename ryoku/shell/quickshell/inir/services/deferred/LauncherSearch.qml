@@ -101,17 +101,17 @@ Singleton {
         // Clipboard search
         if (q.startsWith(clipboardPrefix)) {
             const searchStr = StringUtils.cleanPrefix(q, clipboardPrefix)
-            return Cliphist.fuzzyQuery(searchStr).map(entry => {
-                return ({
-                    rawValue: entry,
-                    name: StringUtils.cleanCliphistEntry(entry),
-                    verb: Translation.tr("Copy"),
-                    type: Translation.tr("Clipboard"),
-                    iconName: "content_copy",
-                    iconType: LauncherSearchResult.IconType.Material,
-                    execute: () => Cliphist.copy(entry)
-                })
-            }).filter(Boolean)
+            return Cliphist.fuzzyQuery(searchStr).map(entry => ({
+                rawValue: entry,
+                name: entry.kind === "text" ? String(entry.preview ?? "")
+                    : entry.kind === "image" ? Translation.tr("Image")
+                    : String(entry.mime ?? Translation.tr("Binary data")),
+                verb: Translation.tr("Copy"),
+                type: Translation.tr("Clipboard"),
+                iconName: "content_copy",
+                iconType: LauncherSearchResult.IconType.Material,
+                execute: () => Cliphist.copy(entry)
+            })).filter(result => result.name.length > 0)
         }
 
         // Emoji search

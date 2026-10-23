@@ -98,6 +98,7 @@ Item {
     // scroll or step past its end, through the whole history.
     property int clipboardExtra: 0
     readonly property int clipboardTotal: root.clipboardMode ? root.launcherResults.length : 0
+    readonly property int clipboardHistoryTotal: Cliphist.entries.length
     function loadMoreClipboard(): void {
         if (root.clipboardMode && root.searchResults.length < root.clipboardTotal) root.clipboardExtra += root.resultLimit
     }
@@ -176,7 +177,6 @@ Item {
     }
     readonly property string clipboardPrefix: Config.options?.search?.prefix?.clipboard ?? ";"
     readonly property bool clipboardMode: root.settled.startsWith(root.clipboardPrefix)
-    onClipboardModeChanged: if (root.clipboardMode) Cliphist.refresh()
     property int selectedIndex: 0
     property bool pointerSelectionArmed: false
     property point lastPointerPosition: Qt.point(-1, -1)
@@ -374,7 +374,12 @@ Item {
                 return type.length > 0 ? type : Translation.tr("Other")
             }
             function sectionAt(index: int): string {
-                if (root.clipboardMode) return Translation.tr("Clipboard history · %1").arg(root.clipboardTotal)
+                if (root.clipboardMode) {
+                    const entry = root.visibleResults[index]?.rawValue
+                    return entry?.pinnedOnly === true
+                        ? Translation.tr("Pinned")
+                        : Translation.tr("Clipboard history · %1").arg(root.clipboardHistoryTotal)
+                }
                 return index === 0 ? Translation.tr("Top hit") : stage.sectionOf(root.visibleResults[index])
             }
             function kindTint(type: string): color {
@@ -834,8 +839,13 @@ Item {
                                         required property int index
                                         readonly property bool topHit: result.index === 0 && !root.clipboardMode
                                         readonly property bool mathHit: result.topHit && result.modelData?.type === Translation.tr("Math")
+                                        readonly property var clipEntry: root.clipboardMode ? result.modelData?.rawValue : null
                                         readonly property bool clipImage: root.clipboardMode
-                                            && Cliphist.entryIsImage(String(result.modelData?.rawValue ?? ""))
+                                            && Cliphist.entryIsImage(result.clipEntry)
+                                        readonly property string pinnedText: root.clipboardMode
+                                            ? Cliphist.pinnedTextFor(result.clipEntry) : ""
+                                        readonly property bool pinnable: root.clipboardMode
+                                            && Cliphist.isPinnable(result.clipEntry)
                                         readonly property bool selected: root.selectedIndex === result.index
                                         readonly property var mark: root.clipboardMode
                                             ? stage.clipMark(String(result.modelData?.name ?? ""))
@@ -863,7 +873,9 @@ Item {
                                                 font.weight: IrisStyle.weight(Font.DemiBold)
                                             }
                                             IrisButton {
-                                                visible: root.clipboardMode && result.index === 0
+                                                visible: root.clipboardMode && result.clipEntry?.pinnedOnly !== true
+                                                    && (result.index === 0
+                                                        || root.visibleResults[result.index - 1]?.rawValue?.pinnedOnly === true)
                                                 anchors.right: parent.right
                                                 anchors.rightMargin: 12 * stage.d
                                                 anchors.bottom: parent.bottom
@@ -927,12 +939,20 @@ Item {
                                                             id: thumbLoader
                                                             anchors.centerIn: parent
                                                             active: result.clipImage
-                                                            sourceComponent: CliphistImage {
-                                                                entry: String(result.modelData?.rawValue ?? "")
-                                                                maxWidth: lead.width - Math.round(4 * stage.d)
-                                                                maxHeight: lead.height - Math.round(4 * stage.d)
-                                                                color: "transparent"
-                                                                radius: IrisStyle.radiusChip
+                                                            sourceComponent: StyledImage {
+                                                                readonly property int imageWidth: Number(result.clipEntry?.thumbW ?? 0)
+                                                                readonly property int imageHeight: Number(result.clipEntry?.thumbH ?? 0)
+                                                                readonly property real thumbScale: imageWidth > 0 && imageHeight > 0
+                                                                    ? Math.min((lead.width - Math.round(4 * stage.d)) / imageWidth,
+                                                                        (lead.height - Math.round(4 * stage.d)) / imageHeight, 1)
+                                                                    : 0
+                                                                width: imageWidth * thumbScale
+                                                                height: imageHeight * thumbScale
+                                                                source: result.clipEntry?.thumb ? "file://" + String(result.clipEntry.thumb) : ""
+                                                                sourceSize: Qt.size(Math.ceil(width), Math.ceil(height))
+                                                                fillMode: Image.PreserveAspectFit
+                                                                antialiasing: true
+                                                                asynchronous: true
                                                             }
                                                         }
                                                         MaterialSymbol {
@@ -1022,11 +1042,28 @@ Item {
 
                                                 IrisText {
                                                     visible: text.length > 0
-                                                    text: result.clipImage && thumbLoader.item
-                                                        ? thumbLoader.item.imageWidth + " × " + thumbLoader.item.imageHeight : ""
+                                                    text: result.clipImage && result.clipEntry?.w > 0 && result.clipEntry?.h > 0
+                                                        ? result.clipEntry.w + " × " + result.clipEntry.h : ""
                                                     color: IrisStyle.textTertiary
                                                     font.pixelSize: IrisStyle.typeMeta
                                                     font.features: { "tnum": 1 }
+                                                }
+                                                IrisIconButton {
+                                                    visible: root.clipboardMode && (result.selected || row.containsMouse)
+                                                        && (result.pinnable || result.pinnedText.length > 0)
+                                                    Layout.preferredWidth: Math.round(26 * stage.d)
+                                                    Layout.preferredHeight: Math.round(26 * stage.d)
+                                                    materialIcon: "keep"
+                                                    selected: result.pinnedText.length > 0
+                                                    iconSize: Math.round(16 * stage.d)
+                                                    Accessible.name: result.pinnedText.length > 0
+                                                        ? Translation.tr("Unpin") : Translation.tr("Pin")
+                                                    onClicked: {
+                                                        if (result.pinnedText.length > 0)
+                                                            Cliphist.unpin(result.pinnedText)
+                                                        else
+                                                            Cliphist.pinEntry(result.clipEntry)
+                                                    }
                                                 }
                                                 IrisIconButton {
                                                     visible: root.clipboardMode && (result.selected || row.containsMouse)
@@ -1034,9 +1071,10 @@ Item {
                                                     Layout.preferredHeight: Math.round(26 * stage.d)
                                                     materialIcon: "delete"
                                                     iconSize: Math.round(16 * stage.d)
-                                                    Accessible.name: Translation.tr("Delete from history")
+                                                    Accessible.name: result.clipEntry?.pinnedOnly === true
+                                                        ? Translation.tr("Remove pin") : Translation.tr("Delete from history")
                                                     onClicked: {
-                                                        Cliphist.deleteEntry(String(result.modelData?.rawValue ?? ""))
+                                                        Cliphist.deleteEntry(result.clipEntry)
                                                         root.selectedIndex = Math.max(0, Math.min(root.selectedIndex, root.visibleResults.length - 2))
                                                     }
                                                 }
