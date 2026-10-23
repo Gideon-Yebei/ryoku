@@ -67,6 +67,7 @@
   (`internal/doctor/reconcile_theme_follow.go`).
 
 ### Changed
+- **`ryoku materialize` ensures `hyprland.conf` symlink exists.** Standard upstream Hyprland binaries on Arch and derivative distributions expect `~/.config/hypr/hyprland.conf`. Materialize now creates a symlink from `hyprland.conf` to `hyprland.lua` when laid down, preventing immediate session abort on existing distro installations.
 - **`ryoku update` adopts the sleep policy as a guarded transaction.** Stage
   two takes a durable login1 sleep block, activates logind's sessionless
   fallback, and refuses to quiesce the shell unless the old `ryoku-idle` and

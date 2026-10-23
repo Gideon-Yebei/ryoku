@@ -328,6 +328,16 @@ func Materialize() error {
 			fmt.Printf("  %s\n", rel)
 		}
 	}
+	// Upstream Arch Hyprland expects hyprland.conf; ensure a symlink to
+	// hyprland.lua exists so the session starts cleanly on existing installs.
+	hyprDir := filepath.Join(dest, "hypr")
+	if sys.Exists(filepath.Join(hyprDir, "hyprland.lua")) {
+		confPath := filepath.Join(hyprDir, "hyprland.conf")
+		if !sys.Exists(confPath) {
+			_ = os.Symlink("hyprland.lua", confPath)
+		}
+	}
+
 	applyGenerated(dest)
 	return nil
 }

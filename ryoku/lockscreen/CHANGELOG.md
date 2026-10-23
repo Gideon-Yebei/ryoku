@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Changed
+- **The login screen lights the active display on multi-GPU laptops.** On a hybrid laptop where a discrete NVIDIA GPU is flagged as `boot_vga` by ACPI/firmware but the display is wired to the integrated GPU, Weston's DRM backend defaulted to probing the headless dGPU, finding 0 active connectors and immediately terminating with exit code 1 (issue #479). The greeter now explicitly passes `--drm-device` bound to the card that actually drives the connected panel, preventing Weston from failing on headless secondary cards.
 - **The login pointer is visible again.** On a hybrid laptop whose panel is on
   the iGPU, the greeter still forced weston's Pixman renderer -- a workaround
   only NVIDIA-panel machines need -- and under Pixman weston draws no cursor at

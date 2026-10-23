@@ -41,10 +41,13 @@ export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"
 # So only use pixman when NVIDIA actually drives the connected internal panel the
 # greeter lands on, mirroring how the session picks its GPU env.
 weston_args=""
+primary_drm_card=""
 for conn in /sys/class/drm/card*-eDP-* /sys/class/drm/card*-LVDS-* /sys/class/drm/card*-DSI-*; do
   [ -e "$conn/status" ] && [ "$(cat "$conn/status")" = connected ] || continue
   card=${conn%-*}; card=${card%-*}
-  [ "$(cat "$card/device/vendor" 2>/dev/null)" = "0x10de" ] && weston_args="--renderer=pixman"
+  primary_drm_card="${card##*/}"
+  weston_args="--drm-device=$primary_drm_card"
+  [ "$(cat "$card/device/vendor" 2>/dev/null)" = "0x10de" ] && weston_args="--renderer=pixman $weston_args"
   break
 done
 
@@ -231,6 +234,16 @@ gen_ini() {
 if [ "${RYOKU_GREETER_DRYRUN:-0}" = 1 ]; then
   modes="$(probe_modes)"
   greeter_primary="$(choose_primary "$greeter_primary")"
+
+if [ -z "$primary_drm_card" ] && [ -n "$greeter_primary" ]; then
+  for conn in /sys/class/drm/card*-"$greeter_primary"; do
+    if [ -e "$conn/status" ] && [ "$(cat "$conn/status" 2>/dev/null)" = connected ]; then
+      card=${conn%-*}; card=${card%-*}
+      weston_args="--drm-device=${card##*/} $weston_args"
+      break
+    fi
+  done
+fi
   gen_ini
   exit 0
 fi
