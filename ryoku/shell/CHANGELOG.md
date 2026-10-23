@@ -123,6 +123,11 @@
   (`quickshell/shell/modules/dock/ii/utilities/`,
   `quickshell/inir/services/deferred/Cliphist.qml`,
   `quickshell/inir/modules/iris/palette/IrisPalette.qml`).
+- **Ryoshot and quick captures report a copy that failed.** They used to show
+  "copied" and close without waiting for the result. They now wait for
+  `ryoku-shell clip-copy`; on failure they say why, and ryoshot stays open so
+  Ctrl+C or Ctrl+S can retry (`quickshell/ryoshot/shell.qml`,
+  `quickshell/shell/services/Capture.qml`).
 - **Ryogami survives an account rename.** The daemon resolves the picker from
   the active user's XDG data home, stores home-owned catalogue and wallpaper
   paths as `~/...`, and Doctor rewrites old-home paths in existing config,
