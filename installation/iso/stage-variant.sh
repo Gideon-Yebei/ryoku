@@ -194,6 +194,8 @@ ryoku_trust_cachyos_build_host() {
   for file in cachyos.gpg cachyos-trusted cachyos-revoked; do
     "${elevate[@]}" install -Dm0644 "$keyring_dir/$file" "/usr/share/pacman/keyrings/$file"
   done
+  # Fresh CI keyrings can have Arch keys but no local secret key for --populate.
+  "${elevate[@]}" pacman-key --init
   "${elevate[@]}" pacman-key --populate cachyos
   fingerprint_output=$("${elevate[@]}" pacman-key --finger "$expected_fingerprint")
   fingerprint_output=${fingerprint_output//[[:space:]]/}
