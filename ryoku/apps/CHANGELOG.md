@@ -180,6 +180,11 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- **RyoStore installs decors and emblems into the localized Pictures folder.**
+  The flat-image providers built `~/Pictures` by hand, so on a desktop with a
+  localized Pictures folder an installed decor or emblem landed where the Hub
+  no longer reads it. They now follow `XDG_PICTURES_DIR`
+  (`ryostore/backend/provider_flat_image.go`).
 - `ryostore/`: **A Vesktop theme reaches the Flathub Vesktop.** Fedora and Void
   users get Vesktop from Flathub, whose sandbox sees only its own `~/.var/app`
   folder, so a theme linked into `~/.config/vesktop/themes` never showed up.

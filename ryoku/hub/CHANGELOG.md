@@ -158,6 +158,14 @@
   Hermes's model, and connecting an agent now says it routes that agent's models
   through Prowl (`quickshell/pages/RashinPage.qml`).
 ### Fixed
+- **Profile export and the emblem picker follow the localized Pictures folder.**
+  Exporting the profile card wrote to a hardcoded `~/Pictures`, and the
+  Fastfetch emblem picker read its decor art and store emblems from there, so a
+  localized desktop grew a second Pictures folder. They now resolve it through
+  `Paths.picturesDir` (`XDG_PICTURES_DIR`), as does the shared `Ryodecors`
+  singleton that Decor and Placard render from
+  (`quickshell/pages/ProfilePage.qml`, `quickshell/pages/FastfetchPage.qml`,
+  `ui/Singletons/Paths.qml`, `ui/Singletons/Ryodecors.qml`).
 - **Palette Bridge controls only enable for a complete installation.** Status
   now follows the supplemental Matugen template locations and requires both the
   packaged daemon and recipes, instead of showing setup actions that could only

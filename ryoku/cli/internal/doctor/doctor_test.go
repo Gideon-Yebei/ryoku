@@ -2507,6 +2507,8 @@ func TestReconcileBrandLogo(t *testing.T) {
 func TestReconcileRyodecors(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("XDG_PICTURES_DIR", "")
 	repo := t.TempDir()
 	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
 		t.Skipf("git unavailable: %v %s", err, out)
@@ -2551,6 +2553,37 @@ func TestReconcileRyodecors(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(userFile); string(b) != "mine" {
 		t.Fatalf("a user's own decor file must survive the reconciler")
+	}
+}
+
+// A localized desktop keeps its pictures in ~/Imágenes: the decor art is seeded
+// there and no stray ~/Pictures appears beside it.
+func TestReconcileRyodecorsLocalizedPictures(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+	t.Setenv("XDG_PICTURES_DIR", filepath.Join(home, "Imágenes"))
+	repo := t.TempDir()
+	if out, err := exec.Command("git", "-C", repo, "init", "-q").CombinedOutput(); err != nil {
+		t.Skipf("git unavailable: %v %s", err, out)
+	}
+	src := filepath.Join(repo, "ryoku", "assets", "ryodecors")
+	if err := os.MkdirAll(src, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "a.png"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RYOKU_REPO", repo)
+
+	if r := reconcileRyodecors(false); r.status != recFixed {
+		t.Fatalf("fix: status=%s detail=%q, want fixed", r.status.label(), r.detail)
+	}
+	if _, err := os.Stat(filepath.Join(home, "Imágenes", "ryodecors", "a.png")); err != nil {
+		t.Fatalf("decor art must land in the XDG Pictures folder: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(home, "Pictures")); !os.IsNotExist(err) {
+		t.Fatalf("a localized desktop must not grow ~/Pictures (stat err=%v)", err)
 	}
 }
 

@@ -100,3 +100,17 @@ func readFile(t *testing.T, path string) string {
 	}
 	return string(data)
 }
+
+// A localized desktop keeps Pictures in ~/Imágenes and the session exports it as
+// XDG_PICTURES_DIR; the gallery folders must follow it instead of ~/Pictures.
+func TestPicturesHomeFollowsXDG(t *testing.T) {
+	t.Setenv("HOME", "/home/u")
+	t.Setenv("XDG_PICTURES_DIR", "")
+	if got := picturesHome(); got != "/home/u/Pictures" {
+		t.Fatalf("unset: picturesHome = %q, want /home/u/Pictures", got)
+	}
+	t.Setenv("XDG_PICTURES_DIR", "/home/u/Imágenes")
+	if got := picturesHome(); got != "/home/u/Imágenes" {
+		t.Fatalf("localized: picturesHome = %q, want /home/u/Imágenes", got)
+	}
+}
