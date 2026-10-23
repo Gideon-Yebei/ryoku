@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- **General manages people on this computer.** The Users tab lists local
+  accounts, sign-in state, roles, permissions and home storage, and lets an
+  administrator add or remove people, reset passwords and set storage limits
+  through the host account seam (`quickshell/pages/users/`,
+  `quickshell/pages/GlobalPage.qml`, `quickshell/Singletons/Host.qml`).
 - **Bar Studio marks the heavier bar styles.** QS Bar, Python, Nomarchy, Shima
   and Sumi now say they may need more CPU, GPU and memory; Orpheus and Kairos,
   the two styles kept light, carry no mark. The tier comes from the RyoStore
