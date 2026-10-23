@@ -87,6 +87,11 @@ ryoku_account_target_has_group_name() {
 
 ryoku_account_add_plan() {
   local name=$1 full_name=$2 role=$3 permissions=$4 password_hash=$5 limit=$6
+  # Every desktop account needs raw input/uinput and panel-backlight access.
+  # Keep them in the typed devices permission so admin and standard users match.
+  if [[ ,$permissions, != *,devices,* ]]; then
+    permissions=${permissions:+$permissions,}devices
+  fi
   ryoku_account_validate_username "$name"
   [[ $full_name != *:* && $full_name != *$'\n'* && $full_name != *$'\r'* && $full_name != *$'\t'* ]] \
     || die 'full name for %s contains an unsupported character' "$name"

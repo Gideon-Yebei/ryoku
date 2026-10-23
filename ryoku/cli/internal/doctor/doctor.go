@@ -308,6 +308,7 @@ func reconcilers() []reconciler {
 		{i18n.T("retired wallpaper-engine keys"), reconcileRetiredPaperKeys},
 		{i18n.T("retired filter bar keys"), reconcileRetiredFilterBarKeys},
 		{i18n.T("window width cycle"), reconcileWidthCycle},
+		{i18n.T("Ryogami user paths"), reconcileRyogamiHome},
 		{i18n.T("ryogami wallpaper daemon"), reconcileRyogamiWallpaper},
 		{i18n.T("ryowalls app leftovers"), reconcileRyowallsRemoval},
 		{i18n.T("duplicate launcher entries"), reconcileLauncherDuplicates},

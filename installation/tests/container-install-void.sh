@@ -38,6 +38,15 @@ xbps-query -p pkgver ryoku-desktop-niri >/dev/null \
 
 id "$TESTUSER" >/dev/null 2>&1 || useradd -m "$TESTUSER"
 home=/home/$TESTUSER
+for service in ryoku-shell ryogami ryoku-idle ryoku-clamshell pipewire wireplumber; do
+	[[ -x $home/.config/service/$service/run ]] \
+		|| die "new users do not inherit the $service Turnstile service"
+done
+[[ -L $home/.config/service/dbus/run && -L $home/.config/service/dbus/check ]] \
+	|| die "new users do not inherit the Turnstile D-Bus service"
+grep -q 'core_services="dbus pipewire pipewire-pulse wireplumber"' \
+	"$home/.config/service/turnstile-ready/conf" \
+	|| die "new users do not inherit the Turnstile core-service roster"
 log "Materializing the packaged config as $TESTUSER"
 su -s /bin/sh -c "HOME='$home' USER='$TESTUSER' LOGNAME='$TESTUSER' /usr/bin/ryoku materialize" "$TESTUSER"
 

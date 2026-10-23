@@ -59,7 +59,7 @@ service_dupes=$(cut -f1 "$SERVICE_MANIFEST" | grep -v '^#' | grep -v '^id$' | so
 while IFS=$'\t' read -r id scope activation systemd_unit runit_service disable_rule; do
 	[[ $id == '#'* || $id == id ]] && continue
 	case $scope in system|user) ;; *) fail "invalid service scope '$scope': $id" ;; esac
-	case $activation in boot|enable-once|conditional|session|session-core|on-demand) ;;
+	case $activation in boot|enable-once|conditional|session|session-global|session-core|on-demand) ;;
 		*) fail "invalid service activation '$activation': $id" ;;
 	esac
 	[[ -n $systemd_unit && -n $runit_service && -n $disable_rule ]] \
@@ -174,14 +174,14 @@ grep -qF 'ryoku-host session start xdg-desktop-portal-hyprland.service xdg-deskt
 # the activation manifest. The reconciler writes the per-user roster.
 [[ ! -e $INIT/session-services ]] || fail "copied session roster still exists"
 while IFS=$'\t' read -r _id scope activation _systemd runit _disable; do
-	[[ $scope == user && $activation == session && $runit != - ]] || continue
+	[[ $scope == user && ($activation == session || $activation == session-global) && $runit != - ]] || continue
 	[[ -d $INIT/user/$runit ]] || fail "session activation names a missing runit service: $runit"
 done < "$SERVICE_MANIFEST"
 for svc in "$INIT"/user/*/; do
 	name=${svc%/}
 	name=${name##*/}
 	awk -F '\t' -v name="$name" '
-		$2 == "user" && ($3 == "session" || $3 == "session-core" || $3 == "on-demand") && $5 == name { found = 1 }
+		$2 == "user" && ($3 == "session" || $3 == "session-global" || $3 == "session-core" || $3 == "on-demand") && $5 == name { found = 1 }
 		END { exit !found }
 	' "$SERVICE_MANIFEST" || fail "user service has no session policy: $name"
 done
@@ -268,7 +268,7 @@ guard_log=$INIT/system/ryoku-boot-guard/log/run
 grep -qF 'exec vlogger -p daemon.info -t ryoku-boot-guard' "$guard_log" \
   || parity_fail "boot-guard log service does not use vlogger"
 # var-state must carry every tmpfiles path and mode
-for entry in '/var/lib/ryoku 0755' '/var/lib/ryoku/boot 1777' 'greeter-primary 0666' 'greeter-numlock 0666'; do
+for entry in '/etc/ryoku 0755' '/usr/share/ryoku 0755' '/var/lib/ryoku 0755' '/var/lib/ryoku/boot 1777' 'greeter-primary 0666' 'greeter-numlock 0666'; do
 	path=${entry% *}; mode=${entry#* }
 	grep -qF "$path" "$INIT/system/ryoku-var-state/run" || parity_fail "var-state lost $path"
 	grep -qF "$mode" "$INIT/system/ryoku-var-state/run" || parity_fail "var-state lost mode $mode for $path"

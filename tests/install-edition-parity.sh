@@ -8,7 +8,7 @@ source "$here/install-dryrun-harness.sh"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 extra_users=$tmp/extra-users.tsv
-printf 'alice\tAlice Example\tstandard\tdevices,audio\tx\t1073741824\nbob\tBob Example\tadmin\tdevices,virtualization,containers\tx\t0\n' >"$extra_users"
+printf 'alice\tAlice Example\tstandard\taudio\tx\t1073741824\nbob\tBob Example\tadmin\tdevices,virtualization,containers\tx\t0\n' >"$extra_users"
 fail() {
   printf 'installer edition parity: %s\n' "$*" >&2
   exit 1

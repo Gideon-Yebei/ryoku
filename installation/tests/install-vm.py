@@ -412,7 +412,7 @@ def main():
     extra_users_file = "/tmp/ryoku-extra-users.tsv"
     extra_users = "\n".join((
         f"{args.extra_admin}\tAdditional Administrator\tadmin\tdevices\t{pwhash}\t0",
-        f"{args.extra_standard}\tStandard User\tstandard\tdevices\t{pwhash}\t"
+        f"{args.extra_standard}\tStandard User\tstandard\t\t{pwhash}\t"
         f"{args.standard_limit_bytes}",
     )) + "\n"
     servers = []
@@ -697,6 +697,13 @@ def main():
                 " && IFS=, read -ra wheel_users <<<\"$members\""
                 f" && for wheel_user in \"${{wheel_users[@]}}\"; do"
                 f" [[ $wheel_user == {primary} || $wheel_user == {extra_admin} ]]"
+                " || exit 1; done",
+            ),
+            (
+                "standard account has device access",
+                "for group in input video; do "
+                "IFS=: read -r _ _ _ members < <(grep \"^$group:\" /mnt2/etc/group)"
+                f" && case \",$members,\" in *',{args.extra_standard},'*) ;; *) exit 1;; esac"
                 " || exit 1; done",
             ),
             (

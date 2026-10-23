@@ -149,6 +149,13 @@
   the other plugin packages.
 
 ### Fixed
+- **Desktop services reach every account, not only the installer account.**
+  Systemd installs shell, wallpaper, idle, clamshell, Bluetooth and optional
+  Rashin units system-wide and enables their required user services globally.
+  Void packages seed the complete Turnstile service set in `/etc/skel` and
+  provision every installer account. Existing machines are repaired by
+  `ryoku doctor`; every new account also receives the `input` and `video`
+  access needed for remapping and brightness.
 - **Palette Bridge packages carry their runtime contract.** Arch, Fedora, and
   Void now depend on the Ryoku host service seam and curl, and package checks
   exercise the daemon and every integration path instead of shipping scripts

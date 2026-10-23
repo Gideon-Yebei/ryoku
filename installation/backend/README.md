@@ -87,7 +87,9 @@ name<TAB>fullName<TAB>role<TAB>perm,perm<TAB>sha512-crypt-hash<TAB>limitBytes
 
 `role` is `admin` or `standard`. Permissions are `devices`, `audio`,
 `virtualization`, or `containers`; `admin` is accepted only for an admin role.
-Only mapped groups that exist in the installed target are added, and standard
+Every account receives `devices` even when the TSV omits it: its `input` and
+`video` groups are required by mouse remapping and panel brightness. Only
+mapped groups that exist in the installed target are added, and standard
 accounts never join `wheel`. Names, roles, permissions, hashes, duplicate
 accounts, and non-negative limits are checked before the disk is changed and
 again before account creation.

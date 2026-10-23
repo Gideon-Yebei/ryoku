@@ -184,7 +184,7 @@ def main():
     extra_users_file = "/tmp/ryoku-extra-users.tsv"
     extra_users = "\n".join((
         f"{args.extra_admin}\tAdditional Administrator\tadmin\tdevices\t{password_hash}\t0",
-        f"{args.extra_standard}\tStandard User\tstandard\tdevices\t{password_hash}\t"
+        f"{args.extra_standard}\tStandard User\tstandard\t\t{password_hash}\t"
         f"{args.standard_limit_bytes}",
     )) + "\n"
     log_path = os.path.join(work, "serial.log")
@@ -259,6 +259,12 @@ def main():
             f" && for wheel_user in \"${{wheel_users[@]}}\"; do"
             f" [[ $wheel_user == {shlex.quote(args.user)}"
             f" || $wheel_user == {shlex.quote(args.extra_admin)} ]]"
+            " || exit 1; done")
+        run_live_check(
+            child, "standard account device access",
+            "for group in input video; do "
+            "IFS=: read -r _ _ _ members < <(grep \"^$group:\" /mnt/etc/group)"
+            f" && case \",$members,\" in *',{args.extra_standard},'*) ;; *) exit 1;; esac"
             " || exit 1; done")
         run_live_check(
             child, "root locked",
