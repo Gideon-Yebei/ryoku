@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Added
+- **Gokko can host its Dock and widgets from RyoStore.** The
+  existing primary frame-family loader keeps the Store scene resident
+  when the bar is hidden. Gokko widgets share the wallpaper surface,
+  while Ryoku yields its Dock, banners and notification sound. A missing
+  or failed Gokko Store view restores those native surfaces instead of
+  leaving the desktop empty
+  (`quickshell/shell/{services/{BarProducts,Config}.qml,shell.qml,modules/desktop/Desktop.qml}`).
 - **System readouts pause while nobody can see them.** A `presence` topic
   tells the shell when the session is locked or the idle policy has turned the
   displays off, and the shared system monitor stops sampling until the desktop

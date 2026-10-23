@@ -80,10 +80,12 @@ Singleton {
         || (barStyle === "nomarchy"
         && !(root.nomarchy && root.nomarchy.notifications === false))
         || barStyle === "tansu"
+        || (barStyle === "gokko" && BarProducts.sceneUrl("gokko") !== "")
     // Only a style that plays its own notification sound silences the shell's
     // cue; Nomarchy and Tansu draw banners but play nothing themselves.
-    readonly property bool styleOwnsNotificationSound: barStyle === "python"
-        && !(root.python && root.python.general && root.python.general.notifications === false)
+    readonly property bool styleOwnsNotificationSound: (barStyle === "python"
+        && !(root.python && root.python.general && root.python.general.notifications === false))
+        || (barStyle === "gokko" && BarProducts.sceneUrl("gokko") !== "")
     readonly property bool styleOwnsFeedback: (barStyle === "python"
         && !(root.python && root.python.general && root.python.general.osd === false))
         || (barStyle === "nomarchy"

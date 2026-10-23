@@ -59,6 +59,9 @@ import stage as Stage
  */
 ShellRoot {
     id: root
+    // Missing or failed Store views must leave the regular desktop usable.
+    readonly property bool gokkoRunning: Config.barStyle === "gokko"
+        && BarProducts.sceneUrl("gokko") !== ""
     // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
     // the notification column), armed 1.5 s into boot so a keypress or an
     // arriving toast never waits on a component build. Everything heavier is
@@ -197,6 +200,8 @@ ShellRoot {
                 screen: perScreen.modelData
                 active: true
                 widgetsEnabled: Tokens.widgetsEnabledFor(perScreen.modelData.name)
+                    && !root.gokkoRunning
+                gokkoActive: root.gokkoRunning
                 wallpaperUrl: wallpaper.wallpaperUrl
                 wallpaperPath: wallpaper.wallpaperPath
                 wallpaperFit: wallpaper.fit
@@ -317,6 +322,7 @@ ShellRoot {
             UniversalDockHost {
                 id: dockLoader
                 screen: perScreen.modelData
+                surfaceVisible: !root.gokkoRunning
             }
 
             // The dock's right-click context menu: a full-screen overlay on the
@@ -324,7 +330,8 @@ ShellRoot {
             // The Ryoku design and docks installed from RyoStore share it.
             LazyLoader {
                 id: dockMenuLoader
-                property bool open: (Dock.design === "ryoku" || Dock.storeDesign)
+                property bool open: !root.gokkoRunning
+                    && (Dock.design === "ryoku" || Dock.storeDesign)
                     && Dock.menuOpen && Dock.menuScreen === perScreen.modelData.name
                 activeAsync: open || dockMenuHold.running
                 onOpenChanged: if (!open && active) dockMenuHold.restart()
