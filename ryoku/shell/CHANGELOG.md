@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Shima has an equalizer.** A ten-band panel with presets, bypass and a live
+  spectrum opens from the Island's player page, the volume control, media cards
+  and an Equalizer bubble, or `iris equalizer toggle`. It drives Ryoku's own
+  equalizer, so nothing extra needs installing
+  (`quickshell/inir/modules/iris/equalizer/`).
+- **Shima's Dock keeps an order.** Apps sit in pinned order or opening order,
+  icons slide while you drag one, and an app bubble can be dropped onto the
+  Dock (`quickshell/inir/modules/iris/dock/IrisDockOrder.qml`).
 - **System readouts pause while nobody can see them.** A `presence` topic
   tells the shell when the session is locked or the idle policy has turned the
   displays off, and the shared system monitor stops sampling until the desktop
@@ -87,6 +95,20 @@
   terminal once (`scripts/ryoku-session-intro`).
 
 ### Fixed
+- **Shima caught up with its upstream fixes.** Spotlight no longer reshuffles
+  while you type and keeps a query passed over IPC, wallpaper shuffle and fill
+  mode follow Ryogami, the music bubble and battery glyph match upstream, and
+  the Island collapses cleanly when a page asks it to.
+- **Shima works the same on Hyprland.** The active window title and the Dock's
+  window list now come from the compositor's own window list, so they no longer
+  go blank when a window has no foreign-toplevel handle.
+- **Shima shows one notification, not two.** The generic banner stays out of
+  the way while Shima draws its own, and Shima's banner duration setting is
+  honoured.
+- **Shima's frame, OSD and widgets look right.** The frame is dark instead of
+  grey, `osd volume|brightness|mic|keyboard|media` reach the Island, the
+  desktop clock and calendar pick legible ink, notification tiles are filled,
+  and fresh Shima setups get the Shima Dock.
 - **Hyprland window geometry is polled only while a window floats.** The
   provider re-read every window's geometry from Hyprland four times a second
   for the whole session. Tiled geometry now refreshes on the events that move
