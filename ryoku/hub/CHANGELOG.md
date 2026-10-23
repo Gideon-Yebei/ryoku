@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+- **The sidebar identifies a CachyOS install as RYOKU CACHYOS.** It reads the
+  reported distribution before falling back to the package manager, so
+  CachyOS no longer appears as RYOKU ARCH (`quickshell/Hub.qml`).
+
 ### Added
 - **General manages people on this computer.** The Users tab lists local
   accounts, sign-in state, roles, permissions and home storage, and lets an

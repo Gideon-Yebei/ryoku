@@ -99,6 +99,7 @@ ParallelDownloads = 10
 DownloadUser = alpm
 SigLevel    = Required DatabaseOptional
 LocalFileSigLevel = Optional
+NoExtract = etc/skel/.config/autostart/cachyos-hello.desktop
 
 $(ryoku_cachyos_tier_repos "$level")
 [cachyos]
@@ -137,12 +138,14 @@ ryoku_cachyos_repo() {
   level=$(ryoku_cachyos_cpu_level)
   if [[ -n ${RYOKU_DRYRUN:-} ]]; then
     log "DRYRUN: write CachyOS's pacman.conf with the ${level:-baseline} repositories above [cachyos], populate the cachyos keyring in the target"
+    ryoku_cachyos_identity
     return 0
   fi
   log "cachyos: writing CachyOS's pacman.conf (${level:-baseline} repositories) into the target"
   ryoku_cachyos_pacman_conf "$conf" "$level"
   ryoku_cachyos_arch_check "$conf" "$level"
   ryoku_cachyos_keyring
+  ryoku_cachyos_identity
 }
 
 # trust the CachyOS key from the INSTALLED cachyos-keyring (no keyserver, so it
@@ -154,6 +157,27 @@ ryoku_cachyos_keyring() {
     return 0
   fi
   log "cachyos: keyring populate failed (cachyos-keyring absent?); a later -Syu can 'pacman-key --recv-keys F3B607488DB35A47 --keyserver keyserver.ubuntu.com'"
+}
+
+# The package's hook cannot trigger the transaction that installs it. Run its
+# script once now, and keep CachyOS Welcome in the launcher without letting its
+# skel entry compete with Ryoku's first-login welcome. Accounts already exist by
+# the time ryoku_cachyos_repo runs, so clean both skel and their copied entries.
+ryoku_cachyos_identity() {
+  local hello=etc/skel/.config/autostart/cachyos-hello.desktop
+  if [[ -n ${RYOKU_DRYRUN:-} ]]; then
+    log "DRYRUN: remove $hello from the target skel and created home directories"
+    log 'DRYRUN: run /usr/share/libalpm/scripts/cachyos-branding in the target'
+    return 0
+  fi
+  log 'cachyos: suppressing CachyOS Welcome autostart'
+  run rm -f "/mnt/$hello"
+  if [[ -d /mnt/home ]]; then
+    run find /mnt/home -mindepth 4 -maxdepth 4 \
+      -path '*/.config/autostart/cachyos-hello.desktop' -delete
+  fi
+  log 'cachyos: applying CachyOS system identity'
+  run arch-chroot /mnt /usr/share/libalpm/scripts/cachyos-branding
 }
 
 # Optional CachyOS layer for the plain Arch variant. It keeps Arch userland and

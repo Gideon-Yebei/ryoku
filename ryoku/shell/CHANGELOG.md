@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+- **CachyOS is reported as CachyOS.** `ryoku-base-os` now returns the
+  distribution from `/etc/os-release`, so Fastfetch says "a hand-built CachyOS
+  desktop" instead of treating every pacman host as Arch
+  (`scripts/ryoku-base-os`).
+
 ### Added
 - **Shima has an equalizer.** A ten-band panel with presets, bypass and a live
   spectrum opens from the Island's player page, the volume control, media cards

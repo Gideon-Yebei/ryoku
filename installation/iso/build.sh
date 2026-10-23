@@ -149,6 +149,12 @@ for item in profiledef.sh packages.x86_64 pacman.conf airootfs efiboot syslinux 
 done
 AIROOTFS=$PROFILE_STAGE/airootfs
 
+# Keep the committed profile generic. Edition-specific package, boot, and
+# branding changes are made only in this throwaway copy.
+# shellcheck source=stage-variant.sh
+source "$PROFILE_DIR/stage-variant.sh"
+ryoku_stage_variant "$VARIANT" "$PROFILE_STAGE"
+
 # reproducible package set (opt-in). the default build pulls whatever the live
 # mirrors currently serve, so two builds weeks apart differ by upstream package
 # churn. RYOKU_ISO_REPRO=1 repoints the STAGED pacman.conf's [core]/[extra] at
@@ -273,6 +279,7 @@ if [[ $STAGE_ONLY -eq 1 ]]; then
   exit 0
 fi
 
+
 # 6. assemble. mkarchiso needs root + the archiso package.
 if ! command -v mkarchiso >/dev/null 2>&1; then
   cat >&2 <<EOF
@@ -288,6 +295,12 @@ or, equivalently, from inside the staged profile:
 
 EOF
   exit 1
+fi
+if [[ $VARIANT == cachyos ]]; then
+  # CachyOS's own buildiso requires host trust too. A local CachyOS build
+  # therefore populates the build host keyring before mkarchiso resolves it.
+  log "Populating CachyOS signing trust on the build host"
+  ryoku_trust_cachyos_build_host
 fi
 
 # mkarchiso reuses a populated work dir: with a completed build already there it

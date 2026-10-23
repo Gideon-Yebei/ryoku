@@ -1,9 +1,7 @@
-# CachyOS layer. Installed by pacstrap on every target, on top of base.packages,
-# so a Ryoku install IS a CachyOS install: the set CachyOS's own installer lays
-# ("CachyOS required" and "CachyOS Packages" in cachyos-calamares netinstall),
-# the system performance tuning, the auto-nice daemon, the sched-ext schedulers,
-# and the CachyOS Proton build. One package per line; '#' and blank lines are
-# ignored. The base.packages names this layer replaces are in cachyos.replaces.
+# CachyOS layer. Installed by pacstrap on every CachyOS target, on top of
+# base.packages, so Ryoku retains the CachyOS kernel, tools, tuning, and identity.
+# One package per line; '#' and blank lines are ignored. The base.packages names
+# this layer replaces are in cachyos.replaces.
 #
 # These live in the CachyOS repositories (written into the target's pacman.conf
 # by installation/backend/lib/cachyos.sh). The offline ISO bakes them into the
@@ -43,6 +41,12 @@ lib32-zlib-ng-compat
 cachyos-hooks
 chwd
 
+# Vanilla CachyOS identity and desktop tools. cachyos-hello stays available from
+# the launcher, but its first-login autostart is suppressed by cachyos.sh.
+lsb-release
+shelly
+cachyos-hello
+
 # The CachyOS performance layer: sysctl, udev, modprobe, and systemd tuning that
 # makes the desktop (Hyprland) and games run the CachyOS way. It also brings
 # zram swap (zram-generator), which is why this edition's installer defaults to
@@ -74,3 +78,13 @@ scx-scheds
 # offline closure bake failed and took the whole CachyOS ISO with it. SLR is the
 # Steam Linux Runtime build, which is how Steam runs Proton.
 proton-cachyos-slr
+
+# Deliberate differences from vanilla CachyOS:
+# cachyos-fish-config and cachyos-zsh-config: Ryoku owns shell configuration.
+# cachyos-wallpapers and CachyOS Plymouth themes: Ryoku owns system branding.
+# cachyos-snapper-support: Ryoku owns Snapper and limine-snapper-sync.
+# cachy-update: ryoku update owns system updates.
+# octopi: Shelly replaced it upstream.
+# paru: Ryoku already ships yay.
+# ufw: its default policy would block LocalSend and local services.
+# chwd --autoconfigure: Ryoku's driver scripts own GPU driver selection.
