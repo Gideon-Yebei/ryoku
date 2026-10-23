@@ -186,7 +186,6 @@ Tools the desktop, the pill, and the capture stack shell out to by name.
 |---|---|
 | `quickshell` | The framework the whole shell UI runs on |
 | `cava` | The audio visualizer |
-| `cliphist` | Clipboard history |
 | `hyprpicker` | The color picker |
 | `imagemagick` | Image processing |
 | `waifu2x-ncnn-vulkan` | The GPU AI upscaler behind ryoshot's HD export and ryowalls' Enhance |

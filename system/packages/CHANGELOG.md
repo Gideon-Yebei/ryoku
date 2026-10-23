@@ -275,6 +275,9 @@
   pacman transactions, wired to the snapper `root` config by the installer.
 
 ### Changed
+- `base.packages`: **cliphist is no longer installed.** Ryoku keeps clipboard
+  history in its own daemon, and the last UIs that read cliphist now read
+  that; existing boxes keep the package until it is removed as an orphan.
 - `aur.packages`: drop `phonto` and `mpvpaper`. The shell's live (video)
   wallpaper backend is now `ryoku-livewall`, which ships in the `ryoku-shell`
   package from the `[ryoku]` repo, so no AUR video daemon is needed. Both old

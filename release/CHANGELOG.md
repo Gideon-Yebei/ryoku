@@ -222,6 +222,11 @@
   leaves with the upgrade; `deploy.sh` retires an unowned one on dev boxes.
 
 ### Removed
+- **`ryoku-desktop` no longer depends on cliphist.** Arch, Fedora and Void drop
+  it (`packages/ryoku-desktop/PKGBUILD`,
+  `../fedora/packages/rpm/ryoku-desktop.spec`,
+  `../void/packages/srcpkgs/ryoku-desktop/template`); the clipboard history
+  lives in `ryoku-shell`.
 - **Ryoku Motion (`ryomotion`) is gone from `[ryoku]`.** The screen-demo recorder
   and editor is retired: `release/packages/ryomotion/` is deleted, and
   `ryoku-desktop` drops both its `ryomotion` optdepend and the `wf-recorder`

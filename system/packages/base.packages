@@ -258,7 +258,6 @@ zoxide
 # Ryoku shell (quickshell desktop), its runtime helpers, and the yazi file manager
 quickshell
 cava
-cliphist
 hyprpicker
 imagemagick
 # waifu2x-ncnn-vulkan: GPU AI upscaler behind ryoshot Beautify's HD export and

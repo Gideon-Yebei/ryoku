@@ -130,7 +130,7 @@ never by an edit to the routing.
 | apps | (default), `>` | launch desktop apps, fuzzy + launch-frequency ranked |
 | calc | `=`, leading digit | qalc: math, units, currency |
 | actions | `/` | system actions (lock, wallpaper, screenshot, night light, media keys, settings) in category tabs |
-| clipboard | `;` | cliphist history, copy or delete |
+| clipboard | `;` | Ryoku clipboard history, copy or delete |
 | windows | (default) | switch Hyprland windows |
 | web | `?` | web search with `!bang` site shortcuts, plus an inline DuckDuckGo instant answer |
 | files | (default, 3+ chars) | fd file search, open or reveal |

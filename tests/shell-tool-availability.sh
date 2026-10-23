@@ -73,7 +73,7 @@ declare -A need=(
   # it, 7c20f7dd; awww was retired with 25a57f57).
   [wallpaper-daemon]=ryogami
   [palette]=matugen
-  [clipboard-history]=cliphist
+  [clipboard-history]=ryoku-shell
   [color-picker]=hyprpicker
   [music-visualizer]=cava
   [led-color]=openrgb

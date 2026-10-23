@@ -23,7 +23,6 @@ btrfs-progs	btrfs-progs	system
 catppuccin-cursors-mocha	catppuccin-cursors-mocha	extra	repo=ryoku
 cava	cava	desktop	
 chromium	chromium	desktop	
-cliphist	cliphist	desktop	
 cmake	cmake	optional	
 cryptsetup	cryptsetup	system	
 curl	curl	desktop	

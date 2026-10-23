@@ -54,7 +54,6 @@ Requires:       mpv
 Requires:       mpv-mpris
 Requires:       yt-dlp
 Requires:       wl-clipboard
-Requires:       cliphist
 Requires:       grim
 Requires:       slurp
 Requires:       cava
