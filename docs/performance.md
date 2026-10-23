@@ -95,8 +95,9 @@ line visualizer about 55.
 process holds 597 to 620 MB PSS on that base and 593 to 597 MB on this branch.
 Two restarts of the same code differ by up to about 25 MB, so only one change is
 clearly measurable on its own: a still wallpaper no longer loads the video
-stack, 655 MB with it and 593 MB without on this branch. The wallpaper picker,
-kept resident for an instant Super+W, holds another 116 to 131 MB.
+stack, 655 MB with it and 593 MB without on this branch. The wallpaper picker
+held another 116 to 131 MB while hidden; it now frees that a minute after it
+closes (see below).
 
 **The bar styles at idle**, same conditions, before → after:
 
@@ -110,11 +111,64 @@ kept resident for an instant Super+W, holds another 116 to 131 MB.
 | Shima | 4.62 → 3.04 | 2.22 → 2.09 | 59 → 35 |
 | Sumi | 4.49 → 2.24 | 2.11 → 1.60 | 56 → 24 |
 
-Two readings did not improve. Orpheus's own idle CPU is within noise of before
-(the bar now waits on fewer timers, but its windows' render threads still wake),
-and the NVIDIA board drew about half a watt more at idle in the after runs
-while no Ryoku process used measurably more GPU time; the GPU ran 5 °C warmer,
-and this data does not separate the two.
+Two readings did not improve. Orpheus's own idle CPU was within noise of before
+(its springs kept re-settling, which the pass below found and fixed), and the
+NVIDIA board drew about half a watt more at idle in the after runs while no
+Ryoku process used measurably more GPU time; the GPU ran 5 °C warmer, and this
+data does not separate the two.
+
+## At rest
+
+A second pass, also on 2026-10-22, went after the desktop with nothing moving:
+the empty workspace, no music, no window open, Orpheus, the Performance
+profile, the same noise stopped, a 60 s sample after a 150 s settle, and a
+separate `--surfaces` sample for frames. Before is this branch ahead of that
+pass.
+
+| process | CPU | wakeups/s |
+|---|---:|---:|
+| shell (`qs`) | 5.07 → 0.37 | 172 → 12 |
+| niri | 0.93 → 0.32 | 49 → 15 |
+| shell daemon | 0.20 → 0.00 | 125 → 35 |
+| Ryogami | 0.03 → 0.00 | 6 → 0 |
+
+The whole machine went from 37.1% to 23.2% of a core busy, the shell's windows
+from 1.8 presented frames a second to 0.8 (what is left is Orpheus's network
+reading changing about once a second), and the NVIDIA board from 5.9% to 0.9%
+utilisation. The shell holds 582 MB PSS against 624 MB, and the hidden
+wallpaper picker's 114 MB is gone a minute after it closes.
+
+What it was:
+
+- **Orpheus's springs never settled.** Every slot springs to its content
+  width, and background traffic moved the network rate across a digit every
+  few seconds, so the liquid body re-sprang for about a second each time: 7,500
+  item updates and 400 sync rounds in 30 s behind about one presented frame a
+  second. Readings now hold their widest usual width.
+- **Hidden surfaces drew every second.** niri sends a covered surface one
+  frame callback a second, and Qt's 100 ms callback timeout turned each into an
+  unexpose and re-expose that rebuilt the full-screen swapchain and drew the
+  same picture. The overview backdrop did this all the time; the bar, desktop
+  and frame did it under a fullscreen window, a locked screen or blank displays
+  once they had drawn while covered. The daemon now starts shell processes with
+  that timeout off. Quickshell's `updatesEnabled` was tried first and dropped:
+  Qt ignores expose events while updates are off, so switching them back on
+  can leave a surface frozen on its old frame.
+- **Readouts sampled for nobody.** System stats now pause while the session is
+  locked or the displays are off.
+- **Four windows reserved nothing.** The frame's edge reservations exist for
+  Sumi only, so every other style maps four windows fewer.
+- **The daemons polled.** The shell daemon checked shell.json every 500 ms,
+  read the shell's memory every second, scanned `/proc` for night light every
+  30 s and for the lock guard, and re-read all of NetworkManager, about 2,000
+  system calls, each time the Wi-Fi signal drifted, every six seconds. Ryogami
+  signed the Steam workshop every three seconds and checked its config every
+  two. The lid daemon woke every second and the login-screen guard every five.
+  Each now waits on inotify, pidfds, netlink or D-Bus signals, with a slow
+  fallback only where a source is missing.
+
+The login-screen guard on the measured machine was still the packaged one, so
+its 12 launches a minute are in the after numbers; the new guard removes them.
 
 ## Where the cost was
 
@@ -218,10 +272,14 @@ In the order to take them:
    cannot use it.
 3. **The line visualizer** draws at its configured 60 fps while music plays;
    30 halves it.
-4. **A hidden overview backdrop presents about once a second**, behind the
-   desktop, even with nothing in it changing.
-5. **Memory per window.** The shell holds about 600 MB, and each mapped window
-   has its own render thread, GL context and swapchain on top of the QML
+4. **At rest, a live reading still redraws its window.** Orpheus's network
+   rate changes about once a second at idle and redraws the bar each time. The
+   shell daemon still wakes about 35 times a second, nearly all of it Go's own
+   scheduler: its work at rest is a memory sample every few seconds and a
+   battery read when UPower reports a change. The recorder checks `gsr-cli
+   status` once a minute as a stale-state watchdog.
+5. **Memory per window.** The shell holds about 580 MB at rest, and each mapped
+   window has its own render thread, GL context and swapchain on top of the QML
    engine. Fewer, smaller surfaces is the lever, not QML size.
 6. **The discrete GPU drives the panel** in MUX discrete mode, so the RTX 4060
    idles at 4 to 5 W whatever the shell does; Hybrid mode is the saving there.

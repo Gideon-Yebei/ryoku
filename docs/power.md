@@ -257,6 +257,14 @@ Python waveform capture that ran even in silence is gone, system stats come from
 one native sampler, Orpheus rests at bar height, and a still wallpaper no longer
 loads the video stack (about 60 MB of the shell's memory).
 
+A second pass took the desktop at rest, nothing moving, close to quiet: the
+shell from 5.1% of a core and 172 wakeups a second to 0.4% and 12, its windows
+from 1.8 frames a second to 0.8, the shell daemon from 125 wakeups a second to
+35, and the RTX 4060's utilisation from 5.9% to 0.9%. Hidden surfaces no longer
+redraw once a second, system readouts pause while the screen is locked or off,
+the daemons wait on events instead of polling, and the wallpaper picker frees
+its memory a minute after it closes.
+
 What is left, in the order to take it:
 
 1. Animated content inside a layer presents two frames per change; Orpheus's
