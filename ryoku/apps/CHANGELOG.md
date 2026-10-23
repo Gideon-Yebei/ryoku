@@ -180,6 +180,14 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- `fish/`, `bash/`, `zsh/`, `terminal-shell/`: **Multiplexer panes started
+  before the desktop can paste again.** A herdr, tmux or zellij server keeps the
+  environment of the login that started it, so one started over SSH or from a
+  TTY gave every pane no display: Ctrl+V and image paste in fish and in
+  terminal coding agents found no clipboard. A new pane with no live display now
+  borrows the running desktop's display and compositor handles from the user
+  manager (Turnstile's env dir on Void) and drops a dead inherited one
+  (`fish/conf.d/desktop-display.fish`, `terminal-shell/desktop-display.sh`).
 - `ryostore/`: **A Vesktop theme reaches the Flathub Vesktop.** Fedora and Void
   users get Vesktop from Flathub, whose sandbox sees only its own `~/.var/app`
   folder, so a theme linked into `~/.config/vesktop/themes` never showed up.
