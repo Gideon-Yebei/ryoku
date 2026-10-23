@@ -1169,7 +1169,14 @@ func nmWifiConnect(ssid, pass string) bool {
 // ───────────────────────── install handoff ─────────────────────────
 
 // installEnv builds the RYOKU_* environment the backend reads (install-contract.md).
+// Tests and preview paths use the best-effort wrapper; startInstall reports any
+// account-plan write error before the backend can touch the disk.
 func (m model) installEnv() []string {
+	env, _ := m.installEnvChecked()
+	return env
+}
+
+func (m model) installEnvChecked() ([]string, error) {
 	b := func(v bool) string {
 		if v {
 			return "1"
@@ -1310,7 +1317,11 @@ func (m model) installEnv() []string {
 			}
 		}
 	}
-	return env
+	accountEnv, err := m.accountsEnv()
+	if err != nil {
+		return env, err
+	}
+	return append(env, accountEnv...), nil
 }
 
 func def(v, fallback string) string {
@@ -1401,7 +1412,13 @@ func sanitizeLine(s string) string {
 func (m *model) startInstall() tea.Cmd {
 	st := &installStream{ch: make(chan tea.Msg, 128), procDone: make(chan struct{})}
 	m.istream = st
-	env := append(os.Environ(), m.installEnv()...)
+	installEnv, err := m.installEnvChecked()
+	if err != nil {
+		close(st.procDone)
+		st.ch <- installDoneMsg{err}
+		return st.wait()
+	}
+	env := append(os.Environ(), installEnv...)
 	bin := os.Getenv("RYOKU_BACKEND")
 	if bin == "" {
 		bin = "ryoku-install"

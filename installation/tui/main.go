@@ -482,9 +482,11 @@ const (
 	kPartition
 	kInfo
 	kNotice
-	kPass // password + confirm
 	kNet  // connectivity / Wi-Fi
 	kApps // grouped keep/remove app checklist
+	kAdministrator
+	kRootAccount
+	kOtherPeople
 )
 
 const minDiskGiB = 32      // installer floor: minRootGiB closure + 1G ESP + swap/snapshot headroom
@@ -572,10 +574,10 @@ func stepsForVariant(variant string) []step {
 		{key: "partitions", title: i18n.T("Disk layout"), kind: kPartition, desc: []string{}},
 		{key: "hostname", title: i18n.T("Hostname"), kind: kInput, placeholder: "ryoku", deflt: "ryoku",
 			desc: []string{i18n.T("Letters, digits and dashes.")}},
-		{key: "username", title: i18n.T("Primary user"), kind: kInput, placeholder: "you", deflt: "you",
-			desc: []string{i18n.T("Your login account name. Lowercase.")}},
-		{key: "password", title: i18n.T("User password"), kind: kPass,
-			desc: []string{i18n.T("Set a password for your account.")}},
+		{key: "administrator", title: i18n.T("Administrator account"), kind: kAdministrator},
+		{key: "root-account", title: i18n.T("Root account"), kind: kRootAccount},
+		{key: "other-people", title: i18n.T("Other people"), kind: kOtherPeople,
+			desc: []string{i18n.T("Optional accounts for everyone else who uses this computer.")}},
 		{key: "encryption", title: i18n.T("Disk encryption"), kind: kConfirm,
 			desc: []string{i18n.T("Encrypt the root with LUKS?"), i18n.T("You type its passphrase at every boot.")}},
 		{key: "review", title: i18n.T("Review"), kind: kConfirm,
@@ -892,6 +894,7 @@ type model struct {
 	pass1    string // first passphrase entry (mock; never persisted)
 	encErr   string
 	picks    map[string]string
+	accounts accountsState
 	variant  string
 
 	state string // intro|transition|wizard|install|done|failed
@@ -912,9 +915,6 @@ type model struct {
 	diskBytes                                    int64  // its exact size in bytes (dual-unit display)
 	netOnline                                    bool
 	netStage                                     int    // 0 pick SSID · 1 Wi-Fi password (offline only)
-	pwStage                                      int    // 0 enter · 1 confirm
-	pw1                                          string // first password entry (mock; never persisted)
-	pwErr                                        string
 	netErr                                       string // Wi-Fi connect failure (offline flow)
 	failStep                                     string
 	logPath                                      string
@@ -1143,8 +1143,8 @@ func (m *model) loadStep() {
 			m.espKind, m.existingBoot, m.espFreeKiB = "", "", 0
 		}
 		m.clampSwapToLayout() // keep default swap within the layout (backend-consistent)
-	case kPass:
-		m.pwStage, m.pw1, m.pwErr, m.input = 0, "", "", ""
+	case kAdministrator, kRootAccount, kOtherPeople:
+		m.loadAccountsStep(s.key)
 	case kNet:
 		m.netOnline = netOnline()
 		m.netStage, m.input = 0, ""
@@ -1186,7 +1186,6 @@ func (m *model) loadStep() {
 
 // validation mirrors installer/script/ryoku-install (valid_hostname / valid_username)
 var hostRe = regexp.MustCompile(`^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$`)
-var userRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]*$`)
 
 func validInput(key, v string) (bool, string) {
 	switch key {
@@ -1196,10 +1195,11 @@ func validInput(key, v string) (bool, string) {
 		}
 		return false, i18n.T("letters, digits, dashes, no leading or trailing dash")
 	case "username":
-		if userRe.MatchString(v) {
+		if err := validateAccountName(v, nil); err == nil {
 			return true, ""
+		} else {
+			return false, err.Error()
 		}
-		return false, i18n.T("lowercase; start with a letter or _")
 	}
 	return true, ""
 }
@@ -1376,7 +1376,7 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 	typing := s.kind == kInput || (s.kind == kSelect && m.pick.searching) ||
 		(s.kind == kConfirm && s.key == "encryption" && m.encStage > 0) ||
 		(s.kind == kConfirm && s.key == "review" && m.wipeStage > 0) ||
-		s.kind == kPass || (s.kind == kNet && m.netStage == 1)
+		(s.kind == kNet && m.netStage == 1) || m.accountsTyping()
 	if k == "?" && !typing {
 		m.help = true
 		return m, nil
@@ -1386,6 +1386,18 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 	}
 	if k == "esc" && !typing {
 		m.back()
+		return m, nil
+	}
+
+	switch s.kind {
+	case kAdministrator:
+		m.adminAccountKey(k)
+		return m, nil
+	case kRootAccount:
+		m.rootAccountKey(k)
+		return m, nil
+	case kOtherPeople:
+		m.otherPeopleKey(k)
 		return m, nil
 	}
 
@@ -1422,38 +1434,6 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.advance()
-		}
-	case kPass:
-		switch k {
-		case "esc":
-			if m.pwStage == 1 {
-				m.pwStage, m.input, m.pwErr = 0, "", ""
-			} else {
-				m.back()
-			}
-		case "enter":
-			if m.pwStage == 0 {
-				if m.input == "" {
-					m.pwErr = i18n.T("password cannot be empty")
-				} else {
-					m.pw1, m.input, m.pwStage, m.pwErr = m.input, "", 1, ""
-				}
-			} else if m.input != m.pw1 {
-				m.pw1, m.input, m.pwStage, m.pwErr = "", "", 0, i18n.T("did not match, try again")
-			} else if h, err := hashPassword(m.pw1); err != nil {
-				// The hash is computed in-process (password.go), so the only way
-				// here is a kernel that cannot produce random bytes for the salt.
-				// Report it and keep the user on this screen rather than handing
-				// the backend an empty RYOKU_PASSWORD_HASH that only dies at
-				// preflight, after the whole wizard has been walked.
-				m.pw1, m.input, m.pwStage, m.pwErr = "", "", 0, i18n.Tf("could not hash the password: %s", err)
-			} else {
-				m.pwHash = h
-				m.picks["password"], m.pw1, m.input, m.pwStage = "set", "", "", 0
-				m.advance()
-			}
-		default:
-			m.editInput(k, &m.input)
 		}
 	case kNet:
 		// An offline image is as ready as a connected one, so it takes the same
@@ -1505,8 +1485,8 @@ func (m model) onKey(k string) (tea.Model, tea.Cmd) {
 		switch k {
 		case "esc":
 			// input steps set `typing`, so the global esc->back above is skipped.
-			// Handle it here (as kPass/kNet do) so the footer's "esc back" works
-			// and hostname/username are not one-way dead ends.
+			// Handle it here (as kNet and the account screens do) so the footer's
+			// "esc back" works and hostname is not a one-way dead end.
 			m.inputErr, m.input = "", ""
 			m.back()
 		case "enter":
@@ -2898,8 +2878,15 @@ func (m model) viewWizard() string {
 		c.WriteString(m.infoBody(inner))
 	case s.kind == kNet:
 		c.WriteString(m.netBody(inner))
-	case s.kind == kPass:
-		c.WriteString(m.passBody(inner))
+	case s.kind == kAdministrator:
+		c.WriteString(m.administratorBody(inner))
+	case s.kind == kRootAccount:
+		c.WriteString(m.rootAccountBody(inner))
+	case s.kind == kOtherPeople:
+		for _, d := range s.desc {
+			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
+		}
+		c.WriteString("\n" + m.otherPeopleBody(inner))
 	case s.kind == kSelect && s.key == "gpu":
 		for _, d := range s.desc {
 			c.WriteString(fg(cSub, truncW(d, inner)) + "\n")
@@ -3180,24 +3167,6 @@ func strength(s string) string {
 	}
 }
 
-func (m model) passBody(inner int) string {
-	label := i18n.T("Set a password:")
-	if m.pwStage == 1 {
-		label = i18n.T("Confirm password:")
-	}
-	b := fg(cText, label) + "\n" + inputBox(m.input, "", true) + "\n"
-	if m.pwStage == 0 && m.input != "" {
-		b += fg(cSub, i18n.T("strength: ")) + strength(m.input) + "\n"
-	} else {
-		b += "\n"
-	}
-	if m.pwErr != "" {
-		b += fg(cRed, "⚠ "+m.pwErr) + "\n"
-	}
-	b += "\n" + fg(cDim, i18n.T("used at login; change it anytime · esc back"))
-	return b
-}
-
 func labelStyled(sel bool, s string, w int) string {
 	s = truncW(s, w)
 	if sel {
@@ -3401,8 +3370,8 @@ var stepIcon = map[string]string{
 	"hardware": "", "profile": "", "gpu": "", "compositor": "",
 	"browser": "", "login-shell": "", "file-manager": "", "rashin": "",
 	"cachyos": "", "apps": "", "diskpick": "", "disk": "",
-	"partitions": "", "hostname": "", "username": "",
-	"password": "", "encryption": "", "review": "",
+	"partitions": "", "hostname": "", "administrator": "",
+	"root-account": "", "other-people": "", "encryption": "", "review": "",
 }
 
 func (m model) activeTotal() int {
@@ -3593,7 +3562,13 @@ func (m model) reviewBody(w int) string {
 		row(i18n.T("disk"), m.diskDev),
 		fg(cSub, fmt.Sprintf("%-11s", i18n.T("strategy")))+stratCell,
 		row(i18n.T("hostname"), m.picks["hostname"]),
-		row(i18n.T("user"), m.picks["username"]), row(i18n.T("password"), m.picks["password"]),
+		row(i18n.T("admin"), accountReviewName(m.picks["username"], m.accounts.adminFullName)),
+		row(i18n.T("root"), rootReviewLabel(m.accounts.rootMode)),
+	)
+	for _, person := range m.accounts.people {
+		lines = append(lines, row(i18n.T("person"), accountReviewName(person.Name, person.FullName)+" · "+roleLabel(person.Role)))
+	}
+	lines = append(lines,
 		row(i18n.T("encryption"), m.picks["encryption"]), "",
 		fg(cSub, i18n.T("layout     "))+fg(cText, i18n.Tf("%s %s · root %dG · swap %s", bootKind, esp, m.availRoot()-m.swapG, swap)),
 		fg(cSub, i18n.T("subvols    "))+fg(cText, subs),
@@ -3846,8 +3821,8 @@ func (m model) footer() string {
 		} else {
 			parts = []string{keyHint("enter", i18n.T("continue")), keyHint("esc", i18n.T("back")), keyHint("?", i18n.T("help")), keyHint("q", i18n.T("quit"))}
 		}
-	case s.kind == kPass:
-		parts = []string{keyHint("type", i18n.T("password")), keyHint("enter", i18n.T("continue")), keyHint("esc", i18n.T("back"))}
+	case s.kind == kAdministrator, s.kind == kRootAccount, s.kind == kOtherPeople:
+		parts = []string{keyHint("↑↓/tab", i18n.T("move")), keyHint("enter", i18n.T("continue")), keyHint("esc", i18n.T("back"))}
 	case s.kind == kNet:
 		switch {
 		case m.netOnline || m.hasOfflineRepo():
@@ -3901,7 +3876,7 @@ func main() {
 func snapshot() {
 	picks := map[string]string{"keyboard": "us", "locale": "en_US.UTF-8", "timezone": "Europe/Madrid",
 		"profile": "amd-nvidia", "gpu": "offload", "compositor": "niri", "browser": "zen",
-		"disk": "alongside", "hostname": "ryoku", "username": "carlos", "encryption": "LUKS"}
+		"disk": "alongside", "hostname": "ryoku", "username": "carlos", "password": "set", "encryption": "LUKS"}
 	picks["browser"], picks["login-shell"] = "firefox", "fish"
 	mk := func() model { m := newModel(); m.w, m.h, m.enterPos, m.state = 112, 42, 1, "wizard"; return m }
 	at := func(m *model, key string) { m.idx = flowIndex(m.flow, key) }
@@ -4084,11 +4059,31 @@ func snapshot() {
 	show("alongside: review with reclaimed leftovers", m)
 
 	m = mk()
-	at(&m, "password") // user password
+	at(&m, "administrator")
 	m.picks = picks
 	m.loadStep()
-	m.enterPos, m.input = 1, "Hunter2!"
-	show("user password (+ strength)", m)
+	m.accounts.adminName, m.accounts.adminFullName = "carlos", "Carlos Rivera"
+	m.accounts.adminField, m.accounts.adminPassword = 2, "Hunter2!"
+	m.enterPos = 1
+	show("administrator account", m)
+
+	m = mk()
+	at(&m, "root-account")
+	m.picks = picks
+	m.loadStep()
+	m.enterPos = 1
+	show("root account (locked, recommended)", m)
+
+	m = mk()
+	at(&m, "other-people")
+	m.picks = picks
+	m.accounts.people = []installerAccount{
+		{Name: "alex", Role: accountRoleAdmin},
+		{Name: "jo", Role: accountRoleStandard},
+	}
+	m.loadStep()
+	m.enterPos = 1
+	show("other people", m)
 
 	m = mk()
 	m.picks, m.state, m.doneSel = picks, "done", 0

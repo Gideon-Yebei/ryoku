@@ -128,7 +128,7 @@ out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
   bash "$root/installation/backend/ryoku-install" 2>&1)" || fail "default product-choice dry run exited nonzero: $out"
 grep -qF 'DRYRUN: set firefox as the default web browser' <<<"$out" \
   || fail "the empty browser choice did not default to firefox"
-grep -qF 'useradd -m -G wheel,video,input -s /usr/bin/fish ryoku' <<<"$out" \
+grep -qF 'useradd -M -U -d /home/ryoku -s /usr/bin/fish -G wheel,input,video ryoku' <<<"$out" \
   || fail "the empty login-shell choice did not create the user with fish"
 grep -qF 'DRYRUN: write /mnt/home/ryoku/.local/state/ryoku/default-rice-pending:' <<<"$out" \
   || fail "the first-boot default-rice marker write was not narrated"
@@ -149,7 +149,7 @@ out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
   bash "$root/installation/backend/ryoku-install" 2>&1)" || fail "chromium/zsh dry run exited nonzero: $out"
 grep -qF 'DRYRUN: set chromium as the default web browser' <<<"$out" \
   || fail "RYOKU_BROWSER=chromium did not narrate chromium"
-grep -qF 'useradd -m -G wheel,video,input -s /usr/bin/zsh ryoku' <<<"$out" \
+grep -qF 'useradd -M -U -d /home/ryoku -s /usr/bin/zsh -G wheel,input,video ryoku' <<<"$out" \
   || fail "RYOKU_LOGIN_SHELL=zsh did not reach useradd"
 ledger="$(grep -F 'DRYRUN: seed /mnt/home/ryoku/.local/state/ryoku/provisioned with the dropped packages' <<<"$out" | tail -n1)"
 [[ -n $ledger ]] || fail "the drop list did not narrate provisioning-ledger seeding"
@@ -166,7 +166,7 @@ for shell in fish zsh bash; do
   out="$(RYOKU_DRYRUN=1 RYOKU_REPO="$root" RYOKU_DISK=/dev/vda \
     RYOKU_PASSWORD_HASH='$6$fake$hash' RYOKU_DISK_STRATEGY=whole RYOKU_LOGIN_SHELL="$shell" \
     bash "$root/installation/backend/ryoku-install" 2>&1)" || fail "$shell dry run exited nonzero: $out"
-  grep -qF "useradd -m -G wheel,video,input -s /usr/bin/$shell ryoku" <<<"$out" \
+  grep -qF "useradd -M -U -d /home/ryoku -s /usr/bin/$shell -G wheel,input,video ryoku" <<<"$out" \
     || fail "$shell did not reach useradd"
 done
 

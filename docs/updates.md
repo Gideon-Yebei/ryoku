@@ -283,6 +283,12 @@ compositor; `ryoku-bootstrap` (a systemd user unit ordered before niri, a runit
 user service on Void) covers the same condition for sessions that start without
 the wrapper.
 
+`/etc/skel` does not need a copy of the desktop tree. A newly-created home may
+contain only the edition's skeleton files: the session wrapper runs
+`materialize` under that account's UID, so every path it creates in the home is
+user-owned. Installer-created extra accounts and accounts added later in Ryoku
+Hub therefore take the same first-login path on every edition and compositor.
+
 ## user_edits: your edits, kept apart
 
 Ryoku-owned config and user edits live in separate trees, so an update refreshes

@@ -38,9 +38,9 @@ that contract is documented in `../backend/README.md`.
 The wizard (`steps()` in `main.go`) walks these steps in order:
 
 `keyboard -> locale -> timezone -> network -> hardware -> profile -> gpu ->
-compositor -> browser -> login-shell -> apps -> diskpick (target disk) ->
-disk (strategy) -> partitions (layout) -> hostname -> username -> password ->
-encryption -> review`
+compositor -> browser -> login-shell -> file-manager -> Rashin -> apps ->
+diskpick (target disk) -> disk (strategy) -> partitions (layout) -> hostname ->
+administrator account -> root account -> other people -> encryption -> review`
 
 `system.go` reads `/usr/share/ryoku/variant` before the wizard is built. The
 Arch flow picks Hyprland or niri, Firefox, Chromium, Zen, or none, and Fish, Zsh, or
@@ -55,6 +55,14 @@ hybrid iGPU + dGPU laptop, and the pickers fall back to a small built-in list
 when the live tools return nothing, so the wizard renders anywhere. `review` is
 the last safe point; nothing is written until it launches the backend, whose
 streamed output drives the install screen and its staged rows.
+
+The administrator screen collects the first user's login name, optional full
+name, and password. That account always has administrator access and owns the
+installed desktop. Root is locked by default, or can receive a separate
+password. The optional Other people screen adds and removes Administrator or
+Standard accounts before Review. Passwords are hashed in-process; additional
+accounts are handed to the backend as a private six-field TSV under
+`/run/ryoku-installer`.
 
 ## Safety gates
 
@@ -148,11 +156,13 @@ swap, the alongside free-space floor, the wipe-confirm plumbing);
 `done_test.go` covers the done-screen exit action; `password_test.go` covers the
 sha512-crypt hash the whole install hangs on (the published vectors, the block
 boundaries, the shape `chpasswd -e` needs, a fresh salt per call, and agreement
-with `crypt(3)` where a Perl is around to reach it); `apps_test.go` covers the
-product choices (ordered browser and login-shell choices, their defaults,
-required rows refusing to toggle, and `installEnv` carrying `RYOKU_BROWSER`,
-`RYOKU_LOGIN_SHELL`, and every losing browser, shell stack, and deselected app
-in `RYOKU_DROP_PACKAGES`).
+with `crypt(3)` where a Perl is around to reach it); `accounts_test.go` covers
+name validation, duplicate and reserved-name rejection, root mode, and the
+environment/TSV handoff; `apps_test.go` covers the product choices (ordered
+browser and login-shell choices, their defaults, required rows refusing to
+toggle, and `installEnv` carrying `RYOKU_BROWSER`, `RYOKU_LOGIN_SHELL`, and
+every losing browser, shell stack, and deselected app in
+`RYOKU_DROP_PACKAGES`).
 
 The shell package policy is exact. Fish keeps `fish`; Zsh keeps `zsh`,
 `zsh-autosuggestions`, `zsh-history-substring-search`,

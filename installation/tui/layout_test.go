@@ -162,11 +162,11 @@ func TestBoxLinesPadsAndTruncates(t *testing.T) {
 // and the clamp then cut off the card's title and the step being asked.
 func TestShortGridScrollsTheRail(t *testing.T) {
 	for _, sz := range [][2]int{{80, 24}, {80, 25}, {100, 24}} {
-		for _, key := range []string{"keyboard", "rashin", "username"} {
+		for _, key := range []string{"keyboard", "rashin", "administrator"} {
 			m := wizardAt(key, sz[0], sz[1])
 			got := stripSGR(m.fittedFrame())
 			for _, want := range []string{m.cur().title, "install steps", key} {
-				if !strings.Contains(got, want) {
+				if !strings.Contains(strings.ToLower(got), strings.ToLower(want)) {
 					t.Errorf("%s at %dx%d dropped %q", key, sz[0], sz[1], want)
 				}
 			}
