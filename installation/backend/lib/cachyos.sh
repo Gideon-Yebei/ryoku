@@ -306,7 +306,7 @@ ryoku_cachyos_layer() {
 ryoku_cachyos_layer_helper() {
   local name=$1 source="$RYOKU_REPO/system/extras/$1" target="/root/$1" rc=0
   if [[ -x /mnt/usr/bin/$name ]]; then
-    run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "/usr/bin/$name"
+    run arch-chroot /mnt env -u RYOKU_PACMAN_CONF XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "/usr/bin/$name"
     return
   fi
   if [[ ! -x $source ]]; then
@@ -316,7 +316,7 @@ ryoku_cachyos_layer_helper() {
   if ! run cp "$source" "/mnt$target" || ! run chmod 755 "/mnt$target"; then
     return 1
   fi
-  run arch-chroot /mnt env XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "$target" || rc=$?
+  run arch-chroot /mnt env -u RYOKU_PACMAN_CONF XDG_RUNTIME_DIR=/tmp RYOKU_PRIVILEGE_COMMAND= "$target" || rc=$?
   run rm -f "/mnt$target"
   return "$rc"
 }

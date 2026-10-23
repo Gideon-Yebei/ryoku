@@ -14,7 +14,7 @@ if [[ -n $manager && $manager != pacman ]]; then
   exit 5
 fi
 
-conf=${RYOKU_PACMAN_CONF:-/etc/pacman.conf}
+conf=${RYOKU_PKG_CACHYOS_CONF:-/etc/pacman.conf}
 privilege_command=${RYOKU_PRIVILEGE_COMMAND-sudo}
 ld_linux=${RYOKU_LD_LINUX:-/lib/ld-linux-x86-64.so.2}
 key=F3B607488DB35A47

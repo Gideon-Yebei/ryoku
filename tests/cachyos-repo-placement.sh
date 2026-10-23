@@ -28,8 +28,11 @@ chmod +x "$tmp/bin"/*
 
 run_helper() {
   local conf=$1
+  # The installer exports its host-side offline config under
+  # RYOKU_PACMAN_CONF. The target helper must ignore that leaked path.
   PATH="$tmp/bin:$PATH" XDG_RUNTIME_DIR="$tmp/runtime" \
-    RYOKU_PACMAN_CONF="$conf" RYOKU_PRIVILEGE_COMMAND='' \
+    RYOKU_PACMAN_CONF=/nonexistent/offline.conf \
+    RYOKU_PKG_CACHYOS_CONF="$conf" RYOKU_PRIVILEGE_COMMAND='' \
     RYOKU_LD_LINUX="$tmp/bin/ld-linux" RYOKU_TEST_CALLS="$tmp/pacman.calls" \
     "$helper" >/dev/null
 }
