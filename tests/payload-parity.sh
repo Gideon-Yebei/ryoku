@@ -281,8 +281,8 @@ adapter_entry() {
     *:usr/lib/systemd/*|*:usr/lib/tmpfiles.d/ryoku.conf|*:usr/share/ryoku/config/systemd/*|\
     *:usr/share/ryoku/palette-bridge/packaging/systemd/*|\
     *:usr/lib/environment.d/99-ryoku-session.conf|\
-    *:usr/lib/ryoku/runit/*|*:etc/sv/*|*:etc/profile.d/ryoku-environment-d.sh|\
-    *:etc/sudoers.d/ryoku-service-health)
+    *:usr/lib/ryoku/runit/*|*:etc/sv/*|*:etc/skel/.config/service/*|\
+    *:etc/profile.d/ryoku-environment-d.sh|*:etc/sudoers.d/ryoku-service-health)
       return 1
       ;;
     *:usr/share/libalpm/*|*:usr/share/ryoku/packages/void.tsv|*:usr/share/ryoku/packages/fedora.tsv|\

@@ -90,7 +90,7 @@ ryoku_account_add_plan() {
   # Every desktop account needs raw input/uinput and panel-backlight access.
   # Keep them in the typed devices permission so admin and standard users match.
   if [[ ,$permissions, != *,devices,* ]]; then
-    permissions=${permissions:+$permissions,}devices
+    permissions=devices${permissions:+,$permissions}
   fi
   ryoku_account_validate_username "$name"
   [[ $full_name != *:* && $full_name != *$'\n'* && $full_name != *$'\r'* && $full_name != *$'\t'* ]] \
