@@ -149,6 +149,10 @@
   the other plugin packages.
 
 ### Fixed
+- **The Arch build host has Qt Quick 3D for `ryoku-blobs`.** Ryoku.Spatial3D
+  compiles against it, and `makepkg --nodeps` ignores the recipe's own
+  makedepends, so the `[ryoku]` build stopped at that package
+  (`repo/build-toolchain.packages`).
 - **Desktop services reach every account, not only the installer account.**
   Systemd installs shell, wallpaper, idle, clamshell, Bluetooth and optional
   Rashin units system-wide and enables their required user services globally.
