@@ -11,6 +11,10 @@
   (`quickshell/shell/modules/stage/StageSpatialScene.qml`,
   `quickshell/shell/modules/desktop/Desktop.qml`,
   `quickshell/shell/modules/stage/StageBackdrop.qml`).
+- **Bluetooth connections stop showing as pending after they finish.** Link
+  commands now return when BlueZ reports the connection instead of waiting out
+  bluetoothctl's command timeout. Pairing keeps a separate safety bound for a
+  device that stops responding. Covered by `tests/bluetooth-link.sh`.
 - **Folder icons follow the palette on every system.** The folder colour now
   tracks the Material primary of the wallpaper or fixed theme and updates
   straight after the shell writes its palette, even with app theming off;

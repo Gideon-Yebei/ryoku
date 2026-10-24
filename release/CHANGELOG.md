@@ -149,6 +149,9 @@
   the other plugin packages.
 
 ### Fixed
+- **Fedora applies Bluetooth tuning during the package transaction.** The
+  desktop RPM now restarts a running Bluetooth service after tuning BlueZ, as
+  the Arch, CachyOS, and Void package hooks already do.
 - **The CachyOS ISO is advisory to the publish gate, like the other ISOs.** The
   gate's advisory list named it `Build CachyOS ISO` while the workflow is
   `Build ISO (CachyOS)`, so a failed CachyOS image held every publisher of the
