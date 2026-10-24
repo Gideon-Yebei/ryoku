@@ -616,10 +616,41 @@ cmd_depth_remove() {
 
 cmd_depth() {
     local in="" out="" model="small"
-    while [[ ${1:-} == --model ]]; do model="$(depth_norm "${2:-small}")"; shift 2; done
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        --model)
+            [[ $# -ge 2 ]] || {
+                printf 'ryostage: --model needs an id\n' >&2
+                return 2
+            }
+            model="$(depth_norm "$2")"
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            printf 'ryostage: unknown option %s\n' "$1" >&2
+            return 2
+            ;;
+        *)
+            if [[ -z $in ]]; then
+                in="$1"
+            elif [[ -z $out ]]; then
+                out="$1"
+            else
+                printf 'ryostage: unexpected argument %s\n' "$1" >&2
+                return 2
+            fi
+            shift
+            ;;
+        esac
+    done
+    [[ -z $in && $# -gt 0 ]] && { in="$1"; shift; }
+    [[ -z $out && $# -gt 0 ]] && { out="$1"; shift; }
     depth_is_curated "$model" || model="small"
-    in="${1:-}"; out="${2:-}"
-    if [[ -z $in || -z $out ]]; then
+    if [[ -z $in || -z $out || $# -gt 0 ]]; then
         printf 'usage: ryostage depth <in> <out.png> [--model <id>]\n' >&2
         return 2
     fi

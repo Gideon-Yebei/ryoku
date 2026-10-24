@@ -25,23 +25,33 @@ Item {
         && StageSession.onMonitor(pick.monitor)
     property point cursor: Qt.point(-1, -1)
     property real sample: -1
-    property bool commitPending: false
 
     opacity: pick.on ? 1 : 0
     visible: opacity > 0
     enabled: pick.on
     Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
-    function request(mx, my, commit) {
+    function receiveSample(text, commitSample) {
+        const value = parseFloat(("" + text).trim());
+        if (!isFinite(value) || value < 0 || value > 1)
+            return;
+        pick.sample = value;
+        if (commitSample)
+            pick.commit(StageSession.depthPick, value);
+    }
+
+    function request(mx, my, commitSample) {
         if (pick.wallPath === "" || pick.width < 2 || pick.height < 2)
             return;
         pick.cursor = Qt.point(Math.max(0, Math.min(pick.width - 1, mx)),
             Math.max(0, Math.min(pick.height - 1, my)));
-        sampleProc.command = ["ryoku-shell", "stage", "depth-sample", pick.wallPath,
+        const proc = commitSample ? commitProc : sampleProc;
+        proc.running = false;
+        proc.command = ["ryoku-shell", "stage", "depth-sample", pick.wallPath,
             "" + (pick.cursor.x / pick.width), "" + (pick.cursor.y / pick.height),
             "" + Math.round(pick.width), "" + Math.round(pick.height),
             pick.cover ? "Cover" : "Fill"];
-        sampleProc.running = true;
+        proc.running = true;
     }
 
     function commit(dest, value) {
@@ -63,16 +73,14 @@ Item {
     Process {
         id: sampleProc
         stdout: StdioCollector {
-            onStreamFinished: {
-                const line = ("" + this.text).trim();
-                const value = parseFloat(line);
-                if (!isFinite(value) || value < 0 || value > 1)
-                    return;
-                pick.sample = value;
-                if (pick.commitPending)
-                    pick.commit(StageSession.depthPick, value);
-                pick.commitPending = false;
-            }
+            onStreamFinished: pick.receiveSample(this.text, false)
+        }
+    }
+
+    Process {
+        id: commitProc
+        stdout: StdioCollector {
+            onStreamFinished: pick.receiveSample(this.text, true)
         }
     }
 

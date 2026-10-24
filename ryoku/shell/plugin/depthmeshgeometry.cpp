@@ -59,6 +59,9 @@ struct ImagePlane {
         image = loaded.convertToFormat(format);
         if (image.isNull())
             return false;
+        if (image.width() < 2 || image.height() < 2
+            || !std::isfinite(outputAspect) || outputAspect <= 0.0f)
+            return false;
         wide = image.format() == QImage::Format_Grayscale16;
 
         const float aspect = float(image.width()) / float(image.height());
