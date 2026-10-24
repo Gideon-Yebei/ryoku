@@ -24,7 +24,7 @@ snapper-cleanup	system	on-demand	snapper-cleanup.timer	snapper-cleanup	preserve
 ryoku-bootstrap	user	session-global	ryoku-bootstrap.service	ryoku-bootstrap	none
 ryogami	user	session-global	ryogami.service	ryogami	none
 ryoku-shell	user	session-global	ryoku-shell.service	ryoku-shell	none
-ryoku-palette-bridge	user	session	ryoku-palette-bridge.service	ryoku-palette-bridge	preserve
+ryoku-palette-bridge	user	on-demand	ryoku-palette-bridge.service	ryoku-palette-bridge	preserve
 ryoku-idle	user	session-global	ryoku-idle.service	ryoku-idle	none
 ryoku-clamshell	user	session-global	ryoku-clamshell.service	ryoku-clamshell	none
 ryoku-ai-usage	user	session-global	ryoku-ai-usage.timer	ryoku-ai-usage	none

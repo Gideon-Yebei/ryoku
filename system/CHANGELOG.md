@@ -1,6 +1,11 @@
 # Changelog: system/
 
 ## Unreleased
+- **Palette Bridge starts only when requested.** Its shared service activation
+  policy is on-demand, so installing the runtime does not start or enable it
+  automatically. Existing manual service choices remain untouched by service
+  reconciliation (`services/manifest.tsv`).
+
 - **User changes have a narrow administrator authorization.** `pkexec` selects
   `dev.ryoku.users.manage` only when `/usr/bin/ryoku-host` receives `users` as
   its first argument, keeps a successful administrator authentication for the
