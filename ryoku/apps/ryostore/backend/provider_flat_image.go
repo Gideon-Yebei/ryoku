@@ -146,7 +146,12 @@ func (p flatImageProvider) Remove(_ context.Context, id string) error {
 }
 
 // picturesHome mirrors the Hub singletons that resolve these galleries under
-// ~/Pictures, so an installed image lands exactly where the surface reads it.
+// the Pictures folder (Paths.picturesDir), so an installed image lands exactly
+// where the surface reads it. A localized desktop keeps that folder in
+// ~/Imágenes, ~/Bilder and so on; the session exports it as XDG_PICTURES_DIR.
 func picturesHome() string {
+	if d := os.Getenv("XDG_PICTURES_DIR"); d != "" {
+		return d
+	}
 	return filepath.Join(os.Getenv("HOME"), "Pictures")
 }

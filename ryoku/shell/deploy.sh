@@ -1232,7 +1232,7 @@ install -Dm644 "$here/../wayfire/wayfire-portals.conf" "$cfg/xdg-desktop-portal/
 
 # Seed the decor art beside wallpapers and livewalls. Missing-only keeps local
 # replacements and additions intact across deploys.
-decordir="$HOME/Pictures/ryodecors"
+decordir="${XDG_PICTURES_DIR:-$HOME/Pictures}/ryodecors"
 mkdir -p "$decordir"
 for f in "$here/../assets/ryodecors"/*; do
   [[ -e $f ]] || continue

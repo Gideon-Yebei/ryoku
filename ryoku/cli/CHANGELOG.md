@@ -77,6 +77,12 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **Doctor seeds the decor art into the localized Pictures folder.** On a
+  desktop whose Pictures folder is `~/Imágenes`, `~/Bilder` and so on, the
+  decor reconciler recreated an English `~/Pictures/ryodecors` on every run, so
+  deleting the stray folder never stuck. It now follows `XDG_PICTURES_DIR`,
+  then `user-dirs.dirs`, and falls back to `~/Pictures` only when neither names
+  one (`internal/sys/paths.go`, `internal/doctor/doctor.go`).
 - **Doctor removes Stage Editor keys retired by the widget settings update.**
   Existing `stage-editor.json` files kept fourteen settings whose controls and
   readers were removed, so Stage reported them after every shell restart.

@@ -153,6 +153,9 @@
   The mask now follows the Dock's actual scene rectangle both on the desktop
   and inside the Stage Editor card
   (`quickshell/inir/modules/iris/dock/IrisDockSurface.qml`).
+- **`deploy.sh` seeds the decor art into the localized Pictures folder.** The
+  dev deploy copied the shipped decor art into a hardcoded `~/Pictures/ryodecors`;
+  it now uses `XDG_PICTURES_DIR` when the session exports it (`deploy.sh`).
 - **Shima caught up with its upstream fixes.** Spotlight no longer reshuffles
   while you type and keeps a query passed over IPC, wallpaper shuffle and fill
   mode follow Ryogami, the music bubble and battery glyph match upstream, and

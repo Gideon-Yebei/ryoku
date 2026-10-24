@@ -3688,7 +3688,7 @@ func reconcileBrandLogo(checkOnly bool) recResult {
 	return fixedRes(i18n.T("cleared the broken brand image (%s); the mark falls back to the text seal"), img)
 }
 
-// ---- reconciler: decor art (Pictures/ryodecors) ------------------------------
+// ---- reconciler: decor art (<Pictures>/ryodecors) ----------------------------
 
 // ryodecorsSource is where the shipped decor art set lives: the repo checkout on
 // a dev box (ryoku deploy records it), else /usr/share/ryoku/ryodecors from the
@@ -3706,8 +3706,8 @@ func ryodecorsSource() string {
 	return ""
 }
 
-// reconcileRyodecors keeps the shipped decor art present in ~/Pictures/ryodecors,
-// the folder the Decor and Placard components render from (beside Wallpapers and
+// reconcileRyodecors keeps the shipped decor art present in <Pictures>/ryodecors
+// (~/Pictures, or the localized XDG folder such as ~/Imágenes), the folder the Decor and Placard components render from (beside Wallpapers and
 // livewalls). The installer seeds it on a fresh install; this delivers it -- and
 // any art a later release adds -- to a box that updated before it shipped, or one
 // where a file went missing. Missing-only: a file the user swapped or added is
@@ -3721,7 +3721,7 @@ func reconcileRyodecors(checkOnly bool) recResult {
 	if err != nil {
 		return okRes(i18n.T("decor art source unreadable (%v)"), err)
 	}
-	dst := filepath.Join(sys.Home(), "Pictures", "ryodecors")
+	dst := filepath.Join(sys.PicturesDir(), "ryodecors")
 	var missing []string
 	for _, e := range entries {
 		if e.IsDir() {
