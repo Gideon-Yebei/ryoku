@@ -173,8 +173,8 @@ func TestCatalogueParity(t *testing.T) {
 	if custom != 0 {
 		t.Errorf("custom rows on an empty store = %d, want 0", custom)
 	}
-	if len(rows) < 98 {
-		t.Errorf("legend rows = %d, want >= 98", len(rows))
+	if len(rows) < 99 {
+		t.Errorf("legend rows = %d, want >= 99", len(rows))
 	}
 
 	// Every id named in hyprUnhonored must actually be unhonored, so a stale

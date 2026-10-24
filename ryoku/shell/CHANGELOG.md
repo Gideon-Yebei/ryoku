@@ -113,6 +113,12 @@
   in `shell.json`, while store designs that declare their own placement keep
   control of placement. The click-away area follows the panel in every position
   (`ipc/settings.go`, `quickshell/shell/{modules/sidebar,services/}`).
+- **Super+Shift+D opens the Stage Editor on the focused screen.** The shortcut
+  joins the shared, rebindable key catalogue and opens the Widgets catalogue, so
+  it appears in Kit and works through every window-manager provider. The same
+  route is discoverable in Kit's command catalogue
+  (`../wm/binds.go`, `../wm/*/config_binds.go`,
+  `../hyprland/modules/binds.lua`, `quickshell/keys/commands/catalog/ryoku-cli.json`).
 - **The desktop stage is one feature now: Plain, Depth or Parallax, with a
   3D depth mesh.** Depth renders the wallpaper as a depth-displaced mesh
   that follows the pointer and needs no cut; Parallax keeps the drifting

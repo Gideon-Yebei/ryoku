@@ -62,6 +62,10 @@ The quick row contains **Wallpaper** and **Search**. The single accent row,
 clicked. Quick controls opens the left sidebar, Settings opens Hub, and Reload
 shell reloads the shell.
 
+`Super+Shift+D` opens the Widgets catalogue directly on the focused monitor.
+The shortcut is shared, appears in Kit, and can be changed from the Keybinds
+page.
+
 Plain, Depth, and Parallax are chosen from the Stage Editor's Depth catalogue:
 
 - Plain: `set-effect off`.
@@ -298,10 +302,11 @@ qs -c shell ipc call desktop editSection <section>[/<page>] [monitor]
 
 It opens the editor on catalogues such as `visualizer`, `depth`, `wallpaper`,
 or `wallpaper/wallpapers`, using the focused monitor when none is supplied.
-`editWidgets` is an alias for `editSection widgets`. The `visualizer place`
-command and `Super+Alt+M` use the same session path with section
-`visualizer`. When the editor is already open on that monitor, another request
-switches its catalogue in place.
+`ryoku-shell hub open widgets` and its `Super+Shift+D` shortcut use that route
+for the Widgets catalogue. `editWidgets` is an alias for `editSection widgets`.
+The `visualizer place` command and `Super+Alt+M` use the same session path with
+section `visualizer`. When the editor is already open on that monitor, another
+request switches its catalogue in place.
 
 Entering the session opens the chrome through `StageEditorHost`; leaving either
 side closes the other. `escapeStep()` unwinds the panel, the selection, and the
