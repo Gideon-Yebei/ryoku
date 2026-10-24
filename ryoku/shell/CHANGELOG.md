@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **Bar controls start with a complete compositor capability set.** Every
+  capability is now false until the provider's first frame arrives, so QS Bar
+  and the other styles hide unavailable controls cleanly instead of binding an
+  undefined value during first paint (`../ui/Singletons/Wm.qml`).
 - **Python media widgets load album covers again.** The artwork helper now
   loads the cache initializer from the port's scripts directory and stops if
   initialization cannot be loaded, instead of attempting to write under `/covers`.
