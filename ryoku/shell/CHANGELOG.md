@@ -16,6 +16,11 @@
   licences: Apache-2.0 for Small and non-commercial CC-BY-NC-4.0 for Base and
   Large (`ipc/stage.go`, `scripts/ryostage`,
   `quickshell/shell/modules/stage/StageDepthOptions.qml`).
+- **Depth and matte stay registered with stretched wallpapers.** Fill now
+  stretches the texture, depth, matte, and depth picker alike; the 3D mesh
+  builds off the UI thread with shared indexed vertices and a hard detail cap,
+  and no longer allocates a full-screen MSAA render target
+  (`plugin/depthmeshgeometry.*`, `quickshell/shell/modules/stage/StageSpatialScene.qml`).
 - **CachyOS is reported as CachyOS.** `ryoku-base-os` now returns the
   distribution from `/etc/os-release`, so Fastfetch says "a hand-built CachyOS
   desktop" instead of treating every pacman host as Arch

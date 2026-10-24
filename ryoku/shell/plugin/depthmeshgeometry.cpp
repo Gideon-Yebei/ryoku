@@ -3,6 +3,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QMetaObject>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QVector3D>
 
 #include <algorithm>
@@ -19,8 +20,8 @@ namespace {
 constexpr int kColumns = 321;
 constexpr int kRows = 181;
 constexpr int kRefine = 4;
-constexpr int kFineColumns = (kColumns - 1) * kRefine + 1;
-constexpr int kFineRows = (kRows - 1) * kRefine + 1;
+constexpr int kCellCount = (kColumns - 1) * (kRows - 1);
+constexpr int kMaxVertices = 400000;
 constexpr double kFarDistance = 3.3;
 constexpr double kDepthSpan = 0.8;
 constexpr double kNearScale = 0.8;
@@ -42,13 +43,9 @@ QString localPath(const QUrl &url)
 
 struct ImagePlane {
     QImage image;
-    int cropX = 0;
-    int cropY = 0;
-    int cropW = 0;
-    int cropH = 0;
     bool wide = false;
 
-    bool load(const QUrl &url, QImage::Format format, float outputAspect)
+    bool load(const QUrl &url, QImage::Format format)
     {
         const QString path = localPath(url);
         if (path.isEmpty())
@@ -57,25 +54,9 @@ struct ImagePlane {
         if (loaded.isNull())
             return false;
         image = loaded.convertToFormat(format);
-        if (image.isNull())
-            return false;
-        if (image.width() < 2 || image.height() < 2
-            || !std::isfinite(outputAspect) || outputAspect <= 0.0f)
+        if (image.isNull() || image.width() < 2 || image.height() < 2)
             return false;
         wide = image.format() == QImage::Format_Grayscale16;
-
-        const float aspect = float(image.width()) / float(image.height());
-        if (aspect > outputAspect) {
-            cropH = image.height();
-            cropW = int(std::lround(image.height() * outputAspect));
-            cropX = (image.width() - cropW) / 2;
-        } else {
-            cropW = image.width();
-            cropH = int(std::lround(image.width() / outputAspect));
-            cropY = (image.height() - cropH) / 2;
-        }
-        cropW = std::clamp(cropW, 2, image.width());
-        cropH = std::clamp(cropH, 2, image.height());
         return true;
     }
 
@@ -89,10 +70,10 @@ struct ImagePlane {
 
     float at(float u, float v) const
     {
-        const float fx = cropX + u * (cropW - 1);
-        const float fy = cropY + v * (cropH - 1);
-        const int x0 = std::clamp(int(std::floor(fx)), 0, image.width() - 1);
-        const int y0 = std::clamp(int(std::floor(fy)), 0, image.height() - 1);
+        const float fx = std::clamp(u, 0.0f, 1.0f) * (image.width() - 1);
+        const float fy = std::clamp(v, 0.0f, 1.0f) * (image.height() - 1);
+        const int x0 = int(std::floor(fx));
+        const int y0 = int(std::floor(fy));
         const int x1 = std::min(x0 + 1, image.width() - 1);
         const int y1 = std::min(y0 + 1, image.height() - 1);
         const float tx = fx - x0;
@@ -101,6 +82,16 @@ struct ImagePlane {
         const float bottom = read(x0, y1) * (1.0f - tx) + read(x1, y1) * tx;
         return top * (1.0f - ty) + bottom * ty;
     }
+};
+
+struct UvMapping {
+    float scaleU = 1.0f;
+    float scaleV = 1.0f;
+    float offsetU = 0.0f;
+    float offsetV = 0.0f;
+
+    float u(float value) const { return offsetU + value * scaleU; }
+    float v(float value) const { return offsetV + value * scaleV; }
 };
 
 float maskAt(const std::vector<float> &mask, float u, float v)
@@ -159,6 +150,25 @@ void blur(std::vector<float> &mask)
 }
 
 } // namespace
+struct DepthMeshGeometry::BuildRequest {
+    QUrl depthPath;
+    QUrl mattePath;
+    float imageZoom;
+    float outputAspect;
+    float sourceAspect;
+    FitMode fitMode;
+};
+
+struct DepthMeshGeometry::MeshData {
+    QByteArray vertices;
+    QByteArray indices;
+    QVector3D minimum;
+    QVector3D maximum;
+    float focusDistance = 0.0f;
+    float backgroundDistance = 0.0f;
+    bool valid = false;
+};
+
 
 DepthMeshGeometry::DepthMeshGeometry(QQuick3DObject *parent)
     : QQuick3DGeometry(parent)
@@ -167,6 +177,7 @@ DepthMeshGeometry::DepthMeshGeometry(QQuick3DObject *parent)
     setPrimitiveType(PrimitiveType::Triangles);
     addAttribute(Attribute::PositionSemantic, offsetof(Vertex, x), Attribute::F32Type);
     addAttribute(Attribute::TexCoord0Semantic, offsetof(Vertex, u), Attribute::F32Type);
+    addAttribute(Attribute::IndexSemantic, 0, Attribute::U32Type);
 }
 
 void DepthMeshGeometry::setDepthPath(const QUrl &path)
@@ -216,9 +227,19 @@ void DepthMeshGeometry::setSourceAspect(float aspect)
     emit sourceAspectChanged();
     scheduleRebuild();
 }
+void DepthMeshGeometry::setFitMode(FitMode mode)
+{
+    if (m_fitMode == mode)
+        return;
+    m_fitMode = mode;
+    emit fitModeChanged();
+    scheduleRebuild();
+}
+
 
 void DepthMeshGeometry::scheduleRebuild()
 {
+    ++m_generation;
     if (m_rebuildPending)
         return;
     m_rebuildPending = true;
@@ -238,14 +259,55 @@ void DepthMeshGeometry::setValid(bool valid)
 
 void DepthMeshGeometry::rebuild()
 {
+    if (m_buildRunning)
+        return;
+    m_buildRunning = true;
     setValid(false);
     setVertexData({});
+    setIndexData({});
 
+    const quint64 generation = m_generation;
+    const BuildRequest request{
+        m_depthPath,
+        m_mattePath,
+        m_imageZoom,
+        m_outputAspect,
+        m_sourceAspect,
+        m_fitMode,
+    };
+    QtConcurrent::run([request] {
+        return buildMesh(request);
+    }).then(this, [this, generation](MeshData mesh) {
+        m_buildRunning = false;
+        if (generation == m_generation)
+            applyMesh(generation, std::move(mesh));
+        else
+            rebuild();
+    });
+}
+
+DepthMeshGeometry::MeshData DepthMeshGeometry::buildMesh(const BuildRequest &request)
+{
+    MeshData mesh;
     ImagePlane depth;
-    if (!depth.load(m_depthPath, QImage::Format_Grayscale16, m_outputAspect))
-        return;
+    if (!depth.load(request.depthPath, QImage::Format_Grayscale16))
+        return mesh;
     ImagePlane matte;
-    const bool hasMatte = matte.load(m_mattePath, QImage::Format_Alpha8, m_outputAspect);
+    const bool hasMatte = matte.load(request.mattePath, QImage::Format_Alpha8);
+
+    UvMapping mapping;
+    if (request.fitMode == Crop) {
+        mapping.scaleU = std::min(1.0f, request.outputAspect / request.sourceAspect);
+        mapping.scaleV = std::min(1.0f, request.sourceAspect / request.outputAspect);
+        mapping.offsetU = (1.0f - mapping.scaleU) * 0.5f;
+        mapping.offsetV = (1.0f - mapping.scaleV) * 0.5f;
+    }
+    const auto depthAt = [&](float u, float v) {
+        return depth.at(mapping.u(u), mapping.v(v));
+    };
+    const auto matteAt = [&](float u, float v) {
+        return matte.at(mapping.u(u), mapping.v(v));
+    };
 
     std::vector<float> hole(kColumns * kRows, 0.0f);
     std::vector<float> filled(kColumns * kRows, kPivotDepth);
@@ -254,7 +316,7 @@ void DepthMeshGeometry::rebuild()
             for (int x = 0; x < kColumns; ++x) {
                 const float u = float(x) / float(kColumns - 1);
                 const float v = float(y) / float(kRows - 1);
-                hole[y * kColumns + x] = matte.at(u, v) > 24.0f / 255.0f ? 1.0f : 0.0f;
+                hole[y * kColumns + x] = matteAt(u, v) > 24.0f / 255.0f ? 1.0f : 0.0f;
             }
         }
         dilate(hole, 2);
@@ -271,7 +333,7 @@ void DepthMeshGeometry::rebuild()
                     continue;
                 const float u = float(x) / float(kColumns - 1);
                 const float v = float(y) / float(kRows - 1);
-                filled[i] = depth.at(u, v);
+                filled[i] = depthAt(u, v);
                 known[i] = 1;
                 background.push_back(filled[i]);
             }
@@ -328,12 +390,11 @@ void DepthMeshGeometry::rebuild()
             for (int x = 0; x < kColumns; ++x) {
                 const float u = float(x) / float(kColumns - 1);
                 const float v = float(y) / float(kRows - 1);
-                filled[y * kColumns + x] = depth.at(u, v);
+                filled[y * kColumns + x] = depthAt(u, v);
             }
         }
     }
 
-    // 0.5 is the map's pivot plane, the same value the widget ride uses.
     const float pivotDistance = float(kFarDistance - double(kPivotDepth) * kDepthSpan);
     const auto distanceAtDepth = [&](float value) {
         if (value >= kPivotDepth)
@@ -341,19 +402,76 @@ void DepthMeshGeometry::rebuild()
         return pivotDistance + (kPivotDepth - value) * float(kDepthSpan * kFarScale);
     };
     const auto sampleDepth = [&](float u, float v) {
-        const float value = depth.at(u, v);
+        const float value = depthAt(u, v);
         if (!hasMatte)
             return value;
         const float weight = std::clamp(maskAt(hole, u, v), 0.0f, 1.0f);
         return value * (1.0f - weight) + maskAt(filled, u, v) * weight;
     };
 
-    const float aspect = m_outputAspect;
-    const float cropU = std::min(1.0f, aspect / m_sourceAspect);
-    const float cropV = std::min(1.0f, m_sourceAspect / aspect);
-    const float offsetU = (1.0f - cropU) * 0.5f;
-    const float offsetV = (1.0f - cropV) * 0.5f;
-    const double tangent = std::tan(kFovDegrees * std::numbers::pi / 360.0);
+    std::vector<uint8_t> refineCell(kCellCount, 0);
+    int refineCount = 0;
+    const int finestColumns = (kColumns - 1) * kRefine + 1;
+    const int finestRows = (kRows - 1) * kRefine + 1;
+    for (int y = 0; y + 1 < kRows; ++y) {
+        for (int x = 0; x + 1 < kColumns; ++x) {
+            float cellMin = 1.0f;
+            float cellMax = 0.0f;
+            for (int sy = 0; sy <= kRefine; ++sy) {
+                for (int sx = 0; sx <= kRefine; ++sx) {
+                    const float u = float(x * kRefine + sx) / float(finestColumns - 1);
+                    const float v = float(y * kRefine + sy) / float(finestRows - 1);
+                    const float value = sampleDepth(u, v);
+                    cellMin = std::min(cellMin, value);
+                    cellMax = std::max(cellMax, value);
+                }
+            }
+            if (cellMax - cellMin > kRefineThreshold) {
+                refineCell[y * (kColumns - 1) + x] = 1;
+                ++refineCount;
+            }
+        }
+    }
+
+    int refinement = kRefine;
+    const qsizetype baseVertexCount = qsizetype(kColumns) * kRows;
+    while (refinement > 1) {
+        const qsizetype addedPerCell = (refinement + 1) * (refinement + 1) - 4;
+        if (baseVertexCount + qsizetype(refineCount) * addedPerCell <= kMaxVertices)
+            break;
+        refinement /= 2;
+    }
+    if (refinement == 1)
+        refineCount = 0;
+
+    const int fineColumns = (kColumns - 1) * refinement + 1;
+    const int fineRows = (kRows - 1) * refinement + 1;
+    const quint32 missing = std::numeric_limits<quint32>::max();
+    const quint32 pending = missing - 1;
+    std::vector<quint32> fineIndex(size_t(fineColumns) * fineRows, missing);
+    for (int y = 0; y < kRows; ++y)
+        for (int x = 0; x < kColumns; ++x)
+            fineIndex[size_t(y * refinement) * fineColumns + x * refinement]
+                = quint32(y * kColumns + x);
+
+    qsizetype vertexCapacity = baseVertexCount;
+    for (int y = 0; y + 1 < kRows; ++y) {
+        for (int x = 0; x + 1 < kColumns; ++x) {
+            if (refinement == 1 || !refineCell[y * (kColumns - 1) + x])
+                continue;
+            for (int sy = 0; sy <= refinement; ++sy) {
+                for (int sx = 0; sx <= refinement; ++sx) {
+                    quint32 &index = fineIndex[size_t(y * refinement + sy) * fineColumns
+                        + x * refinement + sx];
+                    if (index == missing) {
+                        index = pending;
+                        ++vertexCapacity;
+                    }
+                }
+            }
+        }
+    }
+
 
     float minX = std::numeric_limits<float>::max();
     float minY = minX;
@@ -362,16 +480,22 @@ void DepthMeshGeometry::rebuild()
     float maxY = maxX;
     float maxZ = maxX;
     double maximumDistance = 0.0;
+    const double tangent = std::tan(kFovDegrees * std::numbers::pi / 360.0);
 
-    const auto makeVertex = [&](float u, float v, float value) {
+    mesh.vertices = QByteArray(vertexCapacity * sizeof(Vertex), Qt::Uninitialized);
+    auto *vertices = reinterpret_cast<Vertex *>(mesh.vertices.data());
+    qsizetype vertexCount = 0;
+    const auto addVertex = [&](float u, float v, float value) {
+        if (vertexCount >= vertexCapacity)
+            return missing;
         const float distance = distanceAtDepth(value);
         maximumDistance = std::max(maximumDistance, double(distance));
         const Vertex vertex{
-            float((u * 2.0 - 1.0) * m_imageZoom * distance * tangent * aspect),
-            float((1.0 - v * 2.0) * m_imageZoom * distance * tangent),
+            float((u * 2.0 - 1.0) * request.imageZoom * distance * tangent * request.outputAspect),
+            float((1.0 - v * 2.0) * request.imageZoom * distance * tangent),
             -distance,
-            float(offsetU + u * cropU),
-            float(1.0f - offsetV - v * cropV)
+            mapping.u(u),
+            1.0f - mapping.v(v),
         };
         minX = std::min(minX, vertex.x);
         minY = std::min(minY, vertex.y);
@@ -379,90 +503,98 @@ void DepthMeshGeometry::rebuild()
         maxX = std::max(maxX, vertex.x);
         maxY = std::max(maxY, vertex.y);
         maxZ = std::max(maxZ, vertex.z);
-        return vertex;
+        vertices[vertexCount] = vertex;
+        return quint32(vertexCount++);
     };
 
-    std::array<Vertex, kColumns * kRows> vertices{};
     for (int y = 0; y < kRows; ++y) {
         for (int x = 0; x < kColumns; ++x) {
             const float u = float(x) / float(kColumns - 1);
             const float v = float(y) / float(kRows - 1);
-            vertices[y * kColumns + x] = makeVertex(u, v, sampleDepth(u, v));
+            addVertex(u, v, sampleDepth(u, v));
         }
     }
 
-    std::vector<Vertex> triangles;
-    triangles.reserve(size_t(kColumns - 1) * size_t(kRows - 1) * 6);
-    const auto append = [&](const Vertex &a, const Vertex &b, const Vertex &c) {
-        triangles.push_back(a);
-        triangles.push_back(b);
-        triangles.push_back(c);
+    const qsizetype indexCount = qsizetype(kCellCount - refineCount) * 6
+        + qsizetype(refineCount) * 6 * refinement * refinement;
+    mesh.indices = QByteArray(indexCount * sizeof(quint32), Qt::Uninitialized);
+    auto *indices = reinterpret_cast<quint32 *>(mesh.indices.data());
+    qsizetype indexCursor = 0;
+    const auto appendTriangle = [&](quint32 a, quint32 b, quint32 c) {
+        indices[indexCursor++] = a;
+        indices[indexCursor++] = b;
+        indices[indexCursor++] = c;
     };
+
+
 
     for (int y = 0; y + 1 < kRows; ++y) {
         for (int x = 0; x + 1 < kColumns; ++x) {
-            std::array<std::array<float, kRefine + 1>, kRefine + 1> cellDepth{};
-            float cellMin = 1.0f;
-            float cellMax = 0.0f;
-            for (int sy = 0; sy <= kRefine; ++sy) {
-                for (int sx = 0; sx <= kRefine; ++sx) {
-                    const float u = float(x * kRefine + sx) / float(kFineColumns - 1);
-                    const float v = float(y * kRefine + sy) / float(kFineRows - 1);
-                    const float value = sampleDepth(u, v);
-                    cellDepth[sy][sx] = value;
-                    cellMin = std::min(cellMin, value);
-                    cellMax = std::max(cellMax, value);
-                }
-            }
-
             const int tl = y * kColumns + x;
             const int tr = tl + 1;
             const int bl = tl + kColumns;
             const int br = bl + 1;
-            if (cellMax - cellMin <= kRefineThreshold) {
-                append(vertices[tl], vertices[bl], vertices[tr]);
-                append(vertices[tr], vertices[bl], vertices[br]);
+            const bool refined = refinement > 1 && refineCell[y * (kColumns - 1) + x];
+            if (!refined) {
+                appendTriangle(tl, bl, tr);
+                appendTriangle(tr, bl, br);
                 continue;
             }
 
-            std::array<Vertex, (kRefine + 1) * (kRefine + 1)> patch;
-            for (int sy = 0; sy <= kRefine; ++sy) {
-                for (int sx = 0; sx <= kRefine; ++sx) {
-                    const float u = float(x * kRefine + sx) / float(kFineColumns - 1);
-                    const float v = float(y * kRefine + sy) / float(kFineRows - 1);
-                    patch[sy * (kRefine + 1) + sx] = makeVertex(u, v, cellDepth[sy][sx]);
+            std::array<quint32, (kRefine + 1) * (kRefine + 1)> patch{};
+            for (int sy = 0; sy <= refinement; ++sy) {
+                for (int sx = 0; sx <= refinement; ++sx) {
+                    const int gx = x * refinement + sx;
+                    const int gy = y * refinement + sy;
+                    quint32 &index = fineIndex[size_t(gy) * fineColumns + gx];
+                    if (index == pending) {
+                        const float u = float(gx) / float(fineColumns - 1);
+                        const float v = float(gy) / float(fineRows - 1);
+                        index = addVertex(u, v, sampleDepth(u, v));
+                    }
+                    patch[sy * (kRefine + 1) + sx] = index;
                 }
             }
-            for (int sy = 0; sy < kRefine; ++sy) {
-                for (int sx = 0; sx < kRefine; ++sx) {
+            for (int sy = 0; sy < refinement; ++sy) {
+                for (int sx = 0; sx < refinement; ++sx) {
                     const int a = sy * (kRefine + 1) + sx;
                     const int b = a + 1;
                     const int c = a + kRefine + 1;
                     const int d = c + 1;
-                    append(patch[a], patch[c], patch[b]);
-                    append(patch[b], patch[c], patch[d]);
+                    appendTriangle(patch[a], patch[c], patch[b]);
+                    appendTriangle(patch[b], patch[c], patch[d]);
                 }
             }
         }
     }
 
-    if (triangles.empty())
+    if (vertexCount != vertexCapacity || vertexCount > kMaxVertices
+        || indexCursor != indexCount)
+        return {};
+    mesh.minimum = QVector3D(minX, minY, minZ);
+    mesh.maximum = QVector3D(maxX, maxY, maxZ);
+    mesh.backgroundDistance = float(maximumDistance + 0.25);
+    mesh.focusDistance = pivotDistance;
+    mesh.valid = true;
+    return mesh;
+}
+
+void DepthMeshGeometry::applyMesh(quint64 generation, MeshData mesh)
+{
+    if (generation != m_generation || !mesh.valid)
         return;
 
-    setVertexData(QByteArray(reinterpret_cast<const char *>(triangles.data()),
-        qsizetype(triangles.size() * sizeof(Vertex))));
-    setBounds(QVector3D(minX, minY, minZ), QVector3D(maxX, maxY, maxZ));
-
-    const float newBackgroundDistance = float(maximumDistance + 0.25);
-    if (std::abs(m_backgroundDistance - newBackgroundDistance) > 1e-5f) {
-        m_backgroundDistance = newBackgroundDistance;
+    setVertexData(mesh.vertices);
+    setIndexData(mesh.indices);
+    setBounds(mesh.minimum, mesh.maximum);
+    if (std::abs(m_backgroundDistance - mesh.backgroundDistance) > 1e-5f) {
+        m_backgroundDistance = mesh.backgroundDistance;
         emit backgroundDistanceChanged();
     }
-    if (std::abs(m_focusDistance - pivotDistance) > 1e-5f) {
-        m_focusDistance = pivotDistance;
+    if (std::abs(m_focusDistance - mesh.focusDistance) > 1e-5f) {
+        m_focusDistance = mesh.focusDistance;
         emit focusDistanceChanged();
     }
-
     setValid(true);
     update();
 }

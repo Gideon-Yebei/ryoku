@@ -16,7 +16,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Quick ShaderTools Multimedia Quick3D)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Concurrent Quick ShaderTools Multimedia Quick3D)
 find_package(Threads REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -61,11 +61,13 @@ qt_add_qml_module(ryoku-spatial3d
     URI Ryoku.Spatial3D
     VERSION 1.0
     OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml/Ryoku/Spatial3D"
+    DEPENDENCIES
+        QtQuick3D
     SOURCES
         depthmeshgeometry.cpp depthmeshgeometry.hpp
 )
 
-target_link_libraries(ryoku-spatial3d PRIVATE Qt6::Quick Qt6::Quick3D)
+target_link_libraries(ryoku-spatial3d PRIVATE Qt6::Concurrent Qt6::Quick Qt6::Quick3D)
 
 set_target_properties(ryoku-spatial3d ryoku-spatial3dplugin PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/qml/Ryoku/Spatial3D")

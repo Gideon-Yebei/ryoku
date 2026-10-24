@@ -61,16 +61,17 @@ Item {
         id: view
         anchors.fill: parent
         visible: root.ready
-        camera: camera
-        renderMode: View3D.Offscreen
+        camera: sceneCamera
+        // The mesh covers the viewport, so MSAA has no silhouette to improve.
+        // Inline avoids a full-output intermediate texture and its extra pass.
+        renderMode: View3D.Inline
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Transparent
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.Medium
+            antialiasingMode: SceneEnvironment.NoAA
         }
 
         PerspectiveCamera {
-            id: camera
+            id: sceneCamera
             fieldOfView: 42
             fieldOfViewOrientation: PerspectiveCamera.Vertical
             clipNear: 0.01
@@ -104,7 +105,8 @@ Item {
                 mattePath: root.mattePath
                 imageZoom: root.imageZoom
                 outputAspect: root.outputAspect
-                sourceAspect: root.stretch ? root.outputAspect : root.sourceAspect
+                sourceAspect: root.sourceAspect
+                fitMode: root.stretch ? DepthMeshGeometry.Stretch : DepthMeshGeometry.Crop
             }
             materials: CustomMaterial {
                 shadingMode: CustomMaterial.Unshaded
@@ -123,11 +125,11 @@ Item {
         const yaw = root.boundedPointer.x * Math.PI * 2.5 / 180 * gain
         const pitch = -root.boundedPointer.y * Math.PI * 1.8 / 180 * gain
         const radius = depthGeometry.focusDistance
-        camera.position = Qt.vector3d(
+        sceneCamera.position = Qt.vector3d(
             Math.sin(yaw) * Math.cos(pitch) * radius,
             Math.sin(pitch) * radius,
             root.focusZ + Math.cos(yaw) * Math.cos(pitch) * radius)
-        camera.lookAt(Qt.vector3d(0, 0, root.focusZ))
+        sceneCamera.lookAt(Qt.vector3d(0, 0, root.focusZ))
     }
     onBoundedPointerChanged: updateCamera()
     onMotionAmountChanged: updateCamera()

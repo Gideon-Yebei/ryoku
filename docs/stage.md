@@ -514,6 +514,16 @@ the backdrop picture, its camera orbiting the map's 0.5 pivot plane per the
 shared cursor; without a depth map it stays a flat plane and drifts only while
 `motion.backdrop` is above 0.
 
+Cover uses one centre-cropped UV mapping for the backdrop texture, depth map,
+matte, and depth picker. Fill stretches all four over the complete source.
+`DepthMeshGeometry` builds its adaptive indexed grid on a worker thread and
+publishes only the newest generation. Refined cells share vertices; a 400,000
+vertex ceiling lowers the global subdivision from 4x to 2x, then to the base
+grid when a highly detailed map would exceed it. The View3D renders inline
+without MSAA: the connected mesh covers the viewport, so it has no exposed
+triangle silhouette for multisampling to improve, while an offscreen pass
+would allocate a full-output intermediate texture.
+
 Then the layers marked behind the widgets (z 2, `StageLayer.qml`, also framed
 by `WallpaperFramedPlane`: edge, shadow and angle from the global look; in
 Parallax they drift by the layer's `depth` x the shared motion Amount x
