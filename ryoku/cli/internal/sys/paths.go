@@ -33,13 +33,32 @@ func ConfigHome() string { return Xdg("XDG_CONFIG_HOME", ".config") }
 // localized desktop keeps its pictures in ~/Imágenes, ~/Bilder and so on, and a
 // hardcoded ~/Pictures grows a second, empty folder beside the real one.
 func PicturesDir() string {
-	if d := os.Getenv("XDG_PICTURES_DIR"); d != "" {
+	if d := normalizePicturesDir(os.Getenv("XDG_PICTURES_DIR")); d != "" {
 		return d
 	}
 	if d := userDirsPictures(filepath.Join(ConfigHome(), "user-dirs.dirs")); d != "" {
 		return d
 	}
 	return filepath.Join(Home(), "Pictures")
+}
+
+func normalizePicturesDir(value string) string {
+	v := strings.TrimSpace(value)
+	v = strings.Trim(v, `"'`)
+	switch {
+	case v == "$HOME":
+		v = Home()
+	case strings.HasPrefix(v, "$HOME/"):
+		v = filepath.Join(Home(), strings.TrimPrefix(v, "$HOME/"))
+	}
+	if !filepath.IsAbs(v) {
+		return ""
+	}
+	v = filepath.Clean(v)
+	if v == filepath.Clean(Home()) {
+		return ""
+	}
+	return v
 }
 
 // userDirsPictures reads XDG_PICTURES_DIR from a user-dirs.dirs file, expanding
@@ -58,10 +77,8 @@ func userDirsPictures(path string) string {
 		if !strings.HasPrefix(line, key) {
 			continue
 		}
-		v := strings.Trim(strings.TrimPrefix(line, key), `"'`)
-		v = strings.Replace(v, "$HOME", Home(), 1)
-		if filepath.IsAbs(v) && filepath.Clean(v) != Home() {
-			return filepath.Clean(v)
+		if v := normalizePicturesDir(strings.TrimPrefix(line, key)); v != "" {
+			return v
 		}
 	}
 	return ""

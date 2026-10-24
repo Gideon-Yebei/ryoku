@@ -191,7 +191,8 @@
 - **RyoStore installs decors and emblems into the localized Pictures folder.**
   The flat-image providers built `~/Pictures` by hand, so on a desktop with a
   localized Pictures folder an installed decor or emblem landed where the Hub
-  no longer reads it. They now follow `XDG_PICTURES_DIR`
+  no longer reads it. They now follow `XDG_PICTURES_DIR` or `user-dirs.dirs`
+  when invoked outside the desktop session
   (`ryostore/backend/provider_flat_image.go`).
 - `ryostore/`: **A Vesktop theme reaches the Flathub Vesktop.** Fedora and Void
   users get Vesktop from Flathub, whose sandbox sees only its own `~/.var/app`

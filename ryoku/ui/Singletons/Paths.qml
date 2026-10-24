@@ -23,8 +23,9 @@ Singleton {
     // and so on, and the session exports that as XDG_PICTURES_DIR at login, so
     // anything that builds ~/Pictures by hand grows a second, empty folder.
     readonly property string picturesDir: {
-        const xdg = Quickshell.env("XDG_PICTURES_DIR");
-        return (xdg && xdg.length > 0) ? xdg : paths.home + "/Pictures";
+        const xdg = String(Quickshell.env("XDG_PICTURES_DIR") || "");
+        const clean = xdg.replace(/\/+$/, "");
+        return (clean.length > 0 && clean !== paths.home) ? clean : paths.home + "/Pictures";
     }
 
     readonly property string videosDir: {

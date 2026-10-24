@@ -1046,9 +1046,9 @@ Item {
 
     property bool pickerOpen: false
     readonly property string home: Quickshell.env("HOME") || ""
-    property url pickerFolder: "file://" + pg.home + "/Pictures"
+    property url pickerFolder: "file://" + Paths.picturesDir
     function openPicker() {
-        pg.pickerFolder = "file://" + pg.home + "/Pictures";
+        pg.pickerFolder = "file://" + Paths.picturesDir;
         pg.pickerOpen = true;
     }
     function gotoDir(sub) { pg.pickerFolder = "file://" + pg.home + (sub.length ? "/" + sub : ""); }
@@ -1136,9 +1136,9 @@ Item {
 
                 Btn { text: I18n.tr("\u2191 UP"); onAct: pg.pickerFolder = fm.parentFolder }
                 Btn { text: I18n.tr("HOME"); onAct: pg.gotoDir("") }
-                Btn { text: I18n.tr("PICTURES"); onAct: pg.gotoDir("Pictures") }
+                Btn { text: I18n.tr("PICTURES"); onAct: pg.pickerFolder = "file://" + Paths.picturesDir }
                 Btn { text: I18n.tr("DOWNLOADS"); onAct: pg.gotoDir("Downloads") }
-                Btn { text: I18n.tr("STORE"); onAct: pg.gotoDir("Pictures/ryoku-launchers") }
+                Btn { text: I18n.tr("STORE"); onAct: pg.pickerFolder = "file://" + Paths.picturesDir + "/ryoku-launchers" }
             }
 
             GridView {

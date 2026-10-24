@@ -152,10 +152,11 @@ truth for the live desktop.
   See `docs/rashin.md` and `docs/rashin-terminal.md`.
 - `assets/` `brand/` the 力 logo and icons and Rashin's seal (`rashin-mark*.svg`,
   `rashin-lockup.svg`; the app icon and the console favicon link to them),
-  `wallpapers/` the shipped wallpaper
-  set (installs to `~/Pictures/Wallpapers`), and `ryodecors/` the decor art the
-  `Decor`/`Placard` components render (installs to `~/Pictures/ryodecors`, kept
-  current by `ryoku doctor`; bake more with `bin/art/ryodither`).
+  `wallpapers/` the shipped wallpaper set (installs to `Wallpapers/` under the
+  configured Pictures folder), and `ryodecors/` the decor art the
+  `Decor`/`Placard` components render (installs to the Pictures folder's
+  `ryodecors/`, kept current by `ryoku doctor`; bake more with
+  `bin/art/ryodither`).
 
 ## `system/` the machine
 

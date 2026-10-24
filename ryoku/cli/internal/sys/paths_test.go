@@ -26,18 +26,36 @@ func TestPicturesDir(t *testing.T) {
 		}
 	}
 
-	write("# written by xdg-user-dirs-update\nXDG_DOWNLOAD_DIR=\"$HOME/Descargas\"\nXDG_PICTURES_DIR=\"$HOME/Imágenes\"\n")
+	write("# written by xdg-user-dirs-update\nXDG_DOWNLOAD_DIR=\"$HOME/Descargas\"\nXDG_PICTURES_DIR=\"$HOME/My Pictures\"\n")
+	if got, want := PicturesDir(), filepath.Join(home, "My Pictures"); got != want {
+		t.Errorf("quoted user-dirs.dirs: got %q, want %q", got, want)
+	}
+
+	write("XDG_PICTURES_DIR=$HOME/Imágenes\n")
 	if got, want := PicturesDir(), filepath.Join(home, "Imágenes"); got != want {
-		t.Errorf("user-dirs.dirs: got %q, want %q", got, want)
+		t.Errorf("unquoted user-dirs.dirs: got %q, want %q", got, want)
 	}
 
 	// xdg-user-dirs writes $HOME itself for a folder the user disabled; that is
 	// not a Pictures folder, so the default wins.
 	write("XDG_PICTURES_DIR=\"$HOME/\"\n")
 	if got, want := PicturesDir(), filepath.Join(home, "Pictures"); got != want {
-		t.Errorf("disabled folder: got %q, want %q", got, want)
+		t.Errorf("disabled file folder: got %q, want %q", got, want)
 	}
 
+	write("XDG_PICTURES_DIR=\"$HOME2/not-pictures\"\n")
+	if got, want := PicturesDir(), filepath.Join(home, "Pictures"); got != want {
+		t.Errorf("non-HOME variable: got %q, want %q", got, want)
+	}
+
+	t.Setenv("XDG_PICTURES_DIR", home)
+	if got, want := PicturesDir(), filepath.Join(home, "Pictures"); got != want {
+		t.Errorf("disabled env folder: got %q, want %q", got, want)
+	}
+	t.Setenv("XDG_PICTURES_DIR", "$HOME/Photos")
+	if got, want := PicturesDir(), filepath.Join(home, "Photos"); got != want {
+		t.Errorf("expanded env folder: got %q, want %q", got, want)
+	}
 	t.Setenv("XDG_PICTURES_DIR", "/data/pics")
 	if got := PicturesDir(); got != "/data/pics" {
 		t.Errorf("session env wins: got %q", got)

@@ -963,8 +963,8 @@ how each shipped specimen was made is `bin/art/README.md`. In short:
 - **One home.** Both bakers write into `ryoku/assets/ryodecors`, so a new decor
   ships everywhere at once: the installer seeds it, the `ryoku-desktop` package
   carries it to `/usr/share/ryoku/ryodecors`, and `ryoku doctor` lays it into
-  every `~/Pictures/ryodecors`. The profile hero and its editor read it by bare
-  filename.
+  `ryodecors/` under each user's configured Pictures folder. The profile hero
+  and its editor read it by bare filename.
 
 Figurative art that is not decor (the launcher hero, the welcome backdrop, the
 profile portrait) follows the same rule: generated at dev time, background
