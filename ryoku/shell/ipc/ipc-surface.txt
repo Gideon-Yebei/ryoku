@@ -12,6 +12,7 @@ anchor
 anim
 appearance
 apps
+ask
 attributes
 audio
 author
@@ -33,6 +34,7 @@ brightness
 bssid
 btop
 call
+camera
 cancel
 capacity
 catalog
@@ -46,7 +48,6 @@ claude
 clear
 clipboard
 clip-copy
-clip-ingest
 clock
 close
 closest-to-fallback
@@ -222,7 +223,6 @@ qs
 qsbar
 qt
 quality
-quick-settings
 quicksettings
 quickshell
 quit
@@ -286,7 +286,6 @@ sound
 ssid
 stage
 standard
-stash
 state
 status
 strength

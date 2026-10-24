@@ -116,10 +116,16 @@ pacman -Qq ryoku-desktop-hyprland >/dev/null 2>&1 \
   || die "ryoku-desktop did not pull ryoku-desktop-hyprland (compositor-split auto-pull broken)"
 [[ -x /usr/bin/ryoku-wm-hyprland ]] || die "ryoku-desktop-hyprland did not ship the ryoku-wm-hyprland provider"
 [[ -x /usr/bin/ryoku ]] || die "the ryoku CLI was not installed"
-# the config bootstrap: a package install lays nothing into ~/.config, so the
-# first login after one boots a bare compositor unless this unit runs first.
-[[ -f /usr/lib/systemd/user/ryoku-bootstrap.service ]] || die "ryoku-desktop did not ship the config bootstrap unit"
-
+# Session-critical units live in the system user-unit path and are globally
+# enabled, so accounts created after package installation inherit the desktop.
+for unit in ryoku-bootstrap.service ryogami.service ryoku-shell.service \
+  ryoku-idle.service ryoku-clamshell.service; do
+  [[ -f /usr/lib/systemd/user/$unit ]] || die "system user unit is missing: $unit"
+  systemctl --global is-enabled --quiet "$unit" \
+    || die "new users do not inherit $unit"
+done
+[[ -f /usr/lib/systemd/user/ryoku-session.target ]] \
+  || die "system user session target is missing"
 # 4. materialize as a throwaway user, forcing HOME/USER like deploy.sh's
 #    ryoku_deploy_materialize (runuser keeps root's env otherwise).
 id "$TESTUSER" &>/dev/null || useradd --create-home "$TESTUSER"
@@ -164,8 +170,8 @@ done
 # check the system tree.
 [[ -s /usr/share/applications/ryoku-nvim.desktop ]] \
   || missing+=("/usr/share/applications/ryoku-nvim.desktop")
-[[ -s /usr/share/applications/mimeapps.list ]] \
-  || missing+=("/usr/share/applications/mimeapps.list")
+[[ -s /usr/local/share/applications/mimeapps.list ]] \
+  || missing+=("/usr/local/share/applications/mimeapps.list")
 if [[ -e "$cfg/mimeapps.list" ]]; then
   missing+=("$cfg/mimeapps.list (materialize must not create the user's default-app file)")
 fi
@@ -205,7 +211,7 @@ log "linting the materialized QML for load failures"
 #    and report the channel from the [ryoku] Server line, and `ryoku track`
 #    must refuse to move a box whose [ryoku] points at a mirror Ryoku does not
 #    publish (this local repo), instead of rewriting it into a channel it
-#    cannot serve. the live switch itself (stable -> testing -> a pinned
+#    cannot serve. the live switch itself (stable -> unstable -> a pinned
 #    release) needs the published channels and runs in the VM install test.
 log "checking release naming and channel handling"
 [[ -f /etc/ryoku-release ]] || die "ryoku-desktop did not ship /etc/ryoku-release"
@@ -243,7 +249,9 @@ SigLevel = Never
 Server = file://$OUT
 EOF
 fi
-if runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" ryoku track testing 2>/tmp/track.err; then
+# `stable` is the packaged lane; `unstable` now selects the source checkout and
+# never reads the pacman repository, so only stable can prove the refusal.
+if runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" ryoku track stable 2>/tmp/track.err; then
   die "ryoku track must refuse a [ryoku] repo Ryoku does not publish"
 fi
 grep -q "does not publish" /tmp/track.err || die "unexpected track refusal: $(cat /tmp/track.err)"
@@ -349,13 +357,19 @@ pacman -Ql ryoku-desktop-niri | grep -q "config/hypr" && die "the niri variant s
 # drop-in is what makes the *first* login after an install a Ryoku desktop.
 [[ -f /usr/lib/systemd/user/niri.service.d/ryoku-bootstrap.conf ]] || die "the niri variant did not ship the bootstrap ordering drop-in"
 
-# materialize for the test user, then let the packaged provider author the
-# generated includes (settings.kdl, rebinds.kdl) the way a login does, and let
-# niri parse the result: an update that ships a broken tree must fail here.
-log "materializing the niri config and validating it with niri"
+# materialize for the test user with NO neutral store yet: this is the fresh
+# install exactly as the installer chroot sees it (the default keyboard seeds
+# no desktop.json), and niri hard-includes settings.kdl and rebinds.kdl, so
+# the run itself must author both generated files from the provider's defaults
+# and niri must parse the result. Before the fix the includes were missing and
+# the first login was a dead grey screen (#331).
+log "materializing the niri config with no store and validating it with niri"
 runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" "USER=$TESTUSER" "LOGNAME=$TESTUSER" \
   ryoku materialize >/dev/null || die "ryoku materialize failed on the niri variant"
 [[ -f "$cfg/niri/config.kdl" ]] || die "materialize did not lay the niri config"
+[[ -f "$cfg/niri/settings.kdl" && -f "$cfg/niri/rebinds.kdl" ]] \
+  || die "materialize with no store left the generated includes missing (#331)"
+niri validate -c "$cfg/niri/config.kdl" || die "niri rejects the includes materialize rendered from defaults"
 mkdir -p "$cfg/ryoku"
 printf '{"desktop":{},"wm":{"niri":{}}}\n' >"$cfg/ryoku/desktop.json"
 runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" "XDG_CURRENT_DESKTOP=niri" \
@@ -363,5 +377,44 @@ runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" "XDG_CURRENT_DESKTOP=niri" 
   || die "the niri provider did not apply the store"
 [[ -f "$cfg/niri/settings.kdl" && -f "$cfg/niri/rebinds.kdl" ]] || die "the niri provider did not write its generated includes"
 niri validate -c "$cfg/niri/config.kdl" || die "the niri config the packages ship does not parse"
+
+
+# 11. the third compositor variant, and the delivery shape that is wayfire's
+#    alone. niri hard-includes its generated files, so a missing include breaks
+#    loudly; wayfire has no include mechanism at all, so the live wayfire.ini IS
+#    the provider's render, and its shipped baseline is only compose's first
+#    layer, read from the packaged base directly. Materialize must run the
+#    provider rather than lay that baseline: laying it would look like success
+#    and boot a session with no store rows, no seeds and no keybinds.
+log "installing the third compositor variant"
+pacman -S --needed --noconfirm ryoku-desktop-wayfire || die "ryoku-desktop-wayfire did not install beside the others"
+pacman -Qq ryoku-desktop-wayfire >/dev/null 2>&1 || die "the wayfire variant is not installed"
+pacman -Qq ryoku-desktop-niri >/dev/null 2>&1 || die "installing the wayfire variant removed the niri one (variants must coexist)"
+pacman -Qq ryoku-desktop-hyprland >/dev/null 2>&1 || die "installing the wayfire variant removed the hyprland one (variants must coexist)"
+[[ -x /usr/bin/ryoku-wm-wayfire ]] || die "ryoku-desktop-wayfire did not ship the ryoku-wm-wayfire provider"
+[[ -f /usr/share/ryoku/config/wayfire/wayfire.ini ]] || die "ryoku-desktop-wayfire did not ship its baseline config"
+[[ -f /usr/share/ryoku/config/xdg-desktop-portal/wayfire-portals.conf ]] || die "ryoku-desktop-wayfire did not ship its portal routing"
+pacman -Ql ryoku-desktop-wayfire | grep -q "config/hypr" && die "the wayfire variant ships the Hyprland tree"
+[[ -f /usr/share/wayland-sessions/wayfire.desktop ]] || die "the wayfire session entry is not installed"
+# depthdeck is the deck plugin itself: wayfire searches /usr/lib/wayfire for
+# plugins and /usr/share/wayfire/metadata for their options.
+[[ -f /usr/lib/wayfire/libdepthdeck.so && -f /usr/share/wayfire/metadata/depthdeck.xml ]] \
+  || die "the wayfire variant did not ship the depth deck plugin"
+
+log "materializing the wayfire config and checking the provider rendered it"
+runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" "USER=$TESTUSER" "LOGNAME=$TESTUSER" \
+  ryoku materialize >/dev/null || die "ryoku materialize failed on the wayfire variant"
+wf="$cfg/wayfire/wayfire.ini"
+[[ -f $wf ]] || die "materialize did not deliver the wayfire config"
+grep -q "Generated by ryoku apply" "$wf" \
+  || die "the live wayfire.ini is the shipped baseline, not the provider's render"
+grep -q "binding_app_terminal = <super> KEY_ENTER" "$wf" \
+  || die "the rendered wayfire config carries no shipped keybinds"
+runuser -u "$TESTUSER" -- env "HOME=/home/$TESTUSER" "XDG_CURRENT_DESKTOP=wayfire" \
+  /usr/bin/ryoku-wm-wayfire apply "$cfg/ryoku/desktop.json" >/dev/null \
+  || die "the wayfire provider did not apply the store"
+grep -q "Generated by ryoku apply" "$wf" \
+  || die "the wayfire provider stopped rendering after a store apply"
+
 
 log "container-install: OK -- ryoku-desktop delivered the full config to $cfg"

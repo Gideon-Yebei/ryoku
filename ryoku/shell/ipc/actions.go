@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -20,10 +21,9 @@ import (
 var shellDir = os.Getenv("RYOKU_SHELL_DIR")
 
 var frameBarMenuIDs = map[string]bool{
-	"quick-settings": true,
-	"theme":          true,
-	"wallpaper":      true,
-	"weather":        true,
+	"theme":     true,
+	"wallpaper": true,
+	"weather":   true,
 }
 
 func menuID(cmd string) (string, bool) {
@@ -246,30 +246,29 @@ func processEnvironmentValue(data []byte, key string) string {
 	return ""
 }
 
-func qylockProcessMatches(session, token string) bool {
+func qylockProcessPIDs(session, token string) []int {
 	if session == "" {
-		return false
+		return nil
 	}
-	output, err := exec.Command(
-		"pgrep", "-u", strconv.Itoa(os.Getuid()), "-f", lockClientPattern,
-	).Output()
-	if err != nil {
-		return false
-	}
-	for _, field := range strings.Fields(string(output)) {
-		pid, err := strconv.Atoi(field)
-		if err != nil || pid <= 0 {
-			continue
-		}
-		env, err := os.ReadFile(filepath.Join("/proc", field, "environ"))
+	var matches []int
+	for _, value := range currentUserProcessIDs(lockClientPattern) {
+		env, err := os.ReadFile(filepath.Join("/proc", value, "environ"))
 		if err != nil || processEnvironmentValue(env, "XDG_SESSION_ID") != session {
 			continue
 		}
-		if token == "" || processEnvironmentValue(env, "QYLOCK_PROOF_TOKEN") == token {
-			return true
+		if token != "" && processEnvironmentValue(env, "QYLOCK_PROOF_TOKEN") != token {
+			continue
+		}
+		pid, err := strconv.Atoi(value)
+		if err == nil {
+			matches = append(matches, pid)
 		}
 	}
-	return false
+	return matches
+}
+
+func qylockProcessMatches(session, token string) bool {
+	return len(qylockProcessPIDs(session, token)) != 0
 }
 
 func readLockProof(path string) string {
@@ -301,8 +300,15 @@ var (
 	lockPoll           = 50 * time.Millisecond
 	lockRequestMu      sync.Mutex
 	lockProcessRunning = func() bool { return qylockProcessMatches(lockSessionID(), "") }
-	lockProofValid     = currentLockProofValid
-	lockStarter        = spawnLocker
+	lockProcessPID     = func() int {
+		pids := qylockProcessPIDs(lockSessionID(), "")
+		if len(pids) == 0 {
+			return 0
+		}
+		return pids[0]
+	}
+	lockProofValid = currentLockProofValid
+	lockStarter    = spawnLocker
 )
 
 // lockClientPattern matches live and retained-stage qylock clients. Proof
@@ -407,6 +413,19 @@ func voxtypeRecord(verb string) {
 	go func() { _ = cmd.Wait() }()
 }
 
+func hostUserServiceActive(unit string) bool {
+	return exec.Command("ryoku-host", "svc", "is-active", unit).Run() == nil
+}
+
+func stopHostUserService(unit string) error {
+	err := exec.Command("ryoku-host", "svc", "stop", unit).Run()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitCode() == 4 {
+		return nil
+	}
+	return err
+}
+
 // dictationReady reports whether a Super+` tap can actually dictate: Voxtype
 // installed and its user service running. When it can't, the pill shows an
 // "off" note instead of a listening wave that would capture nothing.
@@ -414,11 +433,7 @@ func dictationReady() bool {
 	if _, err := exec.LookPath("voxtype"); err != nil {
 		return false
 	}
-	return exec.Command("systemctl", "--user", "is-active", "--quiet", "voxtype.service").Run() == nil
-}
-
-func currentUserProcessRunning(pattern string) bool {
-	return exec.Command("pgrep", "-u", strconv.Itoa(os.Getuid()), "-f", pattern).Run() == nil
+	return hostUserServiceActive("voxtype.service")
 }
 
 func stateDir() string {

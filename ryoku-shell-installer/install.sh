@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 #
 # ryoku-shell bootstrap: fetch and run the standalone Ryoku desktop installer
-# on an existing Arch machine. Kept deliberately dumb: every real decision
+# on an existing supported machine. Kept deliberately dumb: every real decision
 # lives in the ryoku-shell-install binary this script downloads.
 #
-#   curl -fsSL https://raw.githubusercontent.com/ryoku-dev/ryoku-arch/main/ryoku-shell-installer/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ryoku-dev/ryoku/main/ryoku-shell-installer/install.sh | bash
 #
 # args after `bash -s --` are forwarded to the installer (--yes, --dry-run).
 # RYOKU_SHELL_REF picks the git ref to fetch the installer and payload from.
+# unstable-dev also puts the box on the unstable (testing) package channel:
+#
+#   curl -fsSL https://raw.githubusercontent.com/ryoku-dev/ryoku/unstable-dev/ryoku-shell-installer/install.sh | RYOKU_SHELL_REF=unstable-dev bash
 set -euo pipefail
 
 main() {
   local ref="${RYOKU_SHELL_REF:-main}"
-  local raw="https://raw.githubusercontent.com/ryoku-dev/ryoku-arch/${ref}/ryoku-shell-installer"
+  local raw="https://raw.githubusercontent.com/ryoku-dev/ryoku/${ref}/ryoku-shell-installer"
 
   # English on purpose: this bootstrap runs before any Ryoku catalog exists on
   # the box to translate from; the ryoku-shell-install binary it fetches does that.
@@ -28,18 +31,37 @@ main() {
   # so refuse honestly instead of dying on the package-manager guard below.
   [[ ! -e /etc/NIXOS ]] || die "NixOS is not supported yet; use the flake instead"
 
-  local ryoku_family
+  local ryoku_family dnf_cmd
   if command -v pacman > /dev/null 2>&1; then
     ryoku_family=arch
   elif command -v apt-get > /dev/null 2>&1; then
     ryoku_family=debian
+  elif command -v xbps-install > /dev/null 2>&1; then
+    ryoku_family=void
+  elif command -v dnf5 > /dev/null 2>&1 || command -v dnf > /dev/null 2>&1; then
+    ryoku_family=fedora
+    if command -v dnf5 > /dev/null 2>&1; then
+      dnf_cmd=dnf5
+    else
+      dnf_cmd=dnf
+    fi
   else
-    die "unsupported distribution: Ryoku installs on Arch-based and Debian-based systems"
+    die "unsupported distribution: Ryoku installs on Arch-based, Debian-based, Void and Fedora systems"
   fi
   [[ $(uname -m) == x86_64 ]] || die "Ryoku ships x86_64 builds only"
-  # the binary refuses non-systemd boots much later (session + services are
-  # systemd units); saying it here spares Artix users the download.
-  [[ -d /run/systemd/system ]] || die "this installer needs systemd (Artix and other non-systemd inits are not supported)"
+  if [[ $ryoku_family == fedora && -e /run/ostree-booted ]]; then
+    die "rpm-ostree systems are not supported; use a mutable Fedora Workstation or Server install"
+  fi
+  if [[ ! -d /run/systemd/system && $ryoku_family != void ]]; then
+    die "this installer needs systemd on Arch, Debian and Fedora; Void uses runit"
+  fi
+  if [[ $ryoku_family == void ]] && { ! command -v curl > /dev/null 2>&1 || ! command -v git > /dev/null 2>&1; }; then
+    say "installing bootstrap tools (curl, git)"
+    sudo xbps-install -Sy curl git
+  elif [[ $ryoku_family == fedora ]] && { ! command -v curl > /dev/null 2>&1 || ! command -v git > /dev/null 2>&1; }; then
+    say "installing bootstrap tools (curl, git)"
+    sudo "$dnf_cmd" install -y curl git
+  fi
   command -v curl > /dev/null 2>&1 || die "curl is required"
 
   # warn-only on derivatives: the package manager is what actually matters.
@@ -47,7 +69,7 @@ main() {
     # shellcheck source=/dev/null
     . /etc/os-release
     case "${ID:-} ${ID_LIKE:-}" in
-      *arch*|*debian*) ;;
+      *arch*|*debian*|*void*|*fedora*) ;;
       *) say "warning: ${PRETTY_NAME:-unknown distro} is not recognised; continuing as ${ryoku_family}" ;;
     esac
   fi
@@ -55,18 +77,19 @@ main() {
     say "Debian detected: the desktop is built from source, which takes a few minutes"
   fi
 
-  local work
+  # global, not local: the EXIT trap fires after main returns, when a local is
+  # gone and set -u would turn every finished run into exit 1.
   work="$(mktemp -d)"
   trap 'rm -rf "$work"' EXIT
 
-  say "fetching the Ryoku shell installer (${ref})"
+  say "// fetching  Ryoku shell installer (${ref})"
   curl -fsSL --retry 3 -o "$work/ryoku-shell-install" "$raw/ryoku-shell-install"
   curl -fsSL --retry 3 -o "$work/ryoku-shell-install.sha256" "$raw/ryoku-shell-install.sha256"
   (cd "$work" && sha256sum --check --quiet ryoku-shell-install.sha256) \
     || die "checksum mismatch on the downloaded installer; try again"
   chmod +x "$work/ryoku-shell-install"
 
-  say "starting the installer"
+  say "// starting  Ryoku shell installer"
   local rc=0
   # piped stdin (curl | bash) is useless to a TUI; hand it the real terminal.
   if [[ ! -t 0 && -r /dev/tty ]]; then

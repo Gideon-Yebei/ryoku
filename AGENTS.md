@@ -88,22 +88,22 @@ Drill into each in `docs/structure.md`.
 
 This repo has a Prowl index of its files, symbols, and how they connect. For any
 semantic or structural question -- where code is, what it does, who calls it, or
-what a change touches -- **run the read-only prowl-agent CLI first**; do not grep
-or read whole files just to locate things. Prowl reindexes what changed before
-each query, so answers stay current and are cited to file:line, returned in one
-call instead of a grep hit list you then open files to disambiguate.
+what a change touches -- **run the read-only prowl CLI first**; do not grep or
+read whole files just to locate things. Prowl reindexes what changed before each
+query, so answers stay current and are cited to file:line, returned in one call
+instead of a grep hit list you then open files to disambiguate.
 
 | Question | First command |
 |---|---|
-| Map the repository | `prowl-agent overview` |
-| Locate a feature or concept | `prowl-agent search "<question>"` |
-| Locate a named symbol | `prowl-agent find <name>` |
-| Read one symbol's source | `prowl-agent def <name-or-id>` |
-| Inspect a file's structure | `prowl-agent outline <path>` |
-| Trace who uses a symbol | `prowl-agent references <name-or-id>` |
-| Size a change's blast radius | `prowl-agent impact <path>` |
-| Inspect uncommitted work | `prowl-agent wip` / `prowl-agent changed` |
-| Read a located line range | `prowl-agent peek <file:start-end>` |
+| Map the repository | `prowl overview` |
+| Locate a feature or concept | `prowl search "<question>"` |
+| Locate a named symbol | `prowl find <name>` |
+| Read one symbol's source | `prowl def <name-or-id>` |
+| Inspect a file's structure | `prowl outline <path>` |
+| Trace who uses a symbol | `prowl references <name-or-id>` |
+| Size a change's blast radius | `prowl impact <path>` |
+| Inspect uncommitted work | `prowl wip` / `prowl changed` |
+| Read a located line range | `prowl peek <file:start-end>` |
 
 Keep grep for exact literal or regex text and glob for filename patterns. CLI
 output is token-lean TOON by default; add --format human|toon|json|markdown. If
@@ -116,12 +116,12 @@ there; the CLI needs no server and is the first choice.
 
 Auto-generated from the Prowl index, refreshed on each `overview`/`init`. Prefer retrieving from Prowl (and reading the cited files) over grepping or relying on training memory; this is the current shape of the repo.
 
-- size: 3349 files, 313749 symbols, 10246 edges (resolved 3303, external deps 5241, unresolved 1702)
-- languages: go:1660 qml:865 bash:245 javascript:177 markdown:108 json:77 yaml:58 lua:43
-- subsystems: ryoku/shell(631,qml) · ryoku/hub(65,qml) · ryoku/ui(52,qml) · ryoku/apps(50,qml) · ryoku/rashin(16,javascript) · ryoku/hyprland(15,lua) · ryoku/shell(15,css) · ryoku/lockscreen(12,qml)
-- entrypoints: ryoku/shell/quickshell/shell/shell.qml · ryoku/shell/ryogami/wall-ui/qml/wallpaper/WallpaperSelector.qml · ryoku/hub/quickshell/pages/InputPage.qml · ryoku/hub/quickshell/pages/AnimationsPage.qml · ryoku/shell/quickshell/shell/modules/bar/MenuWidgetHost.qml · ryoku/hub/quickshell/pages/RecordingPage.qml · ryoku/hub/quickshell/pages/AddonsPage.qml · ryoku/hub/quickshell/pages/DisplaysPage.qml · (+191 more)
-- central files (most depended-on): ryoku/lockscreen/qylock/themes/clockwork/orbital/i18n/I18n.qml · ryoku/ui/Singletons/Tokens.qml · ryoku/shell/quickshell/shell/modules/bar/barstyles/qsbar/Theme.qml · ryoku/shell/quickshell/shell/services/Perf.qml · ryoku/shell/ryogami/wall-ui/qml/Config.qml
+- size: 6256 files, 492641 symbols, 26729 edges (resolved 12811, external deps 7969, unresolved 5949)
+- languages: qml:2468 go:2055 bash:577 javascript:305 json:255 markdown:141 cpp:112 python:75
+- subsystems: ryoku/shell(2185,qml) · ryoku/shell(71,cpp) · ryoku/hub(66,qml) · ryoku/ui(59,qml) · ryoku/apps(57,qml) · ryoku/rashin(25,typescript) · tests/ui(21,qml) · ryoku/shell(18,css)
+- entrypoints: ryoku/shell/quickshell/inir/modules/background/Background.qml · ryoku/shell/quickshell/shell/shell.qml · ryoku/shell/quickshell/shell/modules/dock/ii/settings/DockConfig.qml · ryoku/hub/quickshell/pages/InputPage.qml · ryoku/shell/quickshell/shell/modules/dock/ii/settings/DockUtilitiesConfig.qml · ryoku/shell/quickshell/stage/modules/ii/background/widgets/clock/WearOSArcClock.qml · ryoku/hub/quickshell/pages/AddonsPage.qml · ryoku/shell/quickshell/shell/modules/dock/ii/draw/LiveDrawWindow.qml · (+561 more)
+- central files (most depended-on): ryoku/shell/quickshell/shell/modules/bar/barstyles/python/quickactions/actions/Timer.qml · ryoku/shell/quickshell/shell/modules/bar/barstyles/python/singletons/system/Config.qml · ryoku/shell/quickshell/shell/modules/bar/barstyles/python/singletons/system/I18n.qml · ryoku/ui/Singletons/Tokens.qml · ryoku/shell/quickshell/shell/modules/bar/barstyles/python/singletons/theme/ThemeBackend.qml
 - read these guides first: README.md · AGENTS.md · CONTRIBUTING.md · docs/development.md · docs/structure.md
 
-Depth on demand: `prowl-agent find|def|outline|references <name>`, `search <text>`, `context search "<question>"`, `sketch <ui>`.
+Depth on demand: `prowl find|def|outline|references <name>`, `search <text>`, `context search "<question>"`, `sketch <ui>`.
 <!-- /prowl-agent:map -->

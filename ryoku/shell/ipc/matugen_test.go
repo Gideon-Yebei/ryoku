@@ -8,10 +8,13 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	wm "ryoku-wm"
 	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/godbus/dbus/v5"
 )
 
 // TestMatugenArgs pins the argv the pipeline hands matugen for each knob
@@ -277,6 +280,19 @@ func TestTemplateGroup(t *testing.T) {
 	}
 }
 
+type recordingKdeSignalEmitter struct {
+	path   dbus.ObjectPath
+	name   string
+	values []interface{}
+}
+
+func (e *recordingKdeSignalEmitter) Emit(path dbus.ObjectPath, name string, values ...interface{}) error {
+	e.path = path
+	e.name = name
+	e.values = append([]interface{}(nil), values...)
+	return nil
+}
+
 // TestApplyKdeColors is the merge contract: the colour groups come from the
 // render, and everything else in kdeglobals is the user's and survives. The
 // fixture carries the two shapes a general INI reader gets wrong, the
@@ -325,7 +341,8 @@ BackgroundNormal=#101010
 activeBackground=#202020
 `)
 
-	applyKdeColors()
+	emitter := &recordingKdeSignalEmitter{}
+	applyKdeColors(emitter)
 
 	b, err := os.ReadFile(kdeglobalsPath())
 	if err != nil {
@@ -334,10 +351,10 @@ activeBackground=#202020
 	out := string(b)
 
 	for _, want := range []string{
-		"font=Comic Sans,11", // the user's font
-		"Theme=breeze-dark",  // the user's icon theme
-		"widgetStyle=Darkly", // the user's widget style
-		"ColorScheme=Ryoku",  // the one General key the palette owns
+		"font=Comic Sans,11",        // the user's font
+		"Theme=breeze-dark",         // the user's icon theme
+		"widgetStyle=Darkly",        // the user's widget style
+		"ColorScheme=SomethingElse", // the user's selected named scheme
 		"BackgroundNormal=#101010",
 		"BackgroundAlternate=#181818",
 		"[Colors:Header][Inactive]",
@@ -350,8 +367,14 @@ activeBackground=#202020
 	if strings.Contains(out, "#ffffff") {
 		t.Errorf("stale colour survived the merge; got:\n%s", out)
 	}
-	if strings.Contains(out, "ColorScheme=SomethingElse") {
-		t.Errorf("stale scheme name survived the merge; got:\n%s", out)
+	if emitter.path != dbus.ObjectPath("/KGlobalSettings") {
+		t.Errorf("palette signal path = %q, want /KGlobalSettings", emitter.path)
+	}
+	if emitter.name != "org.kde.KGlobalSettings.notifyChange" {
+		t.Errorf("palette signal name = %q, want org.kde.KGlobalSettings.notifyChange", emitter.name)
+	}
+	if !slices.Equal(emitter.values, []interface{}{int32(0), int32(0)}) {
+		t.Errorf("palette signal values = %#v, want int32(0), int32(0)", emitter.values)
 	}
 }
 
@@ -375,7 +398,7 @@ func TestApplyKdeColorsWithoutKdeglobals(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	applyKdeColors()
+	applyKdeColors(nil)
 
 	b, err := os.ReadFile(kdeglobalsPath())
 	if err != nil {
@@ -407,6 +430,7 @@ func TestApplyKdeColorsForeignSectionSurvives(t *testing.T) {
 
 	mustWrite(kdeglobalsPath(), `[General]
 font=Comic Sans,11
+ColorScheme=Ryoku
 
 [SomeSection]
 key=value
@@ -418,7 +442,7 @@ BackgroundNormal=#ffffff
 BackgroundNormal=#101010
 `)
 
-	applyKdeColors()
+	applyKdeColors(nil)
 
 	b, err := os.ReadFile(kdeglobalsPath())
 	if err != nil {
@@ -439,6 +463,17 @@ BackgroundNormal=#101010
 	if strings.Contains(out, "#ffffff") {
 		t.Errorf("stale colour survived the merge; got:\n%s", out)
 	}
+	if strings.Contains(out, "ColorScheme=Ryoku") {
+		t.Errorf("obsolete Ryoku named scheme survived the merge; got:\n%s", out)
+	}
+}
+
+// stubFolderIcons puts a no-op ryoku-cmd-folders first on PATH. matugenApply
+// starts the real helper, which on a dev box would retint and switch the icon
+// theme of the live session the test runs inside.
+func stubFolderIcons(t *testing.T, bin string) {
+	t.Helper()
+	writeShim(t, filepath.Join(bin, "ryoku-cmd-folders"), "exit 0")
 }
 
 // TestFilterMatugenConfig is the roster gate: the [config] preamble always
@@ -520,7 +555,7 @@ func TestMatugenReload(t *testing.T) {
 		return false
 	}
 
-	matugenReload("dark")
+	matugenReload("dark", nil)
 	if !has("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark") {
 		t.Errorf("dark: color-scheme prefer-dark not set; got %v", *got)
 	}
@@ -539,7 +574,7 @@ func TestMatugenReload(t *testing.T) {
 	}
 
 	*got = nil
-	matugenReload("light")
+	matugenReload("light", nil)
 	if !has("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-light") {
 		t.Errorf("light: color-scheme prefer-light not set; got %v", *got)
 	}
@@ -556,7 +591,7 @@ func TestMatugenReloadSystemNoGtkTheme(t *testing.T) {
 	got := gtkReloadEnv(t,
 		`{"gtkTheme":"system","gnomeAccent":false}`,
 		`{"primary":"#3584e4"}`)
-	matugenReload("light")
+	matugenReload("light", nil)
 	for _, c := range *got {
 		if len(c) >= 5 && c[0] == "gsettings" && c[4] == "gtk-theme" {
 			t.Errorf("system: wrote gtk-theme %v", c)
@@ -649,9 +684,15 @@ func TestNearestGnomeAccent(t *testing.T) {
 	}
 }
 
-// TestApplyFont: the system font pushes to GTK live via gsettings font-name and
-// falls back to the shipped face when empty; fontSig reads the frame's key.
+// TestApplyFont proves a proportional UI choice never leaks into terminal
+// configuration, while an explicit terminal family is still honoured.
 func TestApplyFont(t *testing.T) {
+	configHome := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", configHome)
+	if err := os.MkdirAll(filepath.Join(configHome, "kitty"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
 	var got [][]string
 	orig := runCommand
 	t.Cleanup(func() { runCommand = orig })
@@ -667,28 +708,41 @@ func TestApplyFont(t *testing.T) {
 		}
 		return false
 	}
-
-	applyFont([]byte(`{"fontFamily":"Maple Mono NF","fontSize":13}`))
-	if !has("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Maple Mono NF 13") {
-		t.Errorf("font-name not set to Maple Mono NF 13; got %v", got)
+	kittyFont := func() string {
+		data, err := os.ReadFile(filepath.Join(configHome, "kitty", "current-font.conf"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(data)
 	}
-	if !has("gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name", "Maple Mono NF 13") {
-		t.Errorf("the one system font must also drive monospace-font-name; got %v", got)
+
+	applyFont([]byte(`{"fontFamily":"Space Grotesk","fontSize":13}`))
+	if !has("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 13") {
+		t.Errorf("UI font did not stay Space Grotesk 13; got %v", got)
+	}
+	if !has("gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name", "JetBrainsMono Nerd Font 13") {
+		t.Errorf("monospace font did not use the shipped terminal face; got %v", got)
+	}
+	if got := kittyFont(); got != "font_family JetBrainsMono Nerd Font\nfont_size 13\n" {
+		t.Errorf("kitty font = %q, want shipped terminal face", got)
 	}
 
 	got = nil
-	applyFont([]byte(`{}`))
-	if !has("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 11") {
-		t.Errorf("empty font did not fall back to Space Grotesk 11; got %v", got)
+	applyFont([]byte(`{"fontFamily":"Space Grotesk","terminalFontFamily":"Maple Mono NF","fontSize":12}`))
+	if !has("gsettings", "set", "org.gnome.desktop.interface", "font-name", "Space Grotesk 12") {
+		t.Errorf("explicit terminal choice changed the UI font; got %v", got)
 	}
-	if !has("gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name", "SpaceMono Nerd Font 11") {
-		t.Errorf("empty mono did not fall back to SpaceMono Nerd Font 11; got %v", got)
+	if !has("gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name", "Maple Mono NF 12") {
+		t.Errorf("explicit terminal choice was not applied to monospace-font-name; got %v", got)
+	}
+	if got := kittyFont(); got != "font_family Maple Mono NF\nfont_size 12\n" {
+		t.Errorf("kitty font = %q, want explicit terminal face", got)
 	}
 
-	if fontSig([]byte(`{"fontFamily":"Fira Sans","fontSize":12}`)) != "Fira Sans\x1f12" {
-		t.Errorf("fontSig did not compose family/size")
+	if fontSig([]byte(`{"fontFamily":"Fira Sans","terminalFontFamily":"Maple Mono NF","fontSize":12}`)) != "Fira Sans\x1fMaple Mono NF\x1f12" {
+		t.Errorf("fontSig did not compose both families and size")
 	}
-	if fontSig([]byte(`{}`)) != "\x1f0" {
+	if fontSig([]byte(`{}`)) != "\x1f\x1f0" {
 		t.Errorf("fontSig should be the empty composite when keys are absent")
 	}
 }
@@ -744,6 +798,7 @@ func TestMatugenApplyInvokesBinary(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 	logFile := filepath.Join(home, "matugen.argv")
 	jsonDark := filepath.Join(home, "dark.json")
 	jsonLight := filepath.Join(home, "light.json")
@@ -775,6 +830,11 @@ esac`
 	if err := os.MkdirAll(ryoku, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	bridgeConfig := filepath.Join(ryoku, "palette-bridge", "matugen.toml")
+	if err := os.MkdirAll(filepath.Dir(bridgeConfig), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, bridgeConfig, "[config]\n")
 	darkWall := filepath.Join(home, "dark-wall.png")
 	lightWall := filepath.Join(home, "light-wall.png")
 	writeSolidPNG(t, darkWall, 12)
@@ -810,7 +870,7 @@ esac`
 			fmt.Sprintf(`{"engine":"matugen","mode":%q,"prefer":%q,"contrast":%v,"themeRyokuApps":true}`,
 				c.mode, c.prefer, c.contrast))
 
-		if err := (&daemon{}).matugenApply(c.img); err != nil {
+		if err := (&daemon{wmc: wm.OpenNamed("does-not-exist")}).matugenApply(c.img); err != nil {
 			t.Fatalf("%s: matugenApply: %v", c.name, err)
 		}
 
@@ -820,6 +880,11 @@ esac`
 		}
 		if !strings.Contains(string(logged), c.wantArgs) {
 			t.Errorf("%s: argv log missing expected image call\n want line: %s\n got:\n%s", c.name, c.wantArgs, logged)
+		}
+		carrierPath := filepath.Join(home, ".cache", "ryoku", "matugen-carrier.json")
+		activeBridgeConfig := filepath.Join(home, ".cache", "ryoku", "active-matugen.toml")
+		if want := "-c " + activeBridgeConfig + " json " + carrierPath; !strings.Contains(string(logged), want) {
+			t.Errorf("%s: supplemental integration render missing\n want line: %s\n got:\n%s", c.name, want, logged)
 		}
 
 		var pal map[string]string
@@ -897,6 +962,7 @@ func TestMatugenIsolatedDrive(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 	logFile := filepath.Join(home, "matugen.argv")
 	writeShim(t, filepath.Join(bin, "matugen"), `printf '%s\n' "$*" >> "`+logFile+`"; exec `+realMatugen+` "$@"`)
 	writeShim(t, filepath.Join(bin, "gsettings"), ":")
@@ -925,7 +991,7 @@ func TestMatugenIsolatedDrive(t *testing.T) {
 		themeRoles[i] = kv[1]
 	}
 
-	if err := (&daemon{}).matugenApply(img); err != nil {
+	if err := (&daemon{wmc: wm.OpenNamed("does-not-exist")}).matugenApply(img); err != nil {
 		t.Fatalf("matugenApply: %v", err)
 	}
 
@@ -1231,6 +1297,7 @@ func TestMatugenApplyNeutralizesAchromaticWallpaper(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 
 	// The shim always emits matugen's blue fallback -- both the roles and the
 	// tonal ramps -- exactly as it does for a picture it cannot seed from.
@@ -1281,7 +1348,7 @@ func TestMatugenApplyNeutralizesAchromaticWallpaper(t *testing.T) {
 	}
 
 	// Achromatic: colors.json and tones.json are stripped to gray.
-	if err := (&daemon{}).matugenApply(gray); err != nil {
+	if err := (&daemon{wmc: wm.OpenNamed("does-not-exist")}).matugenApply(gray); err != nil {
 		t.Fatalf("matugenApply(gray): %v", err)
 	}
 	if p := readPalette()["primary"]; !isGray(p) {
@@ -1300,7 +1367,7 @@ func TestMatugenApplyNeutralizesAchromaticWallpaper(t *testing.T) {
 	}
 
 	// Chromatic: the generated colour survives untouched.
-	if err := (&daemon{}).matugenApply(colour); err != nil {
+	if err := (&daemon{wmc: wm.OpenNamed("does-not-exist")}).matugenApply(colour); err != nil {
 		t.Fatalf("matugenApply(colour): %v", err)
 	}
 	if p := readPalette()["primary"]; isGray(p) {

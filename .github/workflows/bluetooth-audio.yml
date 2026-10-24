@@ -21,6 +21,11 @@ on:
       - 'system/hardware/audio/ryoku-bt-audio'
       - 'tests/bluetooth-audio-policy.sh'
       - 'tests/bt-audio-codec.sh'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-power'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-reset'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-reset.service'
+      - 'void/init/user/ryoku-bluetooth-reset/**'
+      - 'tests/bluetooth-power-persist.sh'
       - '.github/workflows/bluetooth-audio.yml'
   push:
     branches:
@@ -30,6 +35,11 @@ on:
       - 'system/hardware/audio/ryoku-bt-audio'
       - 'tests/bluetooth-audio-policy.sh'
       - 'tests/bt-audio-codec.sh'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-power'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-reset'
+      - 'system/hardware/bluetooth/ryoku-bluetooth-reset.service'
+      - 'void/init/user/ryoku-bluetooth-reset/**'
+      - 'tests/bluetooth-power-persist.sh'
       - '.github/workflows/bluetooth-audio.yml'
   workflow_dispatch:
 
@@ -50,6 +60,10 @@ jobs:
       - name: Per-device codec memory
         shell: bash
         run: bash tests/bt-audio-codec.sh
+
+      - name: Bluetooth power choice
+        shell: bash
+        run: bash tests/bluetooth-power-persist.sh
 
       # Needs pw-config and WirePlumber's base config to merge against. The test
       # skips itself when pw-config is absent, so this stays honest on a runner

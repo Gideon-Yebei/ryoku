@@ -11,27 +11,36 @@ import (
 // asks it for argv and for the local name of a package; nothing else branches on
 // the distribution.
 //
-// fromSource distros have no [ryoku] repository, so the desktop is built from the
-// cloned payload with ryoku/shell/deploy.sh instead of installed with pacman.
+// Source-only distros have no Ryoku package repository, so the desktop is built
+// from the cloned payload with ryoku/shell/deploy.sh.
+type initSystem uint8
+
+const (
+	initSystemd initSystem = iota
+	initRunit
+)
+
 type distro struct {
 	id         string
 	name       string
 	fromSource bool
 
-	// rename maps a base.packages (Arch) name to the local one. A missing key
+	// rename maps an Arch package name to its local equivalent. A missing key
 	// means the name is identical; an empty value means the package does not
-	// exist here and is skipped.
+	// exist there and is skipped.
 	rename map[string]string
 
-	// build are the extra packages a fromSource install needs to compile the
-	// Go programs, the Ryoku.Blobs QML plugin, and the Hyprland plugins.
-	build []string
+	// Debian extends the translated base set with source-build and runtime
+	// dependencies that its package archive does not express through Ryoku.
+	build   []string
+	runtime []string
 
-	installCmd []string
-	removeCmd  []string
-	updateCmd  []string
-	refreshCmd []string
-	queryCmd   []string
+	installCmd         []string
+	removeCmd          []string
+	updateCmd          []string
+	refreshCmd         []string
+	queryCmd           []string
+	installFirstPrefix string
 }
 
 var archLinux = &distro{
@@ -56,9 +65,9 @@ var debianLinux = &distro{
 	queryCmd:   []string{"dpkg-query", "-W", "-f=${Status}"},
 	build: []string{
 		"build-essential", "cmake", "ninja-build", "pkgconf", "golang",
-		"qt6-base-dev", "qt6-declarative-dev", "qt6-multimedia-dev",
+		"qt6-base-dev", "qt6-base-private-dev", "qt6-declarative-dev", "qt6-multimedia-dev",
 		"qt6-shadertools-dev", "qt6-svg-dev", "qt6-5compat-dev", "qt6-wayland-dev",
-		"hyprland-dev", "libhyprutils-dev",
+		"hyprland-dev", "libhyprutils-dev", "libgtk-3-dev", "libwebkit2gtk-4.1-dev",
 	},
 	rename: map[string]string{
 		"base":                    "",
@@ -109,12 +118,54 @@ var debianLinux = &distro{
 	},
 }
 
+// Void installs the signed desktop packages from the Ryoku XBPS repository.
+// void/packages owns the package translation and transaction ordering.
+var voidLinux = &distro{
+	id:                 "void",
+	name:               "Void",
+	installCmd:         []string{"xbps-install", "-Sy"},
+	removeCmd:          []string{"xbps-remove", "-y"},
+	updateCmd:          []string{"xbps-install", "-Syu"},
+	refreshCmd:         []string{"xbps-install", "-S"},
+	queryCmd:           []string{"xbps-query"},
+	installFirstPrefix: "void-repo-",
+}
+
+func fedoraDNFCommand() string {
+	if _, err := exec.LookPath("dnf5"); err == nil {
+		return "dnf5"
+	}
+	return "dnf"
+}
+
+func newFedoraLinux() *distro {
+	dnf := fedoraDNFCommand()
+	return &distro{
+		id:         "fedora",
+		name:       "Fedora",
+		installCmd: []string{dnf, "install", "-y"},
+		removeCmd:  []string{dnf, "remove", "-y"},
+		updateCmd:  []string{dnf, "upgrade", "-y", "--refresh"},
+		refreshCmd: []string{dnf, "makecache", "--refresh", "-y"},
+		queryCmd:   []string{"rpm", "-q"},
+	}
+}
+
+// Fedora installs the signed desktop packages from the Ryoku RPM repository.
+// The command is refreshed during distro detection so dnf5 wins when present.
+var fedoraLinux = newFedoraLinux()
+
 // activeDistro is set once by detectFacts; installed() reads it from the
 // detection paths that have no engine to hand.
 var activeDistro = archLinux
 
 func detectDistro(id, like string) *distro {
 	switch {
+	case id == "void":
+		return voidLinux
+	case id == "fedora" || strings.Contains(like, "fedora"):
+		fedoraLinux = newFedoraLinux()
+		return fedoraLinux
 	case id == "arch" || strings.Contains(like, "arch"):
 		return archLinux
 	case id == "debian" || strings.Contains(like, "debian"):
@@ -134,8 +185,10 @@ func (d *distro) local(pkg string) string {
 // localAll maps a base.packages list, dropping what this distro does not carry.
 func (d *distro) localAll(pkgs []string) []string {
 	out := make([]string, 0, len(pkgs))
+	seen := make(map[string]bool, len(pkgs))
 	for _, p := range pkgs {
-		if l := d.local(p); l != "" {
+		if l := d.local(p); l != "" && !seen[l] {
+			seen[l] = true
 			out = append(out, l)
 		}
 	}
@@ -146,20 +199,69 @@ func (d *distro) installArgs(pkgs []string) []string {
 	return append(append([]string{}, d.installCmd...), pkgs...)
 }
 
+// installPhases keeps repository-enabling packages ahead of packages supplied
+// by those repositories. Distros without such bootstrap packages retain one
+// transaction with the original order and argv.
+func (d *distro) installPhases(pkgs []string) [][]string {
+	if d.installFirstPrefix == "" {
+		return [][]string{pkgs}
+	}
+	var first, rest []string
+	for _, pkg := range pkgs {
+		if strings.HasPrefix(pkg, d.installFirstPrefix) {
+			first = append(first, pkg)
+		} else {
+			rest = append(rest, pkg)
+		}
+	}
+	var phases [][]string
+	if len(first) > 0 {
+		phases = append(phases, first)
+	}
+	if len(rest) > 0 || len(phases) == 0 {
+		phases = append(phases, rest)
+	}
+	return phases
+}
+
 func (d *distro) removeArgs(pkgs []string) []string {
 	return append(append([]string{}, d.removeCmd...), pkgs...)
 }
 
 func (d *distro) installedPkg(pkg string) bool {
 	args := append(append([]string{}, d.queryCmd[1:]...), pkg)
-	out, err := exec.Command(d.queryCmd[0], args...).Output()
-	if err != nil {
-		return false
+	cmd := exec.Command(d.queryCmd[0], args...)
+	if d.id != "debian" {
+		return cmd.Run() == nil
 	}
-	if d.id == "debian" {
-		return strings.Contains(string(out), "install ok installed")
+	out, err := cmd.Output()
+	return err == nil && strings.Contains(string(out), "install ok installed")
+}
+
+func hostInit() initSystem {
+	switch os.Getenv("RYOKU_HOST_INIT") {
+	case "systemd":
+		return initSystemd
+	case "runit":
+		return initRunit
 	}
-	return true
+	fi, err := os.Stat("/run/systemd/system")
+	if err == nil && fi.IsDir() {
+		return initSystemd
+	}
+	return initRunit
+}
+
+func supportsInit(d *distro, init initSystem) bool {
+	return init == initSystemd || d != nil && d.id == "void" && init == initRunit
+}
+
+func supportedInitBooted(d *distro) bool {
+	return supportsInit(d, hostInit())
+}
+
+func (e *engine) usesRunit() bool {
+	return hostInit() == initRunit
 }
 
 // installed queries the detected distro. Replaces the old pacman-only helper.
@@ -173,12 +275,15 @@ func (e *engine) d() *distro {
 	return activeDistro
 }
 
-// ryokuBin finds the ryoku CLI: /usr/bin from a package, ~/.local/bin from a
-// fromSource build. Empty when it is not installed yet.
-func (e *engine) ryokuBin() string {
-	cands := []string{"/usr/bin/ryoku"}
+var ryokuSystemBin = "/usr/bin"
+
+// ryokuTool finds a Ryoku-built program: /usr/bin from a package, ~/.local/bin
+// from a fromSource build (which a fresh login's PATH does not carry). Empty
+// when it is not installed yet.
+func (e *engine) ryokuTool(name string) string {
+	cands := []string{filepath.Join(ryokuSystemBin, name)}
 	if e.f != nil && e.f.homeDir != "" {
-		cands = append(cands, filepath.Join(e.f.homeDir, ".local", "bin", "ryoku"))
+		cands = append(cands, filepath.Join(e.f.homeDir, ".local", "bin", name))
 	}
 	for _, c := range cands {
 		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
@@ -187,6 +292,8 @@ func (e *engine) ryokuBin() string {
 	}
 	return ""
 }
+
+func (e *engine) ryokuBin() string { return e.ryokuTool("ryoku") }
 
 // detectHostDistro resolves the distro from /etc/os-release and latches it, so
 // the preflight gate and the later detection pass agree.
