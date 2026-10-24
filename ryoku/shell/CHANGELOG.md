@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- **The 3D wallpaper no longer flips vertically behind a window.** The
+  desktop frost captures the workspace into a layer, and an inline `View3D`
+  inside it rendered upside down, so the depth wallpaper turned over while
+  the cut-out stayed upright. The mesh now renders offscreen whenever that
+  layer is up and keeps the inline path on a bare desktop
+  (`quickshell/shell/modules/stage/StageSpatialScene.qml`,
+  `quickshell/shell/modules/desktop/Desktop.qml`,
+  `quickshell/shell/modules/stage/StageBackdrop.qml`).
 - **Folder icons follow the palette on every system.** The folder colour now
   tracks the Material primary of the wallpaper or fixed theme and updates
   straight after the shell writes its palette, even with app theming off;
