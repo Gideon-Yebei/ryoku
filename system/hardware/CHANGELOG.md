@@ -17,6 +17,10 @@
   headless one exits at once.
 
 ### Fixed
+- `gpu/ryoku-gpu install-udev`: **packaged installs can find the rule they
+  already ship.** The command looked beside `/usr/bin/ryoku-gpu`, while every
+  edition installs the source rule in `/usr/lib/udev/rules.d`; it now uses that
+  vendor path when no checkout-adjacent source exists.
 - `bluetooth/ryoku-bluetooth-power`: **turning Bluetooth off now survives a
   restart.** Every shell toggle records the choice and soft-blocks the radio,
   letting systemd-rfkill restore it before BlueZ starts. The A2DP login reset
