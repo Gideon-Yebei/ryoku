@@ -64,6 +64,16 @@ while IFS=$'\t' read -r id scope activation systemd_unit runit_service disable_r
 	esac
 	[[ -n $systemd_unit && -n $runit_service && -n $disable_rule ]] \
 		|| fail "incomplete service activation row: $id"
+	if [[ $scope == user && $activation == session-global && $systemd_unit != - ]]; then
+		unit_path=$(find \
+			"$ROOT/ryoku/shell/systemd/user" \
+			"$ROOT/ryoku/rashin/systemd" \
+			"$ROOT/system/hardware/bluetooth" \
+			-maxdepth 1 -type f -name "$systemd_unit" -print -quit)
+		[[ -n $unit_path ]] || fail "globally enabled user unit has no source: $systemd_unit"
+		grep -qxF 'ConditionUser=!@system' "$unit_path" \
+			|| fail "globally enabled user unit starts for system accounts: ${unit_path#"$ROOT/"}"
+	fi
 done < "$SERVICE_MANIFEST"
 
 while IFS= read -r unit; do
