@@ -162,7 +162,7 @@ Singleton {
         captureProc.copyWanted = root._save === "both" || root._save === "clipboard";
         captureProc.command = ["sh", "-c",
             "mkdir -p \"$(dirname \"$3\")\" 2>/dev/null || true; "
-                + "if [ -n \"$1\" ]; then exec grim \"$1\" \"$2\" \"$3\"; else exec grim \"$3\"; fi",
+                + "if [ -n \"$1\" ]; then exec ryoku-cmd-grim \"$1\" \"$2\" \"$3\"; else exec ryoku-cmd-grim \"$3\"; fi",
             "sh", pending.flag, pending.val, root._outPath];
         captureProc.running = true;
     }
@@ -193,9 +193,7 @@ Singleton {
                 I18n.tr("Saved to %1").arg(outputPath));
         }
         if (beautify)
-            Spawn.run(["sh", "-c",
-                "RYOSHOT_OPEN=\"$1\" exec flock -n -o /tmp/ryoshot.lock qs -c ryoshot",
-                "sh", outputPath]);
+            Spawn.run(["env", "RYOSHOT_OPEN=" + outputPath, "ryoku-cmd-ryoshot"]);
     }
 
     Process {

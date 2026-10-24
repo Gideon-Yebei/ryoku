@@ -16,6 +16,10 @@ for finer detail.
 ### Fixed
 - Users on filtered networks can route `ryoku update` and pacman through a
   local HTTP proxy without weakening package signature checks.
+- Screenshots no longer pick up the animated pointer when a cursor effect has
+  fallen back to software rendering. Capture tools now hide it only while the
+  source frame is frozen and restore the exact state they found; explicit
+  include-cursor captures are unchanged.
 - The Store installs bundles on every edition. Bundle packages keep their Arch
   names in the catalogue, and on Fedora and Void the catalogue's own edition
   tables name them for that edition, so **Install all** brings in the

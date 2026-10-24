@@ -81,6 +81,8 @@ ShellRoot {
 
     property var overlays: []
     property int frozenCount: 0
+    readonly property string captureReadyFile: Quickshell.env("RYOSHOT_CAPTURE_READY_FILE") || ""
+    property bool captureReadySent: false
 
     readonly property bool testRect: Quickshell.env("RYOSHOT_TESTRECT") === "1"
     readonly property string mode: Quickshell.env("RYOSHOT_MODE") === "monitor" ? "monitor" : "region"
@@ -621,7 +623,7 @@ ShellRoot {
         case "edit":
             root.exported = true;
             Quickshell.execDetached(["sh", "-c",
-                "sleep 0.4; exec flock -n -o /tmp/ryoshot.lock env RYOSHOT_OPEN=\"$1\" qs -c ryoshot",
+                "sleep 0.4; exec env RYOSHOT_OPEN=\"$1\" ryoku-cmd-ryoshot",
                 "sh", path]);
             root.quitSoon();
             break;
@@ -1211,7 +1213,7 @@ ShellRoot {
             action = pendingAction;
             outputFile = outputPath;
             command = ["sh", "-c",
-                "mkdir -p \"$(dirname \"$2\")\" && exec grim -g \"$1\" \"$2\"",
+                "mkdir -p \"$(dirname \"$2\")\" && exec ryoku-cmd-grim -g \"$1\" \"$2\"",
                 "sh", geometry, outputPath];
             running = true;
         }
@@ -1296,8 +1298,18 @@ ShellRoot {
         }
     }
 
+    Process {
+        id: captureReadyProc
+        command: ["touch", "--", root.captureReadyFile]
+    }
+
     function noteFrozen() {
         frozenCount += 1;
+        if (!captureReadySent && captureReadyFile.length > 0
+                && frozenCount >= Quickshell.screens.length) {
+            captureReadySent = true;
+            captureReadyProc.running = true;
+        }
         if (testRect && frozenCount >= Quickshell.screens.length) testDriver.start();
     }
 

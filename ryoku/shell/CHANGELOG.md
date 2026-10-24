@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **Cursor effects stay out of screenshots.** Ryoshot and every shipped
+  `grim` capture hide the pointer through the window-manager seam while they
+  freeze the frame, then restore it even when capture fails. This keeps a
+  software-rendered animated pointer out of the image without changing its
+  size or turning the effect off (`scripts/ryoku-cmd-{ryoshot,grim}`,
+  `quickshell/ryoshot/`).
 - **CachyOS is reported as CachyOS.** `ryoku-base-os` now returns the
   distribution from `/etc/os-release`, so Fastfetch says "a hand-built CachyOS
   desktop" instead of treating every pacman host as Arch

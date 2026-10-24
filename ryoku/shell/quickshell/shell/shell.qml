@@ -601,7 +601,7 @@ ShellRoot {
                 st.clipboardOpen = !st.clipboardOpen;
             break;
         case "screenshot":
-            Quickshell.execDetached(["sh", "-c", "flock -n -o /tmp/ryoshot.lock qs -c ryoshot"]);
+            Quickshell.execDetached(["ryoku-cmd-ryoshot"]);
             break;
         case "ask":
             ShellState.requestSurfaceActive("ask", undefined);

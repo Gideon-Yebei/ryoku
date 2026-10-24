@@ -132,7 +132,7 @@ Singleton {
         const args = ["env", "QML_IMPORT_PATH=" + qmlPath, "QML2_IMPORT_PATH=" + qmlPath]
         if (action && action.length > 0)
             args.push("RYOSHOT_ACTION=" + action)
-        args.push("flock", "-n", "-o", "/tmp/ryoshot.lock", "qs", "-c", "ryoshot")
+        args.push("ryoku-cmd-ryoshot")
         Quickshell.execDetached(args)
     }
 
