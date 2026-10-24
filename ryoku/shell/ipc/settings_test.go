@@ -96,6 +96,41 @@ func TestPhoneDefaultsMatchContract(t *testing.T) {
 	}
 }
 
+func TestDockEdgeGapValidation(t *testing.T) {
+	if got := defaultDock()["edgeGap"]; got != dockEdgeGapDefault {
+		t.Fatalf("default dock.edgeGap = %v, want %d", got, dockEdgeGapDefault)
+	}
+	store := newTestStore(t)
+	if err := store.patch("dock.edgeGap", rm("24")); err != nil {
+		t.Fatal(err)
+	}
+	if got := frameNum(t, store.frameLocked(), "dock.edgeGap"); got != 24 {
+		t.Fatalf("dock.edgeGap = %v, want 24", got)
+	}
+	for _, value := range []string{"-1", "65", "1.5", `"wide"`} {
+		if err := store.patch("dock.edgeGap", rm(value)); err == nil {
+			t.Fatalf("dock.edgeGap accepted %s", value)
+		}
+		if got := frameNum(t, store.frameLocked(), "dock.edgeGap"); got != 24 {
+			t.Fatalf("rejected patch changed dock.edgeGap to %v", got)
+		}
+	}
+	if err := store.patch("dock", rm(`{"edgeGap":65}`)); err == nil {
+		t.Fatal("whole dock patch accepted an out-of-range edge gap")
+	}
+	if got := frameNum(t, store.frameLocked(), "dock.edgeGap"); got != 24 {
+		t.Fatalf("rejected dock object changed dock.edgeGap to %v", got)
+	}
+
+	raw := map[string]any{"dock": map[string]any{"edgeGap": float64(80)}}
+	if err := normalizeDockSettings(raw, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := raw["dock"].(map[string]any)["edgeGap"]; got != dockEdgeGapMax {
+		t.Fatalf("lenient dock.edgeGap = %v, want %d", got, dockEdgeGapMax)
+	}
+}
+
 // TestPatchRejectsInvalidSchemaValues checks bad schema values and retired
 // namespaces are rejected without touching the file. The daemon commits only
 // after a clean validation and persist.

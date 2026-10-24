@@ -31,7 +31,7 @@ PanelWindow {
 
     // ── sizing ────────────────────────────────────────────────────────────────
     readonly property bool autohide: Dock.cfg("autohide", false)
-    readonly property real edgeGap: 8
+    readonly property real edgeGap: 8 + Math.max(0, Math.min(64, Number(Dock.cfg("edgeGap", 0))))
     readonly property real peek: 3
     readonly property real depth: band.baseSize
     // Inner clearance for a magnified icon to rise into, plus room for the hover

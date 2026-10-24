@@ -27,12 +27,12 @@ import (
 // The daemon owns a typed schema for the reference namespaces plus Ryoku's Ask
 // and Controls state. Those are validated: enum membership and integer ranges
 // are rejected, float strength/contrast/opacity values clamp into range, and
-// Controls drops unknown or duplicate layout identifiers. Every other top-level
-// key in the file (the Ryoku-native look knobs frameRadius, frameBars,
-// weatherLocation, language, and the rest) is carried through verbatim as
-// passthrough: echoed in the frame and merged on patch, but not validated,
-// because the daemon has no schema for them. Passthrough keeps the daemon the
-// sole writer without having to model keys other surfaces own.
+// Controls drops unknown or duplicate layout identifiers. Other top-level keys
+// in the file (the Ryoku-native look knobs frameRadius, frameBars,
+// weatherLocation, language, and the rest) are carried through verbatim as
+// passthrough, except for shared leaves such as dock.edgeGap that need one
+// daemon-enforced contract. Passthrough keeps the daemon the sole writer without
+// forcing it to model settings owned by individual surfaces.
 //
 // The frame is the whole file as one JSON object, so a subscriber sees both the
 // validated schema and the passthrough keys and can drop its own file reader.
@@ -61,6 +61,12 @@ var contractKeys = map[string]bool{
 	"batteryAlerts":    true,
 	"sounds":           true,
 }
+
+const (
+	dockEdgeGapDefault = 0
+	dockEdgeGapMin     = 0
+	dockEdgeGapMax     = 64
+)
 
 // Value domains, in the display order of contract 14 section 8. Stored as stable
 // identifiers (no spaces); the label a user sees is the UI's concern. None name
@@ -757,6 +763,39 @@ func (c *controlsSettings) normalize() {
 	c.Hidden = hidden
 }
 
+// normalizeDockSettings validates the daemon-owned leaves inside the otherwise
+// passthrough dock store. Keeping the rest of the object untouched lets each
+// design retain its own settings while shared geometry gets one contract.
+func normalizeDockSettings(raw map[string]any, strict bool) error {
+	dock, ok := raw["dock"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	value, ok := dock["edgeGap"]
+	if !ok {
+		return nil
+	}
+	b, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("dock.edgeGap: %w", err)
+	}
+	var gap int
+	if err := json.Unmarshal(b, &gap); err != nil {
+		if strict {
+			return fmt.Errorf("dock.edgeGap: %w", err)
+		}
+		dock["edgeGap"] = dockEdgeGapDefault
+		return nil
+	}
+	v := &validator{strict: strict}
+	v.rangeI("dock.edgeGap", &gap, dockEdgeGapMin, dockEdgeGapMax)
+	if v.err != nil {
+		return v.err
+	}
+	dock["edgeGap"] = gap
+	return nil
+}
+
 // splitPath breaks a dotted patch path into segments, rejecting an empty path or
 // any empty segment (a malformed path such as "a." or "a..b").
 func splitPath(path string) ([]string, error) {
@@ -1046,6 +1085,9 @@ func loadSettingsFile(path string) (map[string]any, *settings, time.Time) {
 		}
 		return settingsToMap(def), def, mtime
 	}
+	if err := normalizeDockSettings(raw, false); err != nil {
+		log.Printf("ryoku-shell: normalize dock settings: %v", err)
+	}
 	cur, err := buildSettings(raw, false)
 	if err != nil {
 		cur = def
@@ -1073,6 +1115,9 @@ func loadSettingsPatchBase(path string, fallback map[string]any) (map[string]any
 			err = fmt.Errorf("root must be an object")
 		}
 		return nil, nil, fmt.Errorf("parse settings: %w", err)
+	}
+	if err := normalizeDockSettings(raw, false); err != nil {
+		return nil, nil, fmt.Errorf("validate dock settings: %w", err)
 	}
 	cur, err := buildSettings(raw, false)
 	if err != nil {
@@ -1166,11 +1211,11 @@ var designTransactionKeys = map[string]string{
 	"sidebar":      "ryoStoreSidebarTransaction",
 }
 
-// patch sets one leaf. A schema path is validated and clamped; native
-// passthrough paths are merged without validation. Retired settings namespaces
-// are rejected rather than silently resurrected. The change is persisted before
-// it is committed in memory, so a write failure cannot leave memory and disk
-// disagreeing.
+// patch sets one leaf. Schema paths and selected shared native leaves are
+// validated and clamped; other native passthrough paths are merged without
+// validation. Retired settings namespaces are rejected rather than silently
+// resurrected. The change is persisted before it is committed in memory, so a
+// write failure cannot leave memory and disk disagreeing.
 func (s *settingsStore) patch(path string, value json.RawMessage) error {
 	segs, err := splitPath(path)
 	if err != nil {
@@ -1198,6 +1243,9 @@ func (s *settingsStore) patch(path string, value json.RawMessage) error {
 	full := deepCopyMap(diskRaw)
 	contract := contractKeys[segs[0]]
 	if err := setByPath(full, segs, value, !contract); err != nil {
+		return err
+	}
+	if err := normalizeDockSettings(full, true); err != nil {
 		return err
 	}
 	if len(segs) == 1 && segs[0] == "barStyle" {

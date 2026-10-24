@@ -21,6 +21,10 @@
   moves non-default Shima shape, material, sizing and visibility values from
   the retired Stage store into the universal dock store without replacing
   newer Stage Editor choices (`../cli/internal/doctor/`).
+- **Docks can leave extra room at the screen edge.** Stage Editor now has one
+  shared Edge gap control for the Ryoku, ii and Shima designs, moving the dock,
+  its window reservation and the editor inset together without changing the
+  existing spacing at zero (`ipc/`, `quickshell/{shell,inir,stage}/`).
 - **The quick-launch defaults name Default Apps roles, not fixed programs.**
   The Files, Terminal, Browser and Code slots carried over from the iNiR port
   now run `ryoku-app files|terminal|browser|editor`, so anything that reads

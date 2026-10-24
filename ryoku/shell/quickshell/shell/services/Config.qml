@@ -328,6 +328,7 @@ Singleton {
                 "enabled": false,
                 "design": "ryoku",
                 "edge": "auto",
+                "edgeGap": 0,
                 "autohide": false,
                 "size": 44,
                 "pinned": [],
