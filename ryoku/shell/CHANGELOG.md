@@ -13,6 +13,12 @@
 - **Python's equalizer initializes its runtime state in the correct directory.**
   The helper loads the port's cache initializer beside the media directory and
   exits if it cannot be loaded, instead of writing state at the filesystem root.
+- **Shima's universal dock keeps its notch, launches every pinned app and
+  stays mapped after Stage Editor closes.** Its separately hosted surface now
+  feeds the dock body into Shima's chassis, uses the universal desktop-entry
+  resolver and launch helper, and republishes the body throughout the Stage
+  frame transition without an old asynchronous surface clearing its replacement
+  (`quickshell/inir/modules/iris/`).
 - **A pinned Ryoku dock stays visible after fullscreen and display changes.**
   Fullscreen state now suppresses only an auto-hiding dock, so stale
   compositor state cannot slide a pinned dock off-screen while leaving its

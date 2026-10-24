@@ -242,8 +242,7 @@ Item {
                 WorkspaceService.focusWindow(next.nativeWindowId)
             else next.activate()
         } else {
-            const entry = AppSearch.lookupDesktopEntry(app.appId)
-            if (entry) AppSearch.launchEntry(entry)
+            Ryoku.Dock.activate(app.appId)
             return true
         }
         return false
@@ -473,8 +472,12 @@ Item {
                 return out
             }
             readonly property var bodyShape: {
+                // mapToItem does not expose the Stage matrix as a QML dependency.
+                // Follow the frame animation so the published body settles back
+                // on the screen instead of keeping its last editor-card position.
                 void (dock.x + dock.y + dock.width + dock.height + dock.radius
                     + window.edgeOffset + window.width + window.height + window.screenOffsetY
+                    + StageEditor.GlobalStates.editProgress + StageEditor.GlobalStates.editDrawerProgress
                     + menu.progress + menu.bodyRect.x + menu.bodyRect.y + menu.bodyRect.width + menu.bodyRect.height)
                 if (dock.opacity <= 0.01) return null
                 let dockHome = null
@@ -538,6 +541,9 @@ Item {
                 StageEditor.GlobalStates.setDockInset(name, "", 0)
                 if (name.length === 0) return
                 const bodies = Object.assign({}, GlobalStates.irisDockBody ?? {})
+                // An asynchronous design change can finish the replacement
+                // before this surface is destroyed. Do not erase its body.
+                if (bodies[name] !== window.bodyShape) return
                 bodies[name] = null
                 GlobalStates.irisDockBody = bodies
             }
@@ -722,7 +728,8 @@ Item {
                                 id: appSlot
                                 visible: !entry.separator
                                 slotIndex: entry.index + (root.showLauncher ? 1 : 0)
-                                readonly property var desktopEntry: entry.separator ? null : AppSearch.lookupDesktopEntry(entry.modelData.appId)
+                                readonly property var desktopEntry: entry.separator ? null
+                                    : Ryoku.Dock.entryFor(entry.modelData.appId)
                                 readonly property string appName: appSlot.desktopEntry?.name ?? entry.modelData.appId
                                 readonly property bool running: (entry.app.toplevels?.length ?? 0) > 0
                                 readonly property bool focused: (entry.app.toplevels ?? []).some(t => root.windowWorkspaceMap
@@ -780,8 +787,8 @@ Item {
                                     onHoveredChanged: nameLabel.present(hovered ? appSlot : null, appSlot.appName, entry.app.toplevels?.length ?? 0)
                                     onClicked: appSlot.primary()
                                     middleClickAction: () => {
-                                        const e = AppSearch.lookupDesktopEntry(entry.modelData.appId)
-                                        if (e) AppSearch.launchEntry(e)
+                                        if (appSlot.desktopEntry)
+                                            Ryoku.AppLaunch.run(appSlot.desktopEntry, null)
                                         if (IrisStyle.motionEnabled) launchBounce.restart()
                                     }
                                     altAction: () => {
