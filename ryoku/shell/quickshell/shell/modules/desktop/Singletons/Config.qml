@@ -1073,21 +1073,22 @@ Singleton {
             ? local[key] : adapter[key];
     }
 
-    function widgetDepth(id) {
-        const m = adapter.widgetDepths || {};
-        const v = m[id];
-        return typeof v === "number" ? Math.max(0, Math.min(1, v)) : 0.5;
+    // Depth predates output forks, so an output without its own key keeps
+    // reading the old map until its first edit writes beside placement.
+    function widgetDepth(id, monitor) {
+        const key = id + "Depth";
+        const local = root._monitorMap(monitor);
+        const legacy = adapter.widgetDepths || {};
+        const value = local && Object.prototype.hasOwnProperty.call(local, key)
+            ? local[key] : legacy[id];
+        return typeof value === "number"
+            ? Math.max(0, Math.min(1, value)) : 0.5;
     }
-    function setWidgetDepth(id, value) {
-        if (!id)
+    function setWidgetDepth(monitor, id, value) {
+        if (!monitor || !id)
             return;
-        const next = {};
-        const cur = adapter.widgetDepths || {};
-        for (const k in cur)
-            next[k] = cur[k];
-        next[id] = Math.max(0, Math.min(1, value));
-        adapter.widgetDepths = next;
-        file.writeAdapter();
+        root.setFor(monitor, id + "Depth",
+            Math.max(0, Math.min(1, value)));
     }
 
     // Find the widget owning a schema key from its <widget>Enabled property.
@@ -1129,7 +1130,7 @@ Singleton {
             return false;
         const suffix = key.slice(prefix.length);
         return ["Enabled", "Anchor", "X", "Y", "Scale", "Locked",
-            "Size", "Width", "Height"].indexOf(suffix) >= 0;
+            "Size", "Width", "Height", "Depth"].indexOf(suffix) >= 0;
     }
 
     // Fork one widget from the values this output currently sees. Reassigning

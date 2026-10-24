@@ -63,7 +63,7 @@ Item {
             writer.running = true;
             return;
         }
-        WidgetStore.Config.setWidgetDepth(dest, value);
+        WidgetStore.Config.setWidgetDepth(pick.monitor, dest, value);
     }
 
     Process {

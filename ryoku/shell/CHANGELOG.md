@@ -25,6 +25,10 @@
   distribution from `/etc/os-release`, so Fastfetch says "a hand-built CachyOS
   desktop" instead of treating every pacman host as Arch
   (`scripts/ryoku-base-os`).
+- **Desktop widget depth is independent on each display.** Stage depth now
+  follows the output-keyed widget placement, while existing saved depth values
+  remain the fallback until that display is edited
+  (`quickshell/shell/modules/{desktop,stage}/`).
 
 ### Added
 - **The desktop stage is one feature now: Plain, Depth or Parallax, with a

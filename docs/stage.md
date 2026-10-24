@@ -572,11 +572,13 @@ unchanged.
 
 The depth is set from the widgets page: a slider for the current value and a
 Pick that opens `StageDepthPick.qml`, a tinted read-out of `depth.png` with a
-crosshair and live sample; a click commits the sampled value. All widgets,
-built-ins, iris/python extension faces and plugin tiles, keep their depth in one
-`widgetDepths` map in `widgets.json`, keyed by widget prefix; plugin
-tiles' placements carry their own `depth` in the plugin store instead. The
-map is written as a whole (JsonAdapter cannot observe in-place edits).
+crosshair and live sample; a click commits the sampled value. Built-in and
+iris/python extension faces keep depth beside their position and size in the
+output-keyed `monitors` map in `widgets.json`, so one widget can sit at a
+different depth on each display. A legacy value in the top-level
+`widgetDepths` map remains the fallback until that output gets its own value.
+Plugin tiles' placements carry their own `depth` in the plugin store instead.
+Maps are written as a whole because JsonAdapter cannot observe in-place edits.
 
 A hovered widget settles gently to 0.85 opacity and back. The pointer's
 parallax never pauses: the camera, layers and widgets follow one smoothed

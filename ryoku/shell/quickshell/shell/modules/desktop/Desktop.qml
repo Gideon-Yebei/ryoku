@@ -86,7 +86,7 @@ Scope {
         return (StageCfg.Config.isFront(id) ? 5 : 3) + root.widgetDepth(id) * 0.01;
     }
     function widgetDepth(id) {
-        return Config.widgetDepth(id);
+        return Config.widgetDepth(id, root.monitorName);
     }
     readonly property var stageState: Services.ShellState.forScreen(root.screen)
     // The visualiser paints inside this surface (docs/stage.md) while the

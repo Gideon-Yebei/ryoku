@@ -41,7 +41,7 @@ Item {
     readonly property real depthValue: page.depthTarget === page.target
         ? page.depthAfter
         : (page.plugin ? Number(page.pluginValue("depth", 0.5))
-        : WidgetStore.Config.widgetDepth(page.target))
+        : WidgetStore.Config.widgetDepth(page.target, StageCfg.StageSession.monitor))
     readonly property bool depthPickable: page.depthAvailable && page.provider
         && StageCfg.StageBackend.spatialFor(page.provider.wallpaperPath)
 
@@ -191,7 +191,8 @@ Item {
                 page.applyPluginPlacement(page.target, page.depthPluginPlacement,
                     "depth", clamped);
         } else {
-            WidgetStore.Config.setWidgetDepth(page.target, clamped);
+            WidgetStore.Config.setWidgetDepth(
+                StageCfg.StageSession.monitor, page.target, clamped);
         }
         depthCommit.restart();
     }
@@ -210,19 +211,19 @@ Item {
         if (Math.abs(after - before) < 0.001)
             return;
         if (id.indexOf("plugin:") !== 0)
-            WidgetStore.Config.setWidgetDepth(id, after);
+            WidgetStore.Config.setWidgetDepth(monitor, id, after);
         GlobalStates.editHistoryPush({
             undo: () => {
                 if (id.indexOf("plugin:") === 0)
                     page.applyPluginPlacement(id, pluginSnap, "depth", before);
                 else
-                    WidgetStore.Config.setWidgetDepth(id, before);
+                    WidgetStore.Config.setWidgetDepth(monitor, id, before);
             },
             redo: () => {
                 if (id.indexOf("plugin:") === 0)
                     page.applyPluginPlacement(id, pluginSnap, "depth", after);
                 else
-                    WidgetStore.Config.setWidgetDepth(id, after);
+                    WidgetStore.Config.setWidgetDepth(monitor, id, after);
             }
         });
     }
