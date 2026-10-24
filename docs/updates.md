@@ -109,10 +109,11 @@ packages, including Quickshell, come from Ryoku's signed repository.
 set in one DNF transaction, then runs the same stage-two cutover, materialize,
 and doctor flow. `ryoku update --system` also upgrades the Fedora base. On a
 Fedora release Ryoku has not published yet, update and doctor explain that the
-Ryoku packages remain at their current versions. Fedora boots through GRUB and
-has no Ryoku snapshot or snapshot boot-menu support, so updates skip snapper.
-`ryoku rollback` and the boot guard still move the Ryoku set back by package
-downgrade, leaving Fedora and its kernel current.
+Ryoku packages remain at their current versions. Fedora keeps GRUB and uses
+snapper on a btrfs root. Its **Ryoku snapshots** submenu can boot a read-only
+snapshot, and `sudo ryoku boot-menu restore` makes that snapshot the system
+again. Package rollback and the boot guard still use DNF downgrades for the
+Ryoku set without moving the Fedora base or kernel.
 
 ### NixOS
 
@@ -490,8 +491,8 @@ The package repositories and ISOs live in the `ryoku-iso` bucket below
 | `channels/testing/index.json` | unstable build ledger, newest first | after each unstable publish or ledger rebuild |
 
 The unstable directory name replaces `+` in the release name with `_`, so
-`v0.94.1-beta.20.dev.12+g1234567` is stored below
-`builds/v0.94.1-beta.20.dev.12_g1234567/`. The ISO files sit at the bucket
+`v1.0.0.dev.12+g1234567` is stored below
+`builds/v1.0.0.dev.12_g1234567/`. The ISO files sit at the bucket
 root with their `.sha256`, `.sig`, `.json`, and `.js` sidecars. The
 `latest*.json` files point to current images.
 

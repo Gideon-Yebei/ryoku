@@ -7,6 +7,9 @@ here; runtime code reaches it through `ryoku-host`.
 Hyprland is not shipped. Ryoku requires Hyprland 0.55+, which requires GCC 15
 and C++26, while Void currently ships GCC 14.
 
+For a stock Void installation followed by Ryoku's one-line installer, see
+[`../docs/install-without-iso.md`](../docs/install-without-iso.md#void-linux).
+
 ## Layout
 
 | Path | Purpose |
