@@ -15,6 +15,17 @@
   (`scripts/ryoku-base-os`).
 
 ### Added
+- **The desktop stage is one feature now: Plain, Depth or Parallax, with a
+  3D depth mesh.** Depth renders the wallpaper as a depth-displaced mesh
+  that follows the pointer and needs no cut; Parallax keeps the drifting
+  cut stack and puts the mesh underneath when the wall has a depth map.
+  Desktop widgets can ride the depth at their own depth-map value,
+  projected through the stage camera with contact shadows onto the
+  cut-outs, and a picker samples the map to place them. The v1 settings
+  fold keeps the mouse/sensitivity/range tuning, and the flat backdrop
+  drift default returns to half
+  (`plugin/depthmeshgeometry.*`, `ipc/stage.go`,
+  `quickshell/shell/modules/stage/`, `quickshell/shell/modules/desktop/`).
 - **Shima has an equalizer.** A ten-band panel with presets, bypass and a live
   spectrum opens from the Island's player page, the volume control, media cards
   and an Equalizer bubble, or `iris equalizer toggle`. It drives Ryoku's own

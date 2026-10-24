@@ -184,6 +184,7 @@ qt6-declarative	qt6-qtdeclarative	desktop
 qt6-imageformats	qt6-qtimageformats	desktop	
 qt6-multimedia	qt6-qtmultimedia	desktop	
 qt6-multimedia-ffmpeg	qt6-qtmultimedia	desktop	
+qt6-quick3d	qt6-qtquick3d	desktop	
 qt6-svg	qt6-qtsvg	desktop	
 qt6-wayland	qt6-qtwayland	desktop	
 qt6ct	qt6ct	desktop	

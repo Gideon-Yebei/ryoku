@@ -31,6 +31,7 @@ Singleton {
     property alias clockColor:    adapter.clockColor
     property alias clockColor2:   adapter.clockColor2
     property alias clockGradient: adapter.clockGradient
+    property alias widgetDepths: adapter.widgetDepths
     property alias dateShow:     adapter.dateShow
     property alias dateDesign:   adapter.dateDesign     // inline | badge | stacked
 
@@ -1072,6 +1073,23 @@ Singleton {
             ? local[key] : adapter[key];
     }
 
+    function widgetDepth(id) {
+        const m = adapter.widgetDepths || {};
+        const v = m[id];
+        return typeof v === "number" ? Math.max(0, Math.min(1, v)) : 0.5;
+    }
+    function setWidgetDepth(id, value) {
+        if (!id)
+            return;
+        const next = {};
+        const cur = adapter.widgetDepths || {};
+        for (const k in cur)
+            next[k] = cur[k];
+        next[id] = Math.max(0, Math.min(1, value));
+        adapter.widgetDepths = next;
+        file.writeAdapter();
+    }
+
     // Find the widget owning a schema key from its <widget>Enabled property.
     // This keeps hosted rosters extensible: adding a new face to the adapter
     // automatically makes every one of that face's keys fork together.
@@ -1282,6 +1300,7 @@ Singleton {
             property string clockColor: ""
             property string clockColor2: ""
             property bool clockGradient: false
+            property var widgetDepths: ({})
             property bool dateShow: true
             property string dateDesign: "inline"
             property string widgetFont: ""

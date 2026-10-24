@@ -248,10 +248,11 @@ check_parity "$ROOT/ryoku/rashin/systemd/ryoku-rashin.service" "$INIT/user/ryoku
 check_parity "$ROOT/ryoku/rashin/systemd/ryoku-prowl.service" "$INIT/user/ryoku-prowl"
 check_parity "$ROOT/ryoku/palette-bridge/packaging/systemd/ryoku-palette-bridge.service" "$INIT/user/ryoku-palette-bridge"
 check_parity "$ROOT/system/hardware/bluetooth/ryoku-bluetooth-reset.service" "$INIT/user/ryoku-bluetooth-reset"
-# the loop service's binary set comes from the timer+service pair; check all three collectors appear
-for tool in claude-usage codex-usage opencode-usage; do
-	grep -qF "$tool" "$INIT/user/ryoku-ai-usage/run" || parity_fail "ai-usage loop lost $tool"
-done
+# the loop runs the collector guard, which launches only the installed tools'
+# collectors; tests/void-init-runit.sh covers the guard's own choice
+grep -qF 'RYOKU_AI_USAGE_BIN_DIR="$BIN" "$BIN/ryoku-ai-usage"' \
+	"$INIT/user/ryoku-ai-usage/run" \
+	|| parity_fail "ai-usage loop lost the collector guard"
 # snapper's packaged cron helper already applies every enabled cleanup algorithm
 # to every registered config; the runit loop preserves the timer's cadence.
 grep -qF '/etc/cron.hourly/snapper' "$INIT/system/snapper-cleanup/run" \

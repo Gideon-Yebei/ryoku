@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **A settings edit is never missed mid-write.** The shell could read
+  `shell.json` the moment the writer created it, latch that empty state as
+  current, and then treat the finished write as unchanged, keeping the old
+  settings until the next edit. The finished write now always reloads
+  (`shell/ipc/settings.go`).
 - **The AI usage collectors run only for tools in use.** The five-minute
   timer launched all three collectors even on a box with none of their tools.
   One guard, `ryoku-ai-usage`, now runs each collector only when its CLI is on
