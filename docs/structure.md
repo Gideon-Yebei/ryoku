@@ -353,7 +353,8 @@ downgrades.
   `ryoku-edition-parity` package coverage gate, the delivery gates the
   workflows share (`ryoku-ci-gate` waits for every required check on a commit;
   `ryoku-channel-status` and `ryoku-checked-pointer` write a channel's
-  `status.json` and the testing `checked.json`), `ryoku-track` (the source
+  `status.json` and the testing `checked.json`), `ryoku-discord` (every
+  message CI posts to the Ryoku Discord), `ryoku-track` (the source
   lane behind `ryoku track unstable`), `ryoku-dev-perf-baseline` (what the
   running desktop costs in memory, CPU, wakeups, GPU and power, per process and
   per surface; see `docs/performance.md`), and `art/` for art authoring
