@@ -99,6 +99,27 @@ with a `Main.qml` runtime root and, optionally, a `Preview.qml`.
   shipped six with a STORE tag, previews each with its own `Preview.qml` (or the
   store art when it has none), and offers UPDATE and BROWSE RYOSTORE. Picking and
   saving one is the same as picking a shipped variant.
+- A store launcher opts into Settings controls with a `settings.json` beside its
+  `Main.qml`, which the install carries like any other file of the folder.
+  `capabilities` names what it honours; `sections` lists the groups it files
+  apps under, for the `sections` capability. Settings reads it with
+  `hub/quickshell/LauncherSettings.js` and ignores unknown names, so a missing
+  or broken file simply offers nothing.
+
+  | Capability | Settings card | `launcher.json` keys |
+  | --- | --- | --- |
+  | `background` | Backdrop frost | `bgBlur` |
+  | `overlay` | Overlay | `overlayOpacity` (0.3 to 1) |
+  | `hiddenApps` | Hidden apps | `hiddenApps` (desktop entry ids) |
+  | `grid` | Grid | `columns`, `matWidth` (px) |
+  | `sections` | Sections | `sectionOrder`, `hiddenSections` (section ids) |
+  | `pinnedApps` | Favorites | `pinnedApps` (desktop entry ids) |
+
+  The launcher reads these keys itself from `launcher.json`, with
+  `Quickshell.Io`'s `FileView` and `JsonAdapter`, and must fall back to the
+  defaults when one is absent. It never writes the file: Settings owns it, and
+  a write from here would drop the keys the launcher does not know.
+  The shipped Hero and Main honour `hiddenApps` through `shared/providers/apps`.
 - Removing the launcher in use resets `variant` to `""`, the default, inside the
   same journaled Store transaction. The shipped ids (`main`, `hero`, `okshell`,
   `kairos`, `spotlight`, `python`) are reserved: the Store refuses to install,

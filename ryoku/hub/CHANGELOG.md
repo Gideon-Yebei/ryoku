@@ -13,6 +13,16 @@
   administrator add or remove people, reset passwords and set storage limits
   through the host account seam (`quickshell/pages/users/`,
   `quickshell/pages/GlobalPage.qml`, `quickshell/Singletons/Host.qml`).
+- **App Launcher hides apps and offers more controls for store launchers.**
+  A Hidden apps card lists every installed app with a switch, so the launcher
+  stops showing entries you never open without editing any `.desktop` file.
+  A store launcher can also ask for an Overlay opacity slider, a Grid card
+  (columns and tile width), a Sections card to order or hide its section
+  chips, and a Favorites picker that pins apps first. A launcher declares what
+  it honours in a `settings.json` beside its `Main.qml`
+  (`quickshell/pages/LauncherPage.qml`, `quickshell/AppSetPicker.qml`,
+  `quickshell/SectionsEditor.qml`, `quickshell/LauncherSettings.js`,
+  `quickshell/schema/LauncherPage.js`).
 - **Bar Studio marks the heavier bar styles.** QS Bar, Python, Nomarchy, Shima
   and Sumi now say they may need more CPU, GPU and memory; Orpheus and Kairos,
   the two styles kept light, carry no mark. The tier comes from the RyoStore
