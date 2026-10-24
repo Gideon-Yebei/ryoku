@@ -1282,12 +1282,17 @@ type stageWallsV1 struct {
 }
 
 func stageMigrationMarker() string {
+	return filepath.Join(stateDir(), "ryoku", "migrations", "ryostage-v2-safe-fold")
+}
+
+func oldStageMigrationMarker() string {
 	return filepath.Join(stateDir(), "ryoku", "migrations", "ryostage-v2")
 }
 
-// migrateStage folds the v1 Ryostage state into v2 once, gated by the marker.
-// The registry fold must persist before the marker is written, so a failed run
-// retries on the next start and a second start is a no-op.
+// migrateStage repeats the v2 fold under a corrective marker. The first v2
+// marker could be written before settings persisted and prevented later legacy
+// files from being folded; every operation here is convergent, so existing
+// installations can safely run it once more.
 func migrateStage() {
 	marker := stageMigrationMarker()
 	if isFile(marker) {
@@ -1297,12 +1302,15 @@ func migrateStage() {
 		logStage("migrate registry", err)
 		return
 	}
-	migrateStageSettings()
+	if err := migrateStageSettings(); err != nil {
+		logStage("migrate settings", err)
+		return
+	}
 	if err := os.MkdirAll(filepath.Dir(marker), 0o755); err != nil {
 		logStage("migrate marker dir", err)
 		return
 	}
-	if err := os.WriteFile(marker, []byte("ryostage v2 migration complete\n"), 0o644); err != nil {
+	if err := os.WriteFile(marker, []byte("ryostage v2 safe fold complete\n"), 0o644); err != nil {
 		logStage("migrate marker", err)
 	}
 }
@@ -1316,7 +1324,11 @@ func migrateStage() {
 func migrateStageRegistry() error {
 	var raw stageWallsV1
 	if b, err := os.ReadFile(stageWallsPath()); err == nil {
-		_ = json.Unmarshal(b, &raw)
+		if err := json.Unmarshal(b, &raw); err != nil {
+			return fmt.Errorf("decode %s: %w", stageWallsPath(), err)
+		}
+	} else if !os.IsNotExist(err) {
+		return err
 	}
 	claimed := map[string]bool{}
 	for path := range raw.Walls {
@@ -1418,45 +1430,69 @@ func migrateLegacyRegistry(out *stageWalls, claimed map[string]bool) {
 
 // migrateParallaxFolder moves ~/Pictures/Parallax/<stem>/ whole into the Stage
 // tree, renames the auto subject (old layer-01.png) to subject.png, and returns
-// the wall's v2 layer stack with out paths rewritten onto the new folder and
-// front derived from the retired scene order. On a conflict the source is left
-// in place; the stack is still rebuilt so the registry references resolve.
+// the wall's v2 layer stack. A layer path follows the move only after the folder
+// rename succeeds, after a previous successful move, or when the destination is
+// byte-identical; conflicts and failures keep the legacy path.
 func migrateParallaxFolder(path string, w legacyParallaxWall, layers []legacyParallaxLayer) []stageLayer {
 	stem := stageStem(path)
 	src := filepath.Join(legacyParallaxDir(), stem)
 	dst := stageWallDir(path)
+	moved := false
 	if isDir(src) && !isDir(dst) {
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 			logStage("migrate parallax mkdir "+stem, err)
 		} else if err := os.Rename(src, dst); err != nil {
 			logStage("migrate move parallax "+stem, err)
+		} else {
+			moved = true
 		}
 	}
 	auto := w.Mode == "" || w.Mode == "auto"
-	if auto {
+	subjectReady := false
+	if auto && (moved || (!isDir(src) && isDir(dst))) {
 		l1 := filepath.Join(dst, "layer-01.png")
 		sp := filepath.Join(dst, "subject.png")
-		if isFile(l1) && !isFile(sp) {
+		switch {
+		case isFile(l1) && !isFile(sp):
 			if err := os.Rename(l1, sp); err != nil {
 				logStage("migrate rename subject "+stem, err)
+			} else {
+				subjectReady = true
 			}
+		case isFile(sp) && (!isFile(l1) || filesHaveSameContents(l1, sp)):
+			subjectReady = true
 		}
 	}
 	front := sceneFront(w.Scene, len(layers))
 	v2 := make([]stageLayer, 0, len(layers)+1)
 	hasSubject := false
 	for i, ol := range layers {
-		base := filepath.Base(ol.Out)
+		original := ol.Out
+		base := filepath.Base(original)
 		if auto && base == "layer-01.png" {
-			base = "subject.png"
+			candidate := filepath.Join(dst, "subject.png")
+			if subjectReady || filesHaveSameContents(original, candidate) {
+				base = "subject.png"
+			}
+		}
+		candidate := filepath.Join(dst, base)
+		out := original
+		fromSourceFolder := filepath.Clean(filepath.Dir(original)) == filepath.Clean(src)
+		switch {
+		case moved && fromSourceFolder && isFile(candidate):
+			out = candidate
+		case fromSourceFolder && !isFile(original) && isFile(candidate):
+			out = candidate
+		case isFile(original) && filesHaveSameContents(original, candidate):
+			out = candidate
 		}
 		nl := stageLayer{
-			Out:     filepath.Join(dst, base),
+			Out:     out,
 			Label:   ol.Label,
 			Enabled: true,
 			Depth:   float64(ol.Depth),
 		}
-		if base == "subject.png" {
+		if base == "subject.png" && out == candidate {
 			nl.Label = "Subject"
 			hasSubject = true
 		} else if nl.Label == "" {
@@ -1474,6 +1510,41 @@ func migrateParallaxFolder(path string, w legacyParallaxWall, layers []legacyPar
 		v2 = append([]stageLayer{newSubjectLayer(stageSubjectOut(path))}, v2...)
 	}
 	return v2
+}
+
+func filesHaveSameContents(a, b string) bool {
+	ai, err := os.Stat(a)
+	if err != nil || !ai.Mode().IsRegular() {
+		return false
+	}
+	bi, err := os.Stat(b)
+	if err != nil || !bi.Mode().IsRegular() || ai.Size() != bi.Size() {
+		return false
+	}
+	af, err := os.Open(a)
+	if err != nil {
+		return false
+	}
+	defer af.Close()
+	bf, err := os.Open(b)
+	if err != nil {
+		return false
+	}
+	defer bf.Close()
+	var ab, bb [32 * 1024]byte
+	for {
+		an, ae := af.Read(ab[:])
+		bn, be := bf.Read(bb[:])
+		if an != bn || !bytes.Equal(ab[:an], bb[:bn]) {
+			return false
+		}
+		if ae == io.EOF && be == io.EOF {
+			return true
+		}
+		if ae != nil || be != nil {
+			return false
+		}
+	}
 }
 
 // migrateDepthPNG renames ~/Pictures/Depth/<stem>-depth.png to the wall's
@@ -1613,46 +1684,53 @@ func stageMotionAmount(motion map[string]any) string {
 }
 
 // migrateStageSettings folds the shell-owned stage.json to v2. An existing v1
-// stage.json (one still carrying feather/lift/preset or the motion sub-knobs) is
-// rewritten in place; an already-v2 file is left alone. When no stage.json
-// exists, the retired depth.json + parallax.json are folded instead (a stable
-// box that skipped v1), deriving the quality tier from their model+matting. The
-// file is GUI-owned, so nothing is created when there is nothing to fold.
-func migrateStageSettings() {
+// file is rewritten in place; an already-v2 file is left byte-for-byte alone.
+// A malformed source is never replaced, and the caller cannot commit the
+// migration marker until every required write succeeds.
+func migrateStageSettings() error {
 	dir := ryokuConfigDir()
 	if dir == "" {
-		return
+		return nil
 	}
 	path := filepath.Join(dir, "stage.json")
 	if b, err := os.ReadFile(path); err == nil {
 		var m map[string]any
-		if json.Unmarshal(b, &m) != nil {
-			return
+		if err := json.Unmarshal(b, &m); err != nil {
+			return fmt.Errorf("decode %s: %w", path, err)
 		}
 		motion, _ := m["motion"].(map[string]any)
 		if !stageSettingsIsV1(m, motion) {
-			return // already v2
+			legacy, err := loadLegacyStageSettings(dir)
+			if err != nil {
+				return err
+			}
+			if legacy == nil || !mergeLegacyStageSettings(m, legacy) {
+				return nil
+			}
+			return writeJSONFileAtomic(path, m)
 		}
-		if err := writeJSONFileAtomic(path, settingsToV2(m)); err != nil {
-			logStage("migrate settings", err)
-		}
-		return
+		return writeJSONFileAtomic(path, settingsToV2(m))
+	} else if !os.IsNotExist(err) {
+		return err
 	}
-	legacy := loadLegacyStageSettings(dir)
+	legacy, err := loadLegacyStageSettings(dir)
+	if err != nil {
+		return err
+	}
 	if legacy == nil {
-		return
+		return nil
 	}
-	if err := writeJSONFileAtomic(path, settingsToV2(legacy)); err != nil {
-		logStage("migrate settings", err)
-	}
+	return writeJSONFileAtomic(path, settingsToV2(legacy))
 }
 
-// settingsToV2 maps a v1 or merged-legacy settings map onto the v2 stage.json
-// shape: quality from the tier string when present else the legacy model+matting
-// pair; the three model slots get their defaults; feather -> edge; the motion
-// word keeps amount while the tunable knobs the v2 UI still owns carry over;
-// lift/preset are dropped.
+// settingsToV2 changes only the retired slots it understands. Starting from a
+// copy keeps current model choices, editor settings and future keys intact when
+// an otherwise-current file still carries one old key.
 func settingsToV2(m map[string]any) map[string]any {
+	out := make(map[string]any, len(m)+3)
+	for k, v := range m {
+		out[k] = v
+	}
 	motion := stageMotionView(m)
 	quality := firstString(m["quality"], "")
 	if quality != "draft" && quality != "standard" && quality != "fine" {
@@ -1667,28 +1745,95 @@ func settingsToV2(m map[string]any) map[string]any {
 			quality = "draft"
 		}
 	}
-	tuned := map[string]any{
-		"amount": stageMotionAmount(motion),
-		"idle":   firstString(mapValue(motion, "idle"), "none"),
-		"music":  asBool(mapValue(motion, "music"), false),
+	out["quality"] = quality
+	if _, ok := out["models"]; !ok {
+		out["models"] = defaultStageModels()
 	}
-	if mouse, ok := motion["mouse"].(bool); ok {
-		tuned["mouse"] = mouse
+	if _, ok := out["edge"]; !ok {
+		out["edge"] = firstNumber(m["feather"], 0.15)
 	}
-	for _, key := range []string{"sensitivity", "range", "backdrop", "musicLevel", "speed"} {
-		if v, ok := motion[key].(float64); ok {
-			tuned[key] = v
+	if _, ok := out["shadow"]; !ok {
+		out["shadow"] = float64(0)
+	}
+	if _, ok := out["shadowAngle"]; !ok {
+		out["shadowAngle"] = float64(90)
+	}
+	if _, ok := motion["amount"]; !ok {
+		motion["amount"] = stageMotionAmount(motion)
+	}
+	if _, ok := motion["idle"]; !ok {
+		motion["idle"] = "none"
+	}
+	if _, ok := motion["music"]; !ok {
+		motion["music"] = false
+	}
+	delete(motion, "wallpaper")
+	out["motion"] = motion
+	if _, ok := out["front"]; !ok {
+		out["front"] = []any{}
+	}
+	for _, key := range []string{
+		"feather", "lift", "preset", "model", "alphaMatting",
+		"mouseEnabled", "mouseSensitivity", "mouseRange", "wallpaperParallax",
+	} {
+		delete(out, key)
+	}
+	return out
+}
+
+// mergeLegacyStageSettings fills only current slots that are absent. This lets
+// installations already carrying the first v2 marker receive the newly folded
+// parallax globals without replacing choices made in Stage since then.
+func mergeLegacyStageSettings(current, legacy map[string]any) bool {
+	changed := false
+	setMissing := func(key string, value any) {
+		if _, ok := current[key]; ok || value == nil {
+			return
+		}
+		current[key] = value
+		changed = true
+	}
+	if quality := firstString(legacy["quality"], ""); quality != "" {
+		setMissing("quality", quality)
+	}
+	if edge, ok := legacy["feather"].(float64); ok {
+		setMissing("edge", edge)
+	}
+	for _, key := range []string{"shadow", "shadowAngle", "front"} {
+		if value, ok := legacy[key]; ok {
+			setMissing(key, value)
 		}
 	}
-	return map[string]any{
-		"quality":     quality,
-		"models":      defaultStageModels(),
-		"edge":        firstNumber(m["feather"], 0.15),
-		"shadow":      firstNumber(m["shadow"], 0),
-		"shadowAngle": firstNumber(m["shadowAngle"], 90),
-		"motion":      tuned,
-		"front":       firstList(m["front"]),
+
+	motion, _ := current["motion"].(map[string]any)
+	mergedMotion := make(map[string]any, len(motion)+6)
+	for key, value := range motion {
+		mergedMotion[key] = value
 	}
+	legacyMotion := stageMotionView(legacy)
+	motionChanged := false
+	for _, key := range []string{"mouse", "sensitivity", "range", "backdrop", "musicLevel", "speed", "idle", "music"} {
+		if _, ok := mergedMotion[key]; ok {
+			continue
+		}
+		if value, ok := legacyMotion[key]; ok {
+			mergedMotion[key] = value
+			motionChanged = true
+		}
+	}
+	if _, ok := mergedMotion["amount"]; !ok {
+		_, hasMouse := legacyMotion["mouse"]
+		_, hasSensitivity := legacyMotion["sensitivity"]
+		if hasMouse || hasSensitivity {
+			mergedMotion["amount"] = stageMotionAmount(legacyMotion)
+			motionChanged = true
+		}
+	}
+	if motionChanged {
+		current["motion"] = mergedMotion
+		changed = true
+	}
+	return changed
 }
 
 // stageMotionView surfaces the retired parallax.json motion globals on one v2
@@ -1728,10 +1873,10 @@ func stageMotionView(m map[string]any) map[string]any {
 }
 
 // loadLegacyStageSettings merges the retired depth.json and parallax.json into
-// one settings map for the v2 fold: parallax first then depth so the depth
-// scalars win, per-layer arrays are skipped (they never land in a scalar slot),
-// and the higher model+matting tier is what the user paid the download for.
-func loadLegacyStageSettings(dir string) map[string]any {
+// one settings map for the v2 fold. Invalid legacy JSON aborts the fold so it
+// remains available for a corrected retry rather than being silently replaced
+// by defaults or by only half of the user's settings.
+func loadLegacyStageSettings(dir string) (map[string]any, error) {
 	scalarProto := map[string]any{
 		"feather": 0.0, "shadow": 0.0, "shadowAngle": 0.0,
 		"mouseEnabled": false, "mouseSensitivity": 0.0, "mouseRange": 0.0,
@@ -1742,13 +1887,17 @@ func loadLegacyStageSettings(dir string) map[string]any {
 	found := false
 	bestTier := ""
 	for _, name := range []string{"parallax.json", "depth.json"} {
-		b, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil {
+		path := filepath.Join(dir, name)
+		b, err := os.ReadFile(path)
+		if os.IsNotExist(err) {
 			continue
 		}
+		if err != nil {
+			return nil, err
+		}
 		var mm map[string]any
-		if json.Unmarshal(b, &mm) != nil {
-			continue
+		if err := json.Unmarshal(b, &mm); err != nil {
+			return nil, fmt.Errorf("decode %s: %w", path, err)
 		}
 		found = true
 		for k, proto := range scalarProto {
@@ -1769,12 +1918,12 @@ func loadLegacyStageSettings(dir string) map[string]any {
 		}
 	}
 	if !found {
-		return nil
+		return nil, nil
 	}
 	if bestTier != "" {
 		result["quality"] = bestTier
 	}
-	return result
+	return result, nil
 }
 
 func qualityRank(t string) int {
@@ -1822,16 +1971,12 @@ func sameJSONKind(v, def any) bool {
 	return false
 }
 
-// stageSettingsIsV1 reports whether a stage.json still carries any v1-only key,
-// so an already-v2 file is left untouched.
-func stageSettingsIsV1(m, motion map[string]any) bool {
+// stageSettingsIsV1 looks only for the top-level slots unique to v1. Pointer
+// tuning remains part of the current motion schema, so mouse, sensitivity and
+// range must never make an otherwise-current file look old.
+func stageSettingsIsV1(m, _ map[string]any) bool {
 	for _, k := range []string{"feather", "lift", "preset"} {
 		if _, ok := m[k]; ok {
-			return true
-		}
-	}
-	for _, k := range []string{"mouse", "sensitivity", "range", "wallpaper"} {
-		if _, ok := motion[k]; ok {
 			return true
 		}
 	}

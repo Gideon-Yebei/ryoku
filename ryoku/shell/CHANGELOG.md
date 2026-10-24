@@ -9,6 +9,13 @@
   software-rendered animated pointer out of the image without changing its
   size or turning the effect off (`scripts/ryoku-cmd-{ryoshot,grim}`,
   `quickshell/ryoshot/`).
+- **Stage upgrades keep every saved setting and file.** The corrective fold
+  retries malformed or unwritable settings without marking them complete,
+  preserves current and future keys, and leaves conflicting Parallax artifacts
+  at their original paths. Depth model cards now report the models' actual
+  licences: Apache-2.0 for Small and non-commercial CC-BY-NC-4.0 for Base and
+  Large (`ipc/stage.go`, `scripts/ryostage`,
+  `quickshell/shell/modules/stage/StageDepthOptions.qml`).
 - **CachyOS is reported as CachyOS.** `ryoku-base-os` now returns the
   distribution from `/etc/os-release`, so Fastfetch says "a hand-built CachyOS
   desktop" instead of treating every pacman host as Arch

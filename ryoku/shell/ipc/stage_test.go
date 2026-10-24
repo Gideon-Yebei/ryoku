@@ -746,10 +746,14 @@ func TestStageSettingsFoldV1toV2(t *testing.T) {
 	}
 	path := filepath.Join(cfg, "stage.json")
 	writeFile(t, path, `{"quality":"fine","feather":0.2,"lift":1,"shadow":0.3,"shadowAngle":45,`+
-		`"motion":{"mouse":false,"sensitivity":2,"range":0.3,"wallpaper":0.2},`+
+		`"models":{"draft":"custom-draft","standard":"custom-standard","fine":"custom-fine"},`+
+		`"depthModel":"large","editGridSize":24,"editGridSnap":false,"futureSetting":{"kept":true},`+
+		`"motion":{"mouse":false,"sensitivity":2,"range":0.3,"wallpaper":0.2,"futureMotion":"kept"},`+
 		`"preset":"deep","front":["clock"]}`)
 
-	migrateStageSettings()
+	if err := migrateStageSettings(); err != nil {
+		t.Fatal(err)
+	}
 
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -791,14 +795,152 @@ func TestStageSettingsFoldV1toV2(t *testing.T) {
 		t.Fatalf("front = %v, want [clock]", got["front"])
 	}
 
-	// An already-v2 stage.json is left byte-for-byte untouched.
-	v2 := `{"quality":"draft","edge":0.1,"shadow":0,"shadowAngle":90,` +
-		`"motion":{"amount":"strong","idle":"float","music":true},"front":[]}`
+	models, _ := got["models"].(map[string]any)
+	if models["draft"] != "custom-draft" || got["depthModel"] != "large" ||
+		got["editGridSize"] != 24.0 || got["editGridSnap"] != false {
+		t.Fatalf("current model/editor settings did not survive: %s", b)
+	}
+	future, _ := got["futureSetting"].(map[string]any)
+	if future["kept"] != true || motion["futureMotion"] != "kept" {
+		t.Fatalf("forward-compatible keys did not survive: %s", b)
+	}
+
+	// Current pointer tuning belongs to v2 and must not trigger migration.
+	v2 := `{"quality":"draft","edge":0.1,"depthModel":"base","editGridSize":32,` +
+		`"customModel":"mine","future":{"version":3},"motion":{"amount":"strong",` +
+		`"idle":"float","music":true,"mouse":true,"sensitivity":1.25,"range":0.4},"front":[]}`
 	writeFile(t, path, v2)
-	migrateStageSettings()
+	if err := migrateStageSettings(); err != nil {
+		t.Fatal(err)
+	}
 	after, _ := os.ReadFile(path)
 	if string(after) != v2 {
 		t.Fatalf("already-v2 stage.json was rewritten:\n got %s\nwant %s", after, v2)
+	}
+}
+
+func TestStageSettingsMalformedJSONIsRetried(t *testing.T) {
+	home := stageHome(t)
+	cfg := filepath.Join(home, ".config", "ryoku")
+	if err := os.MkdirAll(cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(cfg, "stage.json")
+	const malformed = `{"quality":"fine","feather":`
+	writeFile(t, path, malformed)
+
+	if err := migrateStageSettings(); err == nil {
+		t.Fatal("malformed stage.json migration succeeded")
+	}
+	migrateStage()
+	if isFile(stageMigrationMarker()) {
+		t.Fatal("migration marker written for malformed stage.json")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != malformed {
+		t.Fatalf("malformed stage.json was changed: %q", after)
+	}
+}
+
+func TestStageSettingsWriteFailureDoesNotMarkMigration(t *testing.T) {
+	home := stageHome(t)
+	cfg := filepath.Join(home, ".config", "ryoku")
+	if err := os.MkdirAll(cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(cfg, "stage.json")
+	const v1 = `{"quality":"draft","feather":0.2,"motion":{"mouse":true}}`
+	writeFile(t, path, v1)
+	if err := os.Chmod(cfg, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(cfg, 0o755) })
+
+	if err := migrateStageSettings(); err == nil {
+		t.Fatal("migration into a read-only directory succeeded")
+	}
+	migrateStage()
+	if isFile(stageMigrationMarker()) {
+		t.Fatal("migration marker written after settings write failure")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != v1 {
+		t.Fatalf("stage.json changed after failed write: %q", after)
+	}
+}
+
+func TestStageOldMarkerStillFoldsLegacySettings(t *testing.T) {
+	home := stageHome(t)
+	cfg := filepath.Join(home, ".config", "ryoku")
+	if err := os.MkdirAll(cfg, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(oldStageMigrationMarker()), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, oldStageMigrationMarker(), "old migration complete\n")
+	writeFile(t, filepath.Join(cfg, "stage.json"),
+		`{"quality":"fine","depthModel":"large","customModel":"mine",`+
+			`"motion":{"amount":"strong","future":"kept"}}`)
+	writeFile(t, filepath.Join(cfg, "parallax.json"),
+		`{"feather":0.27,"mouseEnabled":false,"wallpaperParallax":0.6}`)
+
+	migrateStage()
+
+	b, err := os.ReadFile(filepath.Join(cfg, "stage.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatal(err)
+	}
+	motion, _ := got["motion"].(map[string]any)
+	if got["edge"] != 0.27 || motion["mouse"] != false || motion["backdrop"] != 0.6 {
+		t.Fatalf("legacy settings were not folded past the old marker: %s", b)
+	}
+	if got["quality"] != "fine" || got["depthModel"] != "large" ||
+		got["customModel"] != "mine" || motion["amount"] != "strong" ||
+		motion["future"] != "kept" {
+		t.Fatalf("current settings were overwritten by the legacy fold: %s", b)
+	}
+	if !isFile(stageMigrationMarker()) {
+		t.Fatal("corrective migration marker not written")
+	}
+}
+
+func TestStageParallaxMoveConflictKeepsLegacyPath(t *testing.T) {
+	home := stageHome(t)
+	wall := filepath.Join(home, "wall.png")
+	srcDir := filepath.Join(legacyParallaxDir(), "wall")
+	dstDir := stageWallDir(wall)
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(srcDir, "layer-02.png")
+	dst := filepath.Join(dstDir, "layer-02.png")
+	writeFile(t, src, "legacy")
+	writeFile(t, dst, "different")
+
+	layers := migrateParallaxFolder(wall, legacyParallaxWall{Mode: "manual"},
+		[]legacyParallaxLayer{{Out: src, Label: "Layer 2", Depth: 0.7}})
+
+	if len(layers) != 2 || layers[1].Out != src {
+		t.Fatalf("conflicting layer path was rewritten: %+v", layers)
+	}
+	srcBody, _ := os.ReadFile(src)
+	dstBody, _ := os.ReadFile(dst)
+	if string(srcBody) != "legacy" || string(dstBody) != "different" {
+		t.Fatalf("conflicting files were modified: src=%q dst=%q", srcBody, dstBody)
 	}
 }
 
@@ -997,7 +1139,9 @@ func TestStageLegacySettingsFoldV2(t *testing.T) {
 	writeFile(t, filepath.Join(cfg, "depth.json"),
 		`{"feather":0.15,"lift":1,"shadow":0.85,"model":"birefnet-general-lite","alphaMatting":true}`)
 
-	migrateStageSettings()
+	if err := migrateStageSettings(); err != nil {
+		t.Fatal(err)
+	}
 
 	b, err := os.ReadFile(filepath.Join(cfg, "stage.json"))
 	if err != nil {

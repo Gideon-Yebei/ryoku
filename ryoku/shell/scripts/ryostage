@@ -13,7 +13,8 @@
 #   u2netp                Apache-2.0*    https://github.com/xuebinqin/U-2-Net
 #   silueta               MIT            https://github.com/xuebinqin/U-2-Net/issues/295
 #   birefnet-*            MIT            https://github.com/ZhengPeng7/BiRefNet
-#   depth-anything-v2     Apache-2.0     https://github.com/DepthAnything/Depth-Anything-V2
+#   depth-anything-v2-small         Apache-2.0     https://github.com/DepthAnything/Depth-Anything-V2
+#   depth-anything-v2-base/large    CC-BY-NC-4.0   https://github.com/DepthAnything/Depth-Anything-V2
 # * the upstream U-2-Net repo states no licence; the mirrored weights rembg
 #   fetches are published Apache-2.0.
 set -euo pipefail
@@ -45,18 +46,18 @@ default_model="u2netp"
 # The Depth Anything V2 family as fixed ONNX exports, each pinned by digest so
 # the opt-in download is verifiable and a model swap is a deliberate change.
 # Every depth verb takes --model, defaulting to small.
-depth_meta() { # id -> filename, url, sha, label, size
+depth_meta() { # id -> filename, url, sha, label, size, licence, upstream
     case "$1" in
     base | depth-anything-v2-base)
-        printf 'base\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vitb_dynamic.onnx\t%s\tDepth Anything V2 Base\t389 MB\n' \
+        printf 'base\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vitb_dynamic.onnx\t%s\tDepth Anything V2 Base\t389 MB\tCC-BY-NC-4.0\thttps://github.com/DepthAnything/Depth-Anything-V2\n' \
             'd823dddd4f363cbd0ef73cb9ade3a6ab56b60c7a425ebbbab3fa8c0cd936e33e'
         ;;
     large | depth-anything-v2-large)
-        printf 'large\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vitl_dynamic.onnx\t%s\tDepth Anything V2 Large\t1.34 GB\n' \
+        printf 'large\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vitl_dynamic.onnx\t%s\tDepth Anything V2 Large\t1.34 GB\tCC-BY-NC-4.0\thttps://github.com/DepthAnything/Depth-Anything-V2\n' \
             '65432320391cf5e18ceb36d1c6eeb1a59281b5ed9ae4600d26bf25519043c8b0'
         ;;
     *)
-        printf 'small\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vits_dynamic.onnx\t46c4e8eeda3a27f34701831b6a2ec7753d7b38779b215acb5633424703deed8f\tDepth Anything V2 Small\t99 MB\n'
+        printf 'small\thttps://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vits_dynamic.onnx\t46c4e8eeda3a27f34701831b6a2ec7753d7b38779b215acb5633424703deed8f\tDepth Anything V2 Small\t99 MB\tApache-2.0\thttps://github.com/DepthAnything/Depth-Anything-V2\n'
         ;;
     esac
 }
@@ -70,6 +71,8 @@ depth_norm() { # accept short ids or the full file stem
 depth_path() { printf '%s/depth-anything-v2-%s.onnx' "$models" "$1"; }
 depth_label() { depth_meta "$1" | cut -f4; }
 depth_size() { depth_meta "$1" | cut -f5; }
+depth_licence() { depth_meta "$1" | cut -f6; }
+depth_upstream() { depth_meta "$1" | cut -f7; }
 
 model_meta() {
     case "$1" in
@@ -534,9 +537,10 @@ cmd_depth_check() {
         [[ -f "$(depth_path "$id")" ]] && inst=true
         $first || rows+=","
         first=false
-        rows+="$(printf '{"id":"%s","label":"%s","size":"%s","installed":%s,"selected":%s}' \
+        rows+="$(printf '{"id":"%s","label":"%s","size":"%s","installed":%s,"selected":%s,"licence":"%s","upstream":"%s"}' \
             "$id" "$(depth_label "$id")" "$(depth_size "$id")" "$inst" \
-            "$([[ $id == "$model" ]] && echo true || echo false)")"
+            "$([[ $id == "$model" ]] && echo true || echo false)" \
+            "$(depth_licence "$id")" "$(depth_upstream "$id")")"
     done < <(depth_ids)
     rows+="]"
     printf '{"installed":%s,"model":"%s","models":%s}\n' "$installed" "$model" "$rows"

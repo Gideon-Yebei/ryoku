@@ -44,8 +44,10 @@ Column {
         const m = opts.backend.depthModelById(String(opts.cfg.depthModel));
         if (opts.backend.depthInstalling)
             return I18n.tr("Downloading %1…").arg(m ? m.label : I18n.tr("depth model"));
-        if (m && m.installed)
-            return m.label + " · " + m.size + " · " + I18n.tr("pick a size, each its own download");
+        if (m)
+            return I18n.tr("%1 · %2 · %3").arg(m.label)
+                .arg(m.size || I18n.tr("size unknown"))
+                .arg(m.licence || I18n.tr("licence unknown"));
         return I18n.tr("Download once to render the wallpaper backdrop as a depth mesh");
     }
     readonly property string stateDir: Quickshell.env("XDG_STATE_HOME")
@@ -398,14 +400,22 @@ Column {
                     Repeater {
                         model: opts.backend.depthModels.length > 0
                             ? opts.backend.depthModels
-                            : [{ id: "small", label: I18n.tr("V2 Small"), size: "99 MB", installed: false, selected: true }]
+                            : [{
+                                id: "small",
+                                label: I18n.tr("V2 Small"),
+                                size: "99 MB",
+                                licence: "Apache-2.0",
+                                installed: false,
+                                selected: true
+                            }]
                         delegate: Row {
                             required property var modelData
                             readonly property var m: opts.backend.depthModelById(modelData.id) || modelData
+                            readonly property string licence: m.licence || I18n.tr("licence unknown")
                             Btn {
-                                text: m.id === opts.cfg.depthModel
-                                    ? (m.installed ? m.label + " · " + m.size : m.label + " · " + I18n.tr("not on disk"))
-                                    : m.label + " · " + m.size
+                                text: (m.id === opts.cfg.depthModel && !m.installed)
+                                    ? m.label + " · " + I18n.tr("not on disk") + " · " + licence
+                                    : m.label + " · " + m.size + " · " + licence
                                 compact: true
                                 primary: m.id === opts.cfg.depthModel && m.installed
                                 armed: !opts.backend.depthInstalling && !opts.backend.depthRemoving

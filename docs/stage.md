@@ -242,9 +242,9 @@ The Depth catalogue has five tabs:
   shows progress and Stop; a blocked cut shows its notice and Retry. Draft,
   Standard, or Fine quality offers Download or Remove for its model and Re-cut.
   When the depth feature is on, a depth model row renders the engine's
-  estimator catalogue (see Models below): one chip per model with its size and
-  installed state, a pick that re-runs the depth map on disk and a missing pick
-  that downloads first, plus Rebuild map.
+  estimator catalogue (see Models below): one chip per model with its size,
+  licence and installed state, a pick that re-runs the depth map on disk and a
+  missing pick that downloads first, plus Rebuild map.
 - **Layers:** **Cut a layer from a picture** and **Add a PNG** file pickers,
   per-layer cards, and a confirmed Clear cut-outs action. Each layer can be
   shown, placed behind or in front, given a Parallax distance, or removed. The
@@ -340,20 +340,23 @@ packagers.
 ### Depth estimators
 
 The 3D backdrop's depth map comes from a second, separate opt-in catalogue of
-Depth Anything V2 ONNX exports (Apache-2.0 weights, repo
-[Depth-Anything-ONNX](https://github.com/fabio-sim/Depth-Anything-ONNX)), each
-one file, each pinned by SHA-256 so a download is verifiable:
+Depth Anything V2 ONNX exports from
+[Depth-Anything-ONNX](https://github.com/fabio-sim/Depth-Anything-ONNX). Each
+is one file pinned by SHA-256 so a download is verifiable. The upstream
+[Depth Anything V2 licence](https://github.com/DepthAnything/Depth-Anything-V2#license)
+licenses only the Small model under Apache-2.0; Base and Large are
+CC-BY-NC-4.0 and therefore non-commercial:
 
-| id | Label | Download | Pins |
-|---|---|---:|---|
-| `small` | Depth Anything V2 Small | 99 MB | ViT-S, ~1.2 s at 1080p on CPU |
-| `base` | Depth Anything V2 Base | 389 MB | ViT-B, finer structure |
-| `large` | Depth Anything V2 Large | 1.34 GB | ViT-L, best gradients |
+| id | Label | Download | Licence | Pins |
+|---|---|---:|---|---|
+| `small` | Depth Anything V2 Small | 99 MB | Apache-2.0 | ViT-S, ~1.2 s at 1080p on CPU |
+| `base` | Depth Anything V2 Base | 389 MB | CC-BY-NC-4.0 | ViT-B, finer structure |
+| `large` | Depth Anything V2 Large | 1.34 GB | CC-BY-NC-4.0 | ViT-L, best gradients |
 
-`depth-check --json [--model <id>]` reports the selected model's installed flag
-and the whole catalogue for the Stage tab to render; `depth-install`,
-`depth-remove` and `depth` all take `--model` and default to `small` so the
-legacy one-model invocations keep working. The pick lives in
+`depth-check --json [--model <id>]` reports each model's size, licence,
+upstream, selection and installed state for the Stage tab to render.
+`depth-install`, `depth-remove` and `depth` all take `--model` and default to
+`small`, so the legacy one-model invocations keep working. The pick lives in
 `stage.json` `depthModel` (default `small`); the daemon probes with the same id
 and, when the model is on disk, generates each wall's `depth.png`. A chip for a
 model already on disk re-runs the depth map at once; a missing model downloads
@@ -453,13 +456,18 @@ the motion word keeps `amount` (`mouse: false` -> `subtle`, a high
 `sensitivity` -> `strong`, else `normal`) while the tunable knobs
 the v2 UI still owns carry over (`mouse`, `sensitivity`, `range`,
 `musicLevel`, `speed`; the retired `wallpaper`/`wallpaperParallax` becomes
-`backdrop`), with `motion.idle`/`motion.music` defaulted. An already-v2 file is
-left alone; the daemon never creates the GUI-owned file. A stable box that
-skipped v1 has no `stage.json` but still carries the retired
-`depth.json`/`parallax.json`; those are folded instead (model+matting ->
-`quality`, higher tier winning; `feather` -> `edge`; `shadow`/`shadowAngle`
-scalars kept, per-layer arrays skipped, the parallax globals mapped onto their
-v2 keys).
+`backdrop`), with `motion.idle`/`motion.music` defaulted. The fold starts with
+the existing object, so model choices, editor controls and unknown future keys
+survive. An already-v2 file is left byte-for-byte alone unless a retired
+settings file can fill a slot it does not yet have; this lets boxes carrying
+the first `ryostage-v2` marker receive the later Parallax globals without
+overwriting current choices. Malformed source JSON is left untouched and
+retried; no migration marker is written until every required write succeeds.
+A stable box that skipped v1 has no `stage.json` but still carries the retired
+`depth.json`/`parallax.json`; those are folded instead
+(model+matting -> `quality`, higher tier winning; `feather` -> `edge`;
+`shadow`/`shadowAngle` scalars kept, per-layer arrays skipped, the parallax
+globals mapped onto their v2 keys).
 
 ## Registry: per-wallpaper stage
 
@@ -477,16 +485,18 @@ v2 keys).
 later entry is a picture the user added (`layer-NN.png`, cut from a picture
 or dropped in as a PNG). `front` is behind/in front of the widgets; `depth`
 0..1 is near..far for Parallax drift. The v1 registry is folded once, gated by
-`~/.local/state/ryoku/migrations/ryostage-v2`: `effect: subject` becomes
-`depth`, a `scene` order reduces to each layer's `front` (a layer listed after
-any `widget:*` token is `front: true`), a v1 `depthFactor` becomes `depth`, and
-`mode`, `scene` and the other per-layer knobs are dropped. A v1 manual wall's
-`layer-NN.png` entries are kept after a prepended subject slot. Under the same
-marker and before the v1 fold, the retired Depth (`depth-walls.json` +
-`~/Pictures/Depth`) and Parallax (`layers.pz` + `~/Pictures/Parallax`) state a
-stable box still carries is folded in for walls v1 has not claimed, its
-artifacts moved by rename into `~/Pictures/Stage/<stem>/`, so both upgrade paths
-converge on one registry.
+`~/.local/state/ryoku/migrations/ryostage-v2-safe-fold`: `effect: subject`
+becomes `depth`, a `scene` order reduces to each layer's `front` (a layer listed
+after any `widget:*` token is `front: true`), a v1 `depthFactor` becomes
+`depth`, and `mode`, `scene` and the other per-layer knobs are dropped. A v1
+manual wall's `layer-NN.png` entries are kept after a prepended subject slot.
+The corrective marker deliberately ignores the earlier `ryostage-v2` marker,
+which could be committed before settings persisted. The retired Depth
+(`depth-walls.json` + `~/Pictures/Depth`) and Parallax (`layers.pz` +
+`~/Pictures/Parallax`) state is folded for walls v1 has not claimed. Artifacts
+move by rename into `~/Pictures/Stage/<stem>/`; a layer path changes only after
+that move succeeds or the destination is byte-identical, so a conflict keeps
+the original file and path.
 
 ## Rendering: `modules/stage/`
 
@@ -528,13 +538,13 @@ cuts, the subject layer dims and draws its own progress ring.
 
 With the depth model installed, desktop widgets can hold their own place in the
 3D scene instead of staying flat on the desk. Each widget carries a "wall depth"
-0..1, the wallpaper depth-map value it sits on, `0.5` being the map's pivot
-plane and the extremes nearest and farthest. Its laid-out centre becomes a
+from 0 to 1 (the wallpaper depth-map value it sits on), with `0.5` as the
+map's pivot plane and the extremes nearest and farthest. Its laid-out centre becomes a
 fixed world point on the wallpaper plane, pushed toward or away from the camera
 by that depth; the point is projected through the same camera the backdrop mesh
 uses (`StageSpatialScene.updateCamera`: orbit radius R, yaw 2.5° / pitch 1.8°
 per pointer extreme, gain clamped at 1.5), so a widget nearer than the wall renders
-larger while holding the spot the editor gave it; its world size is the
+larger while holding the spot the editor gave it. Its world size is the
 authored size at the pivot, and the orbit moves, re-magnifies and
 sub-parallaxes it by both position and depth, like any object genuinely
 placed there. The
@@ -553,16 +563,16 @@ unchanged.
 The depth is set from the widgets page: a slider for the current value and a
 Pick that opens `StageDepthPick.qml`, a tinted read-out of `depth.png` with a
 crosshair and live sample; a click commits the sampled value. All widgets,
-built-ins, iris/python extension faces and plugin tiles, keep their depth in
-one `widgetDepths` map in `widgets.json`, keyed by widget prefix; plugin
+built-ins, iris/python extension faces and plugin tiles, keep their depth in one
+`widgetDepths` map in `widgets.json`, keyed by widget prefix; plugin
 tiles' placements carry their own `depth` in the plugin store instead. The
 map is written as a whole (JsonAdapter cannot observe in-place edits).
 
 A hovered widget settles gently to 0.85 opacity and back. The pointer's
 parallax never pauses: the camera, layers and widgets follow one smoothed
 cursor shared in `StageBackend`, fed by whichever hover target currently owns
-the pointer: the backdrop over empty desktop, each widget slot when the
-pointer rests on it, so resting on a widget keeps the scene tracking
+the pointer (the backdrop over empty desktop, each widget slot when the pointer
+rests on it), so resting on a widget keeps the scene tracking
 continuously. The camera ride itself is unfiltered, so widgets register with
 the mesh without trailing behind it.
 
