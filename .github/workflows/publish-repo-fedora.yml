@@ -279,6 +279,7 @@ jobs:
       - name: Prepare SRPMs and build the signed repository
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GH_TOKEN: ${{ github.token }}
           RYOKU_CHANNEL: ${{ needs.prepare.outputs.channel }}
           RYOKU_PKGVER: ${{ needs.prepare.outputs.pkgver }}
           RYOKU_RELEASE: ${{ needs.prepare.outputs.release }}
