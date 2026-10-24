@@ -30,7 +30,7 @@ advisory_workflows=(
   "Publish Ryoku XBPS repo"
   "Publish Ryoku Fedora RPM repos"
   "Build ISO"
-  "Build CachyOS ISO"
+  "Build ISO (CachyOS)"
   "Build Void ISO"
   "Release Ledger"
   "Stable Release"

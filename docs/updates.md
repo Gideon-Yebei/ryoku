@@ -593,15 +593,19 @@ on one origin.
 
 ### Release-day checklist
 
-1. Fast-forward `main` from the green `unstable-dev` tip (green means
-   `channels/testing/checked.json` names that commit with `state: passed`), then
+1. Bring `main` up to the green `unstable-dev` tip (green means
+   `channels/testing/checked.json` names that commit with `state: passed`).
+   `main` takes changes only through a pull request: open one from
+   `unstable-dev` and merge it with a merge commit, then fast-forward
+   `unstable-dev` to that merge commit so `main` stays its ancestor. Then
    dispatch **Stable Release** on `main`. It creates the `v*` tag and dispatches
    `publish-repo.yml`, `publish-repo-void.yml`, and
    `publish-repo-fedora.yml` on that tag. Each publisher's gate job waits for
-   the tagged commit's required checks before it uploads; a `VERSION` bump
-   commit the workflow made on `main` has none, so the gate passes it after
-   its grace period and the stable head writes `status.json` as `building`
-   until the publish lands.
+   the tagged commit's required checks before it uploads, including every check
+   the merge into `main` started, so wait for those to pass before dispatching.
+   A `VERSION` bump commit the workflow made on `main` has none, so the gate
+   passes it after its grace period and the stable head writes `status.json` as
+   `building` until the publish lands.
 2. Wait for all three publishers. Their stable `release.json` files must name
    the tag at `stable/x86_64/release.json`,
    `stable/void/x86_64/release.json`, and
@@ -609,7 +613,7 @@ on one origin.
    below each edition's `releases/<tag>/x86_64/`. Confirm
    `stable/fedora/releases` lists every release in the tagged
    `fedora/releases` file.
-3. Wait for **Build ISO**, **Build CachyOS ISO**, and **Build Void ISO**. Check
+3. Wait for **Build ISO**, **Build ISO (CachyOS)**, and **Build Void ISO**. Check
    `https://iso.ryoku.dev/stable/latest.json`,
    `latest-cachyos.json`, and `latest-void.json`: each `installer_ref` must be
    the tag and every named ISO, checksum, signature, and manifest URL must
@@ -638,6 +642,11 @@ on one origin.
 8. NixOS: within 20 minutes of the tag, Ryoku-on-NixOS opens a
    `sync: Ryoku <version> (stable)` pull request into its `main`. Stable NixOS
    users get the release once a NixOS maintainer merges it.
+9. Publish the script installer the site shows: upload `main`'s
+   `ryoku-shell-installer/install.sh` to the `ryoku-iso` R2 bucket as
+   `install.sh` (`wrangler r2 object put ryoku-iso/install.sh --remote --file
+   ryoku-shell-installer/install.sh --content-type application/x-shellscript`)
+   and check that `https://shell.ryoku.dev/install.sh` matches it byte for byte.
 
 The scheduled Cloudflare Worker in `release/r2-retention/` runs every six hours.
 It keeps the newest ten stable releases and unstable builds per package edition

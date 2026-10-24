@@ -191,6 +191,7 @@ fi
 systemctl daemon-reload >/dev/null 2>&1 || :
 RYOKU_HOST_INIT=systemd /usr/bin/ryoku-host svc reconcile --system >/dev/null 2>&1 || :
 /usr/bin/ryoku-bluetooth-tune >/dev/null 2>&1 || :
+systemctl try-restart bluetooth.service >/dev/null 2>&1 || :
 /usr/bin/ryoku-wifi-regdom apply >/dev/null 2>&1 || :
 
 %posttrans
