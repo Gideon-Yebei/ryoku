@@ -31,6 +31,17 @@
   shared Edge gap control for the Ryoku, ii and Shima designs, moving the dock,
   its window reservation and the editor inset together without changing the
   existing spacing at zero (`ipc/`, `quickshell/{shell,inir,stage}/`).
+- **Stage saves leave newer and retired settings intact for doctor.** The
+  Stage Editor now overlays its declared values onto the raw settings file
+  instead of serializing only the QML schema, so an update cannot erase keys
+  before doctor migrates or retires them. Unknown paths are logged once per
+  distinct set instead of raising a desktop warning
+  (`quickshell/stage/modules/common/Config.qml`).
+- **Missing notification icons use a built-in mark.** The standard and
+  Nomarchy cards, plus Shima's shared notification icon, resolve icon-theme
+  hints without routing a missing name to Qt's checkerboard placeholder, then
+  draw their own glyph when no image resolves
+  (`quickshell/{shell/modules/notifications,inir/modules/common/widgets,shell/modules/bar/barstyles/nomarchy/plugins/notifications}/`).
 - **The quick-launch defaults name Default Apps roles, not fixed programs.**
   The Files, Terminal, Browser and Code slots carried over from the iNiR port
   now run `ryoku-app files|terminal|browser|editor`, so anything that reads
