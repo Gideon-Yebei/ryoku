@@ -8,6 +8,7 @@ makedepends="gtk+3-devel libwebkit2gtk41-devel"
 depends="
  ryoku-shell>=${version}
  ryoku-hub>=${version}
+ ryoku-palette-bridge>=${version}
  ryoku-blobs>=${version}
  ryoku>=${version}
  ryoku-keyring

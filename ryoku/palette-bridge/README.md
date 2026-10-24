@@ -1,5 +1,10 @@
 # Ryoku Palette Bridge
 
+The Ryoku desktop package installs the bridge runtime on Arch, Void, and
+Fedora. Open **Ryogami > Settings > Integrations** to set up and enable its
+service, then configure the applications you want to follow the palette.
+Installing the runtime does not enable its service or change applications.
+
 The Zen extension source lives in `zen-extension/`. The directory also
 contains `ryoku-zen-palette-1.0.3.xpi`, an AMO-signed, unlisted package of that
 source. The bridge package ships both because its packaging copies this

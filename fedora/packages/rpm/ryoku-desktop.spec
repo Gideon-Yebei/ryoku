@@ -22,6 +22,7 @@ Requires(post): ryoku = %{version}-%{release}
 Requires:       ryoku-shell = %{version}-%{release}
 Requires:       ryogami = %{version}-%{release}
 Requires:       ryoku-hub = %{version}-%{release}
+Requires:       ryoku-palette-bridge = %{version}-%{release}
 Requires:       ryoku-blobs = %{version}-%{release}
 Requires:       ryoku-extras = %{version}-%{release}
 Requires:       ryoku-keyring
