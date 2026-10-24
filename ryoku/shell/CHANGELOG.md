@@ -17,6 +17,10 @@
   Fullscreen state now suppresses only an auto-hiding dock, so stale
   compositor state cannot slide a pinned dock off-screen while leaving its
   window reservation behind (`quickshell/shell/modules/dock/DockSurface.qml`).
+- **Shima keeps custom dock styling from before the universal dock.** Doctor
+  moves non-default Shima shape, material, sizing and visibility values from
+  the retired Stage store into the universal dock store without replacing
+  newer Stage Editor choices (`../cli/internal/doctor/`).
 - **The quick-launch defaults name Default Apps roles, not fixed programs.**
   The Files, Terminal, Browser and Code slots carried over from the iNiR port
   now run `ryoku-app files|terminal|browser|editor`, so anything that reads
