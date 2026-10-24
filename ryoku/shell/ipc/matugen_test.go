@@ -468,20 +468,12 @@ BackgroundNormal=#101010
 	}
 }
 
-func TestRefreshFolderIcons(t *testing.T) {
-	orig := runCommand
-	t.Cleanup(func() { runCommand = orig })
-	var commands [][]string
-	runCommand = func(name string, args ...string) error {
-		commands = append(commands, append([]string{name}, args...))
-		return nil
-	}
-
-	refreshFolderIcons("#e7bdb6")
-	refreshFolderIcons("")
-	if len(commands) != 1 || len(commands[0]) != 2 || commands[0][0] != "ryoku-cmd-folders" || commands[0][1] != "#e7bdb6" {
-		t.Fatalf("wrong folder refresh commands: %v", commands)
-	}
+// stubFolderIcons puts a no-op ryoku-cmd-folders first on PATH. matugenApply
+// starts the real helper, which on a dev box would retint and switch the icon
+// theme of the live session the test runs inside.
+func stubFolderIcons(t *testing.T, bin string) {
+	t.Helper()
+	writeShim(t, filepath.Join(bin, "ryoku-cmd-folders"), "exit 0")
 }
 
 // TestFilterMatugenConfig is the roster gate: the [config] preamble always
@@ -806,6 +798,7 @@ func TestMatugenApplyInvokesBinary(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 	logFile := filepath.Join(home, "matugen.argv")
 	jsonDark := filepath.Join(home, "dark.json")
 	jsonLight := filepath.Join(home, "light.json")
@@ -969,6 +962,7 @@ func TestMatugenIsolatedDrive(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 	logFile := filepath.Join(home, "matugen.argv")
 	writeShim(t, filepath.Join(bin, "matugen"), `printf '%s\n' "$*" >> "`+logFile+`"; exec `+realMatugen+` "$@"`)
 	writeShim(t, filepath.Join(bin, "gsettings"), ":")
@@ -1303,6 +1297,7 @@ func TestMatugenApplyNeutralizesAchromaticWallpaper(t *testing.T) {
 
 	bin := t.TempDir()
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	stubFolderIcons(t, bin)
 
 	// The shim always emits matugen's blue fallback -- both the roles and the
 	// tonal ramps -- exactly as it does for a picture it cannot seed from.

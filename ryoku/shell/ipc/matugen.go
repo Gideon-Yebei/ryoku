@@ -551,16 +551,18 @@ func matugenFollows() bool {
 	return matchWallpaperOn() && !staticThemeActive()
 }
 
-// refreshFolderIcons follows the palette that the shell just committed.
-// Folder icons are a desktop surface, not a Qt or optional app-theme template.
-// Failure must never block wallpaper or fixed-theme application.
-func refreshFolderIcons(accent string) {
-	if accent == "" {
-		return
-	}
-	if err := runCommand("ryoku-cmd-folders", accent); err != nil {
-		fmt.Fprintf(os.Stderr, "matugen: folder icons: %v\n", err)
-	}
+// refreshFolderIcons retints the folder icons to the palette the shell just
+// committed. Folder icons are a desktop surface, not a Qt or optional
+// app-theme template. The rebuild takes a few hundred milliseconds and waits
+// on its own lock, so it runs beside the template fan-out instead of in front
+// of it. The helper reads colors.json once it holds that lock, so a burst of
+// palette changes always ends on the newest one.
+func refreshFolderIcons() {
+	go func() {
+		if err := runCommand("ryoku-cmd-folders"); err != nil {
+			fmt.Fprintf(os.Stderr, "matugen: folder icons: %v\n", err)
+		}
+	}()
 }
 
 // matugenApply runs the whole pipeline for one image: generate the scheme with
@@ -587,7 +589,7 @@ func (d *daemon) matugenApply(img string) error {
 	if err := writeJSONFile(matugenColorsPath(), matugenColorsJSON(pal)); err != nil {
 		return fmt.Errorf("matugen colors.json: %w", err)
 	}
-	refreshFolderIcons(pal["primary"])
+	refreshFolderIcons()
 
 	// Retint the Material pointer now, parallel with the template fan-out below,
 	// so it tracks the wallpaper as promptly as the bar instead of waiting on
@@ -708,7 +710,7 @@ func (d *daemon) matugenApplyStatic(name string) error {
 	if err := writeJSONFile(matugenColorsPath(), matugenColorsJSON(shell)); err != nil {
 		return fmt.Errorf("matugen colors.json (static): %w", err)
 	}
-	refreshFolderIcons(shell["primary"])
+	refreshFolderIcons()
 	k := readMatugenKnobs()
 	matugenRenderTemplates(matugenShellPalette(shell), k, false)
 	matugenReload(staticPaletteMode(shell), d.kdePaletteEmitter())
