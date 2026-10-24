@@ -196,9 +196,10 @@ jobs:
               # hyprcursor (its hyprcursor-util) and xcur2png are the
               # ryoku-cursors makedepends; the local cursors build below runs
               # makepkg --nodeps, so they must be on the host or build() fails.
+              # qt6-quick3d is for the Ryoku.Spatial3D plugin build.sh compiles.
               pacman -Su --noconfirm --needed \
                 archiso git go base-devel cmake ninja \
-                qt6-base qt6-declarative qt6-shadertools qt6-multimedia \
+                qt6-base qt6-declarative qt6-shadertools qt6-multimedia qt6-quick3d \
                 hyprcursor xcur2png
               # checkout is owned by the runner UID, not container root;
               # build.sh runs `git archive` against it.
