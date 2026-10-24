@@ -149,6 +149,21 @@
   the other plugin packages.
 
 ### Fixed
+- **The CachyOS ISO is advisory to the publish gate, like the other ISOs.** The
+  gate's advisory list named it `Build CachyOS ISO` while the workflow is
+  `Build ISO (CachyOS)`, so a failed CachyOS image held every publisher of the
+  same commit (`bin/ryoku-ci-gate`).
+- **The 1.0 release path builds on every edition.** The ISO build container
+  gets `qt6-quick3d` for the Ryoku.Spatial3D plugin, the Fedora SRPM step gets a
+  GitHub token for its Ryotunes lookup, the Void void-packages pin moves to the
+  tree with NetworkManager 1.58.1 so a clean runner no longer source-builds 1.56,
+  and woke skips the typing-test word lists and the vendored Python bar weather
+  script (`.github/workflows/build-iso-reusable.yml`,
+  `.github/workflows/publish-repo-fedora.yml`, `void/packages/repo/`, `.woke.yml`).
+- **Release day is written down as it now runs.** `main` takes a release through
+  a pull request with a merge commit, and the checklist adds publishing the
+  script installer to `shell.ryoku.dev` (`docs/updates.md`,
+  `docs/development.md`, `CONTRIBUTING.md`).
 - **The Arch build host has Qt Quick 3D for `ryoku-blobs`.** Ryoku.Spatial3D
   compiles against it, and `makepkg --nodeps` ignores the recipe's own
   makedepends, so the `[ryoku]` build stopped at that package
