@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **The Stash names an older install after the entry that launches it.** When
+  a second desktop entry only checked for the same app, the Stash list could
+  show that entry's name instead, depending on how the system sorts file
+  names (`scripts/stash-install.sh`).
 - **Cursor effects stay out of screenshots.** Ryoshot and every shipped
   `grim` capture hide the pointer through the window-manager seam while they
   freeze the frame, then restore it even when capture fails. This keeps a
