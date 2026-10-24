@@ -69,6 +69,12 @@
     }
   `;
   const detailCss = `
+    .main-actionBarBackground-background,
+    .playlist-playlist-actionBarBackground-background {
+      background: linear-gradient(180deg,
+        color-mix(in srgb, var(--spice-pagelink-active) 12%, var(--spice-main)),
+        var(--spice-main)) !important;
+    }
     .Root__now-playing-bar .main-genericButton-button[data-active="true"],
     .Root__now-playing-bar .main-genericButton-button[aria-pressed="true"],
     .Root__now-playing-bar .main-genericButton-buttonActive {
@@ -209,6 +215,7 @@
     .main-home-homeHeader,
     .main-home-homeBackground,
     .main-actionBarBackground-background,
+    .playlist-playlist-actionBarBackground-background,
     .main-entityHeader-backgroundColor,
     .main-topBar-overlay {
       background: var(--spice-main) !important;

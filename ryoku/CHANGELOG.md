@@ -5,7 +5,8 @@
 ### Fixed
 - **Spotify details and Zen browser chrome follow the active palette.** Active
   playback icons and dots, track highlights, artist links, Home navigation and
-  tooltips use bridge colours instead of fixed green/gray values. Zen's current
+  tooltips use bridge colours instead of fixed green/gray values. Artist and
+  playlist action areas use palette tints instead of artwork-derived washes. Zen's current
   toolbar layers and expanded address field use live extension colours without
   circular CSS variables (`palette-bridge/spicetify/`, `palette-bridge/templates/zen.css`).
 - **A settings edit is never missed mid-write.** The shell could read
