@@ -81,9 +81,10 @@ PanelWindow {
         // The editor is showing this dock's settings page: it holds open.
         if (dock.stageEditing)
             return true;
-        // A fullscreen window on this monitor forces the dock away; only a hover
-        // into the peek strip brings it back over the fullscreen content.
-        if (dock.monFullscreen)
+        // A dock that is deliberately pinned stays put. Fullscreen suppression
+        // only belongs to auto-hide; otherwise stale compositor fullscreen state
+        // can slide the band away while its exclusive zone still reserves space.
+        if (dock.autohide && dock.monFullscreen)
             return dock.pointerInside;
         return !dock.autohide
             || dock.pointerInside
