@@ -42,6 +42,10 @@
   hints without routing a missing name to Qt's checkerboard placeholder, then
   draw their own glyph when no image resolves
   (`quickshell/{shell/modules/notifications,inir/modules/common/widgets,shell/modules/bar/barstyles/nomarchy/plugins/notifications}/`).
+- **QS Bar's identity island stays rounded while the bar is edited.** Its
+  drag-target outline now follows the bar shell's corner radius instead of
+  replacing the chosen curve with a fixed pill radius
+  (`quickshell/shell/modules/bar/barstyles/qsbar/BarSlot.qml`).
 - **The quick-launch defaults name Default Apps roles, not fixed programs.**
   The Files, Terminal, Browser and Code slots carried over from the iNiR port
   now run `ryoku-app files|terminal|browser|editor`, so anything that reads
