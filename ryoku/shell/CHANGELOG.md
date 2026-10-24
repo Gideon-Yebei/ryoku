@@ -50,6 +50,17 @@
   drag-target outline now follows the bar shell's corner radius instead of
   replacing the chosen curve with a fixed pill radius
   (`quickshell/shell/modules/bar/barstyles/qsbar/BarSlot.qml`).
+- **Depth cuts the wallpaper's subject out again, and the 3D scene is its own
+  Spatial mode.** 1.0 turned Depth into the Depth Anything 3D scene and dropped
+  the still cut-out that let widgets sit behind the wallpaper's subject. The
+  Stage Editor's Depth page now has four modes: Plain, Depth (the subject cut
+  out over the still wallpaper), Parallax (cut-out layers that drift) and
+  Spatial (the 3D scene). Each mode has its own settings tabs and a Model tab,
+  with the cut-out models for Depth and Parallax and Depth Anything V2 for
+  Spatial. Settings move over on their own: walls that only had a cut go back
+  to Depth, walls with a depth map become Spatial, and each mode keeps the
+  model, look and motion it had (`ipc/stage.go`,
+  `quickshell/shell/modules/stage/`, `quickshell/shell/modules/desktop/`).
 - **The quick-launch defaults name Default Apps roles, not fixed programs.**
   The Files, Terminal, Browser and Code slots carried over from the iNiR port
   now run `ryoku-app files|terminal|browser|editor`, so anything that reads

@@ -3805,9 +3805,9 @@
     {
       "id": "ryoku.ryoku-shell.stage.set-effect",
       "group": "ryoku-look",
-      "title": "Set the wallpaper depth effect",
-      "command": "ryoku-shell stage set-effect <effect>",
-      "description": "Changes the generated depth or parallax effect for the current wallpaper.",
+      "title": "Set the wallpaper Stage mode",
+      "command": "ryoku-shell stage set-effect <off|depth|parallax|spatial>",
+      "description": "Uses a plain wallpaper, a still cut-out, drifting layers, or a Spatial 3D scene.",
       "tool": "ryoku-shell",
       "level": "advanced",
       "compositors": [
