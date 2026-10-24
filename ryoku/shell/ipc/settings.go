@@ -86,6 +86,7 @@ var (
 	orientationValues     = []string{"Horizontal", "Vertical"}
 	locQueryTypeValues    = []string{"Coordinates", "City"}
 	controlSectionIDs     = []string{"vitals", "connections", "powerProfile", "media", "levels", "bottomControls"}
+	controlPositionValues = []string{"top-left", "top-right", "center"}
 	controlElementIDs     = []string{
 		"identity", "cpu", "cpuTemperature", "liveGraph", "memory", "gpu", "network", "disk", "battery",
 		"wifi", "bluetooth", "ethernet", "vpn",
@@ -367,6 +368,8 @@ type phoneAlarmSettings struct {
 }
 
 type controlsSettings struct {
+	Position string            `json:"position"`
+	EdgeGap  *int              `json:"edgeGap"`
 	Sections []controlsSection `json:"sections"`
 	Hidden   []string          `json:"hidden"`
 }
@@ -470,7 +473,12 @@ func defaultSettings() *settings {
 			Microphone: phoneMicrophoneSettings{Enabled: false, MicGain: 100, Monitor: false, SetDefault: false},
 			Alarm:      phoneAlarmSettings{Enabled: true, PollMinutes: 10, ClockApps: []string{}, IgnorePackages: []string{}},
 		},
-		Controls:      controlsSettings{Sections: controls, Hidden: []string{}},
+		Controls: controlsSettings{
+			Position: "top-left",
+			EdgeGap:  ip(12),
+			Sections: controls,
+			Hidden:   []string{},
+		},
 		BatteryAlerts: batteryAlertsSettings{Enabled: true, WarningEnabled: true, CriticalEnabled: true, WarningPercent: 25, CriticalPercent: 10},
 		Sounds:        defaultSoundsSettings(),
 	}
@@ -557,7 +565,7 @@ func (s *settings) normalize(strict bool) error {
 	s.Wallpaper.normalize(v)
 	s.Ask.normalize(v)
 	s.Phone.normalize(v)
-	s.Controls.normalize()
+	s.Controls.normalize(v)
 	s.BatteryAlerts.normalize(v)
 	s.Sounds.normalize(v)
 	return v.err
@@ -726,7 +734,22 @@ func (p *phoneSettings) normalize(v *validator) {
 	v.rangeI("phone.alarm.pollMinutes", &p.Alarm.PollMinutes, 1, 1440)
 }
 
-func (c *controlsSettings) normalize() {
+func (c *controlsSettings) normalize(v *validator) {
+	if !inSet(controlPositionValues, c.Position) {
+		if v.strict {
+			v.enum("controls.position", c.Position, controlPositionValues)
+		} else {
+			c.Position = "top-left"
+		}
+	}
+	if c.EdgeGap == nil {
+		if v.strict && v.err == nil {
+			v.err = fmt.Errorf("controls.edgeGap: must be an integer")
+		}
+		c.EdgeGap = ip(12)
+	}
+	v.rangeI("controls.edgeGap", c.EdgeGap, 0, 96)
+
 	defaults := defaultSettings().Controls.Sections
 	allowedSections := make(map[string]bool, len(controlSectionIDs))
 	for _, id := range controlSectionIDs {

@@ -89,6 +89,11 @@
   (`quickshell/shell/modules/{desktop,stage}/`).
 
 ### Added
+- **Controls can open at the top left, top right, or centre of a display.**
+  Its gear popup now saves the panel position and its gap from the screen edge
+  in `shell.json`, while store designs that declare their own placement keep
+  control of placement. The click-away area follows the panel in every position
+  (`ipc/settings.go`, `quickshell/shell/{modules/sidebar,services/}`).
 - **The desktop stage is one feature now: Plain, Depth or Parallax, with a
   3D depth mesh.** Depth renders the wallpaper as a depth-displaced mesh
   that follows the pointer and needs no cut; Parallax keeps the drifting

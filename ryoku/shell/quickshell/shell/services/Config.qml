@@ -120,6 +120,8 @@ Singleton {
     property alias phone: adapter.phone
     readonly property var normalizedNacre: NacreConfig.normalize(nacre)
     readonly property var defaultControls: ({
+        "position": "top-left",
+        "edgeGap": 12,
         "sections": [
             { "id": "vitals", "visible": true },
             { "id": "connections", "visible": true },
@@ -131,6 +133,20 @@ Singleton {
         "hidden": []
     })
     property var controls: defaultControls
+
+    function patchControl(key, value) {
+        if (key !== "position" && key !== "edgeGap")
+            return;
+        const next = Object.assign({}, root.controls);
+        next[key] = value;
+        root.controls = next;
+        shaderCtl.queued += "call settings.patch "
+            + JSON.stringify({ path: "controls." + key, value: value }) + "\n";
+        if (shaderCtl.connected)
+            shaderCtl.flushQueued();
+        else
+            shaderCtl.connected = true;
+    }
 
     readonly property var askBubble: {
         const ask = adapter.ask && typeof adapter.ask === "object" ? adapter.ask : ({});

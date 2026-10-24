@@ -158,6 +158,9 @@ func TestPatchRejectsInvalidSchemaValues(t *testing.T) {
 		{"bad phone fps", "phone.webcam.fps", `0`, "out of range"},
 		{"bad phone gain", "phone.microphone.micGain", `201`, "out of range"},
 		{"bad phone alarm interval", "phone.alarm.pollMinutes", `0`, "out of range"},
+		{"bad controls position", "controls.position", `"left"`, "is not one of"},
+		{"controls gap too high", "controls.edgeGap", `97`, "out of range"},
+		{"controls gap is null", "controls.edgeGap", `null`, "must be an integer"},
 		{"retired sidebar layout", "sidebars.layout", `"classic"`, "sidebars settings are retired"},
 		{"retired sidebar subtree", "sidebars.left.width", `930`, "sidebars settings are retired"},
 		{"retired sidebar root", "sidebars", `{"layout":"modern"}`, "sidebars settings are retired"},
@@ -658,6 +661,35 @@ func TestControlsNormalization(t *testing.T) {
 	hidden := controls["hidden"].([]any)
 	if len(hidden) != 1 || hidden[0] != "liveGraph" {
 		t.Fatalf("normalized hidden = %v, want [liveGraph]", hidden)
+	}
+
+	if controls["position"] != "top-left" {
+		t.Fatalf("missing controls position = %v, want top-left", controls["position"])
+	}
+	if controls["edgeGap"] != float64(12) {
+		t.Fatalf("missing controls edgeGap = %v, want 12", controls["edgeGap"])
+	}
+}
+
+func TestControlsGeometrySettings(t *testing.T) {
+	s := newTestStore(t)
+	if got := frameGet(t, s.frameLocked(), "controls.position"); got != "top-left" {
+		t.Fatalf("controls.position default = %v, want top-left", got)
+	}
+	if got := frameNum(t, s.frameLocked(), "controls.edgeGap"); got != 12 {
+		t.Fatalf("controls.edgeGap default = %v, want 12", got)
+	}
+	if err := s.patch("controls.position", rm(`"top-right"`)); err != nil {
+		t.Fatalf("patch controls position: %v", err)
+	}
+	if err := s.patch("controls.edgeGap", rm(`0`)); err != nil {
+		t.Fatalf("patch controls edge gap: %v", err)
+	}
+	if got := frameGet(t, s.frameLocked(), "controls.position"); got != "top-right" {
+		t.Fatalf("controls.position = %v, want top-right", got)
+	}
+	if got := frameNum(t, s.frameLocked(), "controls.edgeGap"); got != 0 {
+		t.Fatalf("controls.edgeGap = %v, want 0", got)
 	}
 }
 
