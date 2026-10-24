@@ -14,6 +14,8 @@ for finer detail.
   user is no longer in a mango session.
 
 ### Fixed
+- Users on filtered networks can route `ryoku update` and pacman through a
+  local HTTP proxy without weakening package signature checks.
 - The Store installs bundles on every edition. Bundle packages keep their Arch
   names in the catalogue, and on Fedora and Void the catalogue's own edition
   tables name them for that edition, so **Install all** brings in the

@@ -227,6 +227,29 @@ temporarily pin that public address for `repo.ryoku.dev` in `/etc/hosts`.
 Cloudflare addresses rotate, so remove the pin afterward and prefer encrypted
 DNS for a lasting fix.
 
+If the name resolves to a public address but HTTPS connections still time out
+or reset, changing DNS will not help. On Arch or CachyOS, route both parts of a
+terminal update through a local HTTP proxy:
+
+```bash
+export https_proxy=http://127.0.0.1:7890
+export HTTPS_PROXY=$https_proxy
+ryoku update
+```
+
+The environment covers the requests `ryoku` makes itself, but `sudo` normally
+drops it before pacman runs. To route pacman's downloads too, add this under
+`[options]` in `/etc/pacman.conf`, replacing the address with the local proxy:
+
+```ini
+XferCommand = /usr/bin/curl --proxy http://127.0.0.1:7890 --location --continue-at - --fail --output %o %u
+```
+
+Run the update from the same terminal. `XferCommand` applies to every pacman
+repository, so remove it when the proxy is no longer needed. It changes only
+the download route: leave the `[ryoku]` repository's `SigLevel = Required` in
+place so pacman continues to verify the signed database and packages.
+
 ### The boot guard
 
 A packaged update that moves the box to another tagged release arms a boot
