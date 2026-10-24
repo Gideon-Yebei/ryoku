@@ -551,6 +551,18 @@ func matugenFollows() bool {
 	return matchWallpaperOn() && !staticThemeActive()
 }
 
+// refreshFolderIcons follows the palette that the shell just committed.
+// Folder icons are a desktop surface, not a Qt or optional app-theme template.
+// Failure must never block wallpaper or fixed-theme application.
+func refreshFolderIcons(accent string) {
+	if accent == "" {
+		return
+	}
+	if err := runCommand("ryoku-cmd-folders", accent); err != nil {
+		fmt.Fprintf(os.Stderr, "matugen: folder icons: %v\n", err)
+	}
+}
+
 // matugenApply runs the whole pipeline for one image: generate the scheme with
 // the configured knobs, author the shell palette, fan it into the app templates,
 // and nudge the toolkits to repaint. A video wallpaper is sampled to a still
@@ -575,6 +587,7 @@ func (d *daemon) matugenApply(img string) error {
 	if err := writeJSONFile(matugenColorsPath(), matugenColorsJSON(pal)); err != nil {
 		return fmt.Errorf("matugen colors.json: %w", err)
 	}
+	refreshFolderIcons(pal["primary"])
 
 	// Retint the Material pointer now, parallel with the template fan-out below,
 	// so it tracks the wallpaper as promptly as the bar instead of waiting on
@@ -695,6 +708,7 @@ func (d *daemon) matugenApplyStatic(name string) error {
 	if err := writeJSONFile(matugenColorsPath(), matugenColorsJSON(shell)); err != nil {
 		return fmt.Errorf("matugen colors.json (static): %w", err)
 	}
+	refreshFolderIcons(shell["primary"])
 	k := readMatugenKnobs()
 	matugenRenderTemplates(matugenShellPalette(shell), k, false)
 	matugenReload(staticPaletteMode(shell), d.kdePaletteEmitter())

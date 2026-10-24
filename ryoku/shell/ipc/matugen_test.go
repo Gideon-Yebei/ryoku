@@ -468,6 +468,22 @@ BackgroundNormal=#101010
 	}
 }
 
+func TestRefreshFolderIcons(t *testing.T) {
+	orig := runCommand
+	t.Cleanup(func() { runCommand = orig })
+	var commands [][]string
+	runCommand = func(name string, args ...string) error {
+		commands = append(commands, append([]string{name}, args...))
+		return nil
+	}
+
+	refreshFolderIcons("#e7bdb6")
+	refreshFolderIcons("")
+	if len(commands) != 1 || len(commands[0]) != 2 || commands[0][0] != "ryoku-cmd-folders" || commands[0][1] != "#e7bdb6" {
+		t.Fatalf("wrong folder refresh commands: %v", commands)
+	}
+}
+
 // TestFilterMatugenConfig is the roster gate: the [config] preamble always
 // renders, an enabled block renders with its comments and post_hook, and a
 // disabled block (or a whole group like gtk) is dropped entirely, so the render
