@@ -22,13 +22,14 @@ test("a missing, empty or malformed file offers nothing", () => {
         assert.deepEqual(parse(text), { capabilities: [], sections: [] });
 });
 
-test("bad section rows are dropped and repeats keep the first", () => {
+test("bad section rows are dropped, labels are bounded and repeats keep the first", () => {
     const got = parse(JSON.stringify({
         capabilities: ["sections"],
         sections: [
             { id: "Media", label: "Media" }, { id: "media", label: "" },
-            { id: "media", label: "Media" }, { id: "media", label: "Again" },
-            { id: "office" }, null, "games"
+            { id: "media", label: "  Media  " }, { id: "media", label: "Again" },
+            { id: "office" }, { id: "games", label: "Games\nNow" },
+            { id: "long", label: "x".repeat(81) }, null, "utility"
         ]
     }));
     assert.deepEqual(got.sections, [{ id: "media", label: "Media" }]);
@@ -37,4 +38,9 @@ test("bad section rows are dropped and repeats keep the first", () => {
 test("the sections capability needs sections to order", () => {
     const got = parse(JSON.stringify({ capabilities: ["sections", "grid"], sections: [] }));
     assert.deepEqual(got.capabilities, ["grid"]);
+});
+
+test("oversized descriptors are rejected before parsing", () => {
+    assert.deepEqual(parse(`{"capabilities":[],"padding":"${"x".repeat(65536)}"}`),
+        { capabilities: [], sections: [] });
 });

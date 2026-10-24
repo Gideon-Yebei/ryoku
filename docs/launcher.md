@@ -101,10 +101,12 @@ with a `Main.qml` runtime root and, optionally, a `Preview.qml`.
   saving one is the same as picking a shipped variant.
 - A store launcher opts into Settings controls with a `settings.json` beside its
   `Main.qml`, which the install carries like any other file of the folder.
-  `capabilities` names what it honours; `sections` lists the groups it files
-  apps under, for the `sections` capability. Settings reads it with
-  `hub/quickshell/LauncherSettings.js` and ignores unknown names, so a missing
-  or broken file simply offers nothing.
+  `capabilities` names what it honours; `sections` lists at most 64 groups it
+  files apps under, for the `sections` capability. Section ids use lowercase
+  letters, digits and dashes, and labels are non-empty text of at most 80
+  characters. Settings reads the descriptor as data with
+  `hub/quickshell/LauncherSettings.js`; it ignores unknown names and rejects
+  malformed or oversized files, so content there is never executed.
 
   | Capability | Settings card | `launcher.json` keys |
   | --- | --- | --- |

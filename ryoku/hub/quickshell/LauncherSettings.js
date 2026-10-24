@@ -12,12 +12,18 @@
 // and a missing or malformed file offers nothing.
 
 var KNOWN = ["background", "overlay", "hiddenApps", "grid", "sections", "pinnedApps"];
+var MAX_CHARS = 65536;
+var MAX_SECTIONS = 64;
+var MAX_LABEL = 80;
 
 function parse(text) {
     var empty = { capabilities: [], sections: [] };
+    var source = String(text || "");
+    if (source.length === 0 || source.length > MAX_CHARS)
+        return empty;
     var raw;
     try {
-        raw = JSON.parse(String(text || ""));
+        raw = JSON.parse(source);
     } catch (e) {
         return empty;
     }
@@ -31,14 +37,17 @@ function parse(text) {
     var sections = [];
     var seen = {};
     var rows = Array.isArray(raw.sections) ? raw.sections : [];
-    for (var j = 0; j < rows.length; j++) {
+    for (var j = 0; j < rows.length && sections.length < MAX_SECTIONS; j++) {
         var row = rows[j];
         if (!row || typeof row.id !== "string" || typeof row.label !== "string")
             continue;
-        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.id) || row.label.length === 0 || seen[row.id])
+        var label = row.label.trim();
+        if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.id)
+                || label.length === 0 || label.length > MAX_LABEL
+                || /[\u0000-\u001f\u007f]/.test(label) || seen[row.id])
             continue;
         seen[row.id] = true;
-        sections.push({ id: row.id, label: row.label });
+        sections.push({ id: row.id, label: label });
     }
     // The sections card needs rows to order; without them it would be empty.
     if (sections.length === 0)

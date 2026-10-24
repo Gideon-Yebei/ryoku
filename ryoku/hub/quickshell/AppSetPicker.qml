@@ -22,6 +22,13 @@ Item {
     signal dismissed()
 
     property string query: ""
+    onVisibleChanged: {
+        if (visible) {
+            root.query = "";
+            search.clear();
+            search.grabFocus();
+        }
+    }
 
     readonly property var hiddenSet: {
         var s = {};
@@ -100,48 +107,23 @@ Item {
             font.pixelSize: Tokens.fSmall
         }
 
-        Rectangle {
-            id: searchBox
+        Field {
+            id: search
             anchors {
                 left: parent.left; right: parent.right; top: hdr.bottom
                 leftMargin: Tokens.s4; rightMargin: Tokens.s4; topMargin: Tokens.s3
             }
-            height: 34
-            radius: Tokens.radius
-            color: "transparent"
-            border.width: search.activeFocus ? 2 : Tokens.border
-            border.color: search.activeFocus ? Tokens.ink : Tokens.line
-
-            TextInput {
-                id: search
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                verticalAlignment: Text.AlignVCenter
-                color: Tokens.ink
-                font.family: Tokens.ui
-                font.pixelSize: 13
-                focus: true
-                clip: true
-                selectByMouse: true
-                onTextChanged: root.query = text
-                Keys.onEscapePressed: root.dismissed()
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.left: parent.left
-                anchors.leftMargin: 10
-                visible: search.text.length === 0
-                text: I18n.tr("Search apps…")
-                color: Tokens.inkFaint
-                font: search.font
-            }
+            toolbar: true
+            placeholder: I18n.tr("Search apps…")
+            clearOnEscape: false
+            onEdited: (value) => root.query = value
+            onEscaped: root.dismissed()
         }
 
         ListView {
             id: list
             anchors {
-                left: parent.left; right: parent.right; top: searchBox.bottom; bottom: parent.bottom
+                left: parent.left; right: parent.right; top: search.bottom; bottom: parent.bottom
                 leftMargin: Tokens.s4; rightMargin: Tokens.s4; topMargin: Tokens.s3; bottomMargin: Tokens.s4
             }
             clip: true
