@@ -14,6 +14,7 @@ advisory_workflows=(
   "Commit Notifications"
   "Discord Notifications"
   "Release Notes"
+  "Release Announcement"
   "Unstable Version Bump"
   "Project Auto Add"
   "Project Triage"
