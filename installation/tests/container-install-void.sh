@@ -15,6 +15,12 @@ shopt -s nullglob
 plists=("$KEYRING"/*.plist)
 ((${#plists[@]})) || die "no build signing key plist found in $KEYRING"
 
+# The Void container image trims itself with noextract patterns, including
+# /etc/skel*, so the per-user services ryoku-desktop seeds for new accounts
+# would never land. An installed Void system has no such patterns; drop them so
+# the check sees what a real install gets.
+rm -f /etc/xbps.d/noextract.conf
+
 log "Seeding the repository signing key"
 install -d -m755 /var/db/xbps/keys /etc/xbps.d
 for plist in "${plists[@]}"; do install -m644 "$plist" /var/db/xbps/keys/; done
