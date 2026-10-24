@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **The quick-launch defaults name Default Apps roles, not fixed programs.**
+  The Files, Terminal, Browser and Code slots carried over from the iNiR port
+  now run `ryoku-app files|terminal|browser|editor`, so anything that reads
+  them opens what the user picked in Default Apps. With no browser picked,
+  `ryoku-app` tries Firefox, Chromium, then Zen; 1.0 moved Firefox ahead of
+  Zen, so pick Zen in Default Apps to keep it (`quickshell/inir/modules/common/IrisDefaults.js`,
+  `../assets/rices/`).
 - **The 3D wallpaper no longer flips vertically behind a window.** The
   desktop frost captures the workspace into a layer, and an inline `View3D`
   inside it rendered upside down, so the depth wallpaper turned over while
