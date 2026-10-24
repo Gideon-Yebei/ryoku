@@ -14,6 +14,7 @@ Singleton {
     property string brokenStyle: ""
     // The Store-owned Gokko scene publishes its widget canvas here.
     property var gokkoWidgets: null
+    readonly property bool gokkoReady: gokkoWidgets !== null
 
     function parseRows(raw) {
         try {

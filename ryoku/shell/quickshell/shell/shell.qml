@@ -59,9 +59,10 @@ import stage as Stage
  */
 ShellRoot {
     id: root
-    // Missing or failed Store views must leave the regular desktop usable.
+    // Keep native surfaces until Gokko's root has completed, not merely while
+    // its outer Store Scene exists; a nested load error must still fall back.
     readonly property bool gokkoRunning: Config.barStyle === "gokko"
-        && BarProducts.sceneUrl("gokko") !== ""
+        && BarProducts.gokkoReady
     // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
     // the notification column), armed 1.5 s into boot so a keypress or an
     // arriving toast never waits on a component build. Everything heavier is
@@ -560,8 +561,12 @@ ShellRoot {
     // The ii host publishes actions and mounts its auxiliary surfaces only for
     // the selected, enabled design. Other docks do not instantiate the port.
     LazyLoader {
-        activeAsync: Dock.design === "ii" && Dock.cfg("enabled", false)
-        IiDockHost {}
+        active: !root.gokkoRunning
+            && Dock.design === "ii" && Dock.cfg("enabled", false)
+        LazyLoader {
+            activeAsync: true
+            IiDockHost {}
+        }
     }
 
 
