@@ -54,6 +54,7 @@ Scope {
     // controller hook; the desktop layer defaults on.
     property bool active: true
     property bool widgetsEnabled: true
+    property bool gokkoActive: false
     property string wallpaperUrl: ""
     property string wallpaperPath: ""
     property string wallpaperFit: "Cover"
@@ -119,7 +120,7 @@ Scope {
     readonly property bool deckFrostEnabled: Services.Config.deckFrostEnabled !== false
         && Number(Services.Config.deckFrost) > 0
     readonly property int deckFrostCount: (root.deckFrostEnabled
-        && !root.stageComposing && !root.stageEditing)
+        && !root.gokkoActive && !root.stageComposing && !root.stageEditing)
         ? CompositorService.windowsOnActiveWorkspace(root.monitorName)
         : 0
     property real deckFrost: root.deckFrostCount > 0
@@ -754,6 +755,19 @@ Scope {
             videoMuted: root.videoMuted
             videoVolume: root.videoVolume
             videoPaused: root.videoPaused
+        }
+
+        // Host Gokko widgets beside the wallpaper, below ordinary windows.
+        // A Store package cannot create a second competing Bottom surface.
+        Loader {
+            id: gokkoCanvas
+            z: 3
+            anchors.fill: parent
+            readonly property var controller: Services.BarProducts.gokkoWidgets
+            active: root.gokkoActive && controller !== null && controller.ready
+                && controller.widgetOutput === root.monitorName
+                && (controller.widgetCount > 0 || controller.editing)
+            sourceComponent: controller ? controller.desktopCanvasComponent : undefined
         }
 
         // The Parallax backdrop: the inpainted background.png drifting just
