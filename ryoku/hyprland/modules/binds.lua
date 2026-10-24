@@ -36,11 +36,31 @@ hl.bind(K(mod .. " + P"),         hl.dsp.exec_cmd("ryoku-monitor toggle"))      
 -- move focuses the neighbour and leaves the maximized window maximized.
 hl.config({ binds = { movefocus_cycles_fullscreen = true } })
 
+-- A fullscreen cycle cannot cross outputs, so take an adjacent screen first.
+local function focus_direction(dir)
+    local win = hl.get_active_window()
+    local mon = win and win.fullscreen ~= 0 and hl.get_active_monitor() or nil
+    if mon then
+        local x = mon.position.x + mon.size.x / 2
+        local y = mon.position.y + mon.size.y / 2
+        if dir == "left" then x = mon.position.x - 1
+        elseif dir == "right" then x = mon.position.x + mon.size.x + 1
+        elseif dir == "up" then y = mon.position.y - 1
+        else y = mon.position.y + mon.size.y + 1 end
+        local next_mon = hl.get_monitor_at(x, y)
+        if next_mon and next_mon.id ~= mon.id then
+            hl.dispatch(hl.dsp.focus({ monitor = dir:sub(1, 1) }))
+            return
+        end
+    end
+    hl.dispatch(hl.dsp.focus({ direction = dir }))
+end
+
 -- Focus and move windows
-hl.bind(K(mod .. " + Left"),          hl.dsp.focus({ direction = "left" }))        -- focus left
-hl.bind(K(mod .. " + Right"),         hl.dsp.focus({ direction = "right" }))       -- focus right
-hl.bind(K(mod .. " + Up"),            hl.dsp.focus({ direction = "up" }))          -- focus up
-hl.bind(K(mod .. " + Down"),          hl.dsp.focus({ direction = "down" }))        -- focus down
+hl.bind(K(mod .. " + Left"),          function() focus_direction("left") end)       -- focus left
+hl.bind(K(mod .. " + Right"),         function() focus_direction("right") end)      -- focus right
+hl.bind(K(mod .. " + Up"),            function() focus_direction("up") end)         -- focus up
+hl.bind(K(mod .. " + Down"),          function() focus_direction("down") end)       -- focus down
 hl.bind(K(mod .. " + SHIFT + Left"),  hl.dsp.window.move({ direction = "left" }))  -- move window left
 hl.bind(K(mod .. " + SHIFT + Right"), hl.dsp.window.move({ direction = "right" })) -- move window right
 hl.bind(K(mod .. " + SHIFT + Up"),    hl.dsp.window.move({ direction = "up" }))    -- move window up

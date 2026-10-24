@@ -45,6 +45,22 @@ func TestRecoveryBindsBypassShortcutInhibitor(t *testing.T) {
 	}
 }
 
+func TestFullscreenFocusRoutesAcrossMonitor(t *testing.T) {
+	src, err := os.ReadFile(filepath.Join(repoModules(), "binds.lua"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(src)
+	if !strings.Contains(body, "movefocus_cycles_fullscreen = true") {
+		t.Error("binds.lua must keep same-workspace focus working from fullscreen windows")
+	}
+	for _, direction := range []string{"left", "right", "up", "down"} {
+		if !strings.Contains(body, `function() focus_direction("`+direction+`") end`) {
+			t.Errorf("fullscreen %s bind does not route through focus_direction", direction)
+		}
+	}
+}
+
 func comboSet(binds []parsedBind) map[string]bool {
 	set := make(map[string]bool, len(binds))
 	for _, b := range binds {
