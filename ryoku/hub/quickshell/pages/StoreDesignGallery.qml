@@ -12,6 +12,12 @@ Item {
     required property string category
     required property string wornId
     required property var shippedDesigns
+    property bool onlySubshells: false
+    property string browseCategory: gallery.category
+    readonly property var subshellIds: ["gokko", "caelestia", "tansu", "python"]
+    function isSubshellStyle(id) {
+        return gallery.subshellIds.indexOf(String(id || "")) >= 0;
+    }
     property var catalogueDesigns: []
     readonly property string cardObjectPrefix: gallery.category === "barstyles"
         ? "bar-style-" : "store-design-" + gallery.category + "-"
@@ -62,11 +68,11 @@ Item {
             seen[item.id] = true;
             out.push(item);
         }
-        return out;
+        return out.filter(card => gallery.isSubshellStyle(card.id) === gallery.onlySubshells);
     }
 
     function browse() {
-        Quickshell.execDetached(["ryostore", "open", gallery.category]);
+        Quickshell.execDetached(["ryostore", "open", gallery.browseCategory]);
     }
 
     function updateDesign(id) {
