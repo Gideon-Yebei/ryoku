@@ -11,6 +11,11 @@
 - **Shima's workspace card shows the apps on every workspace.** Opaque
   workspace and window IDs now pass through the neutral window-manager frames
   without numeric coercion (`shell/quickshell/inir/modules/iris/components/IrisColumnStrip.qml`).
+- **Super+Space closes when the desktop around it is clicked.** Hero, OkShell,
+  and Kairos now keep search focus and click-away dismissal in one surface,
+  matching the other launchers without disturbing Escape, dragging, or answer
+  selection (`shell/quickshell/shell/modules/launcher/variants/`,
+  `../docs/launcher.md`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to

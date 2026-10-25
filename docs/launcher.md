@@ -27,9 +27,8 @@ complete styles, plus any launcher installed from RyoStore (see
   sliding row selection.
 - **Kairos** is the island launcher, the one the Kairos bar style ships: the pill
   grows out of that style's resting island at the top of the screen into the
-  clock, the app search and the app list. It masks input to the pill rather than
-  the window, so the desktop around it stays clickable; Escape (or Super+Space
-  again) closes it.
+  clock, the app search and the app list. Clicking the desktop around the pill
+  closes it, as do Escape and Super+Space.
 - **Spotlight** is the Shima launcher, the one the Shima bar style ships: it
   drives the frame's morphing-glass search, so Super+Space opens the same
   spotlight the island's search bubble does, with apps, actions, commands, math
