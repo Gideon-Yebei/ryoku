@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **A shell restart no longer undoes an active idle dim.** The brightness
+  watcher still publishes the temporary level to the OSD, but does not persist
+  it or restore an older user level while `ryoku-idle` owns the panel. The
+  exact pre-idle level remains the reboot and resume value (`ipc/osd.go`,
+  `ipc/osd_test.go`, `quickshell/keys/commands/catalog/ryoku-tools.json`).
 - **Shima's notification panels list what they count, newest first.** The
   notification bridge now offers the per-app groups the Today panel and the
   quick panel were written for, so the bell no longer opens an empty list. It
