@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Fixed
+- **Switching between empty and busy workspaces no longer rebuilds the desktop
+  frost.** The frost's blur layer stays once it has shown and only its strength
+  changes (`quickshell/shell/modules/desktop/Desktop.qml`).
+- **The frame overlay unmaps when it has nothing to show.** Outside Sumi it maps
+  only while a menu, popout, dock preview or music card is on screen, which
+  frees a full-output buffer the rest of the time
+  (`quickshell/shell/modules/bar/Frame.qml`,
+  `quickshell/shell/modules/bar/FrameMenuManager.qml`,
+  `../hyprland/modules/decoration.lua`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
