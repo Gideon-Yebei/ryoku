@@ -19,6 +19,9 @@
   Python dock settings and contrast-safe text
   (`quickshell/shell/modules/bar/barstyles/python/{dock,guide,singletons/theme}/`,
   `quickshell/shell/modules/launcher/variants/python/LauncherSurface.qml`).
+- **Stage Editor wallpaper cards load from Ryogami's library again.**
+  Home-relative image and thumbnail paths are resolved before the gallery opens,
+  including custom wallpaper folders (`quickshell/stage/services/Wallpapers.qml`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
