@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **Bar Studio and RyoStore show every bar style again.** Subshells remain
+  grouped on their own pages while also appearing in the complete bar-style
+  galleries, with Python selecting its real shell instead of disappearing
+  (`hub/quickshell/pages/`, `apps/ryostore/`).
 - **New desktop folders appear and open ready to rename.** Creating one turns
   desktop icons back on when they were hidden, gives an empty folder its proper
   glyph, and opens its name field instead of an app picker

@@ -106,11 +106,15 @@ function isSubshell(item) {
     return Boolean(item && item.category === "barstyles"
         && subshellIds.indexOf(String(item.id || "")) >= 0);
 }
+function categoryName(item, category) {
+    return isSubshell(item) ? "Subshell"
+        : String(category && category.name || item && item.category || "");
+}
 
 function barCategories(categories, items) {
     const source = Array.isArray(items) ? items : [];
     const subshellCount = source.filter(isSubshell).length;
-    const barCount = source.filter(item => item.category === "barstyles" && !isSubshell(item)).length;
+    const barCount = source.filter(item => item.category === "barstyles").length;
     const result = [];
     for (const category of sortCategories(categories)) {
         if (String(category.id) !== "barstyles") {
@@ -131,7 +135,7 @@ function filter(items, options) {
         if (opts.category === "subshells") {
             if (!isSubshell(item)) return false;
         } else if (opts.category === "barstyles") {
-            if (item.category !== "barstyles" || isSubshell(item)) return false;
+            if (item.category !== "barstyles") return false;
         } else if (opts.category && item.category !== opts.category) {
             return false;
         }
@@ -293,4 +297,4 @@ function sortCategories(categories) {
 }
 
 if (typeof module !== "undefined" && module.exports)
-    module.exports = { statusLabels, isInstalled, isDownloadPaused, downloadPauseReason, isUnavailable, unavailableLabel, unavailableReason, pluginKind, searchText, matchesQuery, filter, groupSearch, featured, installed, itemKey, sortOmarchyPlugins, collection, selectionKey, categoryPlates, primaryAction, secondaryAction, sortCategories, shuffleSeeded, isSubshell, barCategories };
+    module.exports = { statusLabels, isInstalled, isDownloadPaused, downloadPauseReason, isUnavailable, unavailableLabel, unavailableReason, pluginKind, searchText, matchesQuery, filter, groupSearch, featured, installed, itemKey, sortOmarchyPlugins, collection, selectionKey, categoryPlates, primaryAction, secondaryAction, sortCategories, shuffleSeeded, isSubshell, categoryName, barCategories };
