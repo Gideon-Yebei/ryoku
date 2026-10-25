@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- **Doctor reports memory pressure without changing the system.** Its shareable
+  report lists RAM, swap, zram, OOM activity and the shell cgroup's largest
+  processes, and warns only about memory kills or user apps left in that cgroup
+  (`internal/doctor/memory.go`, `internal/doctor/report.go`).
 - **`ryoku-host users` manages local accounts on every edition.** The typed
   JSON API lists human users, roles, curated permissions, sessions and Btrfs
   home usage; privileged verbs add, remove and edit accounts without putting

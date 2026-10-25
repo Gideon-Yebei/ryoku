@@ -365,6 +365,7 @@ func reconcilers() []reconciler {
 		{i18n.T("prowl for rashin"), reconcileProwl},
 		{i18n.T("Prowl gateway for rashin"), reconcileProwlGateway},
 		{i18n.T("recordings directory"), reconcileRecordingsDir},
+		{i18n.T("memory pressure"), reconcileMemoryHealth},
 		{i18n.T("failed services"), reconcileFailedUnits},
 		{i18n.T("btrfs device health"), reconcileBtrfsHealth},
 		{i18n.T("wireless regulatory domain"), reconcileWifiRegdom},

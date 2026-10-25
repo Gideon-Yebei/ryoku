@@ -140,7 +140,7 @@ func TestRecStatusLabels(t *testing.T) {
 func TestGatherReportIncludesFindings(t *testing.T) {
 	fs := []finding{{"swap kept out of snapshots", warnRes("swapfile in @").withFix("ryoku doctor")}}
 	rep := gatherReport(fs)
-	for _, want := range []string{"Ryoku diagnostic report", "swap kept out of snapshots", "swapfile in @", "fix: ryoku doctor", "## system", "## packages"} {
+	for _, want := range []string{"Ryoku diagnostic report", "swap kept out of snapshots", "swapfile in @", "fix: ryoku doctor", "## system", "## memory", "## packages"} {
 		if !strings.Contains(rep, want) {
 			t.Errorf("report missing %q", want)
 		}
