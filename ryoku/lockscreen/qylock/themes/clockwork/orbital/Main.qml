@@ -113,6 +113,7 @@ Rectangle {
     readonly property real marginR: 80 * s
 
     property bool clock24h: true
+    property var clockLocale: Qt.locale()
 
     // Time Logic
     property int curH: new Date().getHours()
@@ -310,9 +311,9 @@ Rectangle {
             }
             Column {
                 anchors.left: indicatorPill.right; anchors.leftMargin: 110 * s; anchors.verticalCenter: parent.verticalCenter; spacing: 5 * s
-                Text { visible: !root.clock24h; text: root.curH < 12 ? "AM" : "PM"; font.family: outfitFont.name; font.pixelSize: 18 * s; color: root.mainText }
-                Text { text: Qt.formatDate(root.curDate, "dd MMM yyyy").toUpperCase(); font.family: outfitFont.name; font.pixelSize: 13 * s; font.letterSpacing: 4 * s; color: root.subColor }
-                Text { text: Qt.formatDate(root.curDate, "dddd").toUpperCase(); font.family: outfitFont.name; font.pixelSize: 18 * s; font.letterSpacing: 8 * s; font.weight: Font.Bold; color: root.mainText }
+                Text { visible: !root.clock24h; text: root.curH < 12 ? root.clockLocale.amText : root.clockLocale.pmText; font.family: outfitFont.name; font.pixelSize: 18 * s; color: root.mainText }
+                Text { text: root.curDate.toLocaleDateString(root.clockLocale, "dd MMM yyyy").toUpperCase(); font.family: outfitFont.name; font.pixelSize: 13 * s; font.letterSpacing: 4 * s; color: root.subColor }
+                Text { text: root.curDate.toLocaleDateString(root.clockLocale, "dddd").toUpperCase(); font.family: outfitFont.name; font.pixelSize: 18 * s; font.letterSpacing: 8 * s; font.weight: Font.Bold; color: root.mainText }
             }
         }
     }

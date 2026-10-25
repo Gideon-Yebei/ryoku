@@ -20,6 +20,12 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **The stock lock screen's date follows Language & Region.** Its day, month
+  and 12-hour meridiem now use the selected regional-format locale. The
+  in-session clock keeps following the desktop's shared 12/24-hour setting,
+  while the sign-in screen uses its system locale by default
+  (`qylock/themes/clockwork/orbital/Main.qml`,
+  `qylock/quickshell-lockscreen/lock_shell.qml`, `tests/lock-time-format.qml`).
 - **The greeter guard waits on login1 instead of polling.** It checked the
   greeter every five seconds for the life of the machine, a `sleep` launch
   each time. It now blocks on one filtered `dbus-monitor` for login1's
