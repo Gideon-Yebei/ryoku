@@ -21,6 +21,7 @@ type pauseRules struct {
 	scopeDisplay     bool
 	capOverviewState bool
 	capColumnFill    bool
+	capsKnown        bool
 }
 
 type wmOutputGeom struct{ width, height int }
@@ -153,6 +154,7 @@ func (d *daemon) currentPauseRules() pauseRules {
 	if caps, err := wmClient.Caps(); err == nil {
 		r.capOverviewState = caps.Has(wm.CapOverviewState)
 		r.capColumnFill = caps.Has(wm.CapColumnFill)
+		r.capsKnown = true
 	}
 	return r
 }

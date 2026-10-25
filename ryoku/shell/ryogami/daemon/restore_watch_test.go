@@ -49,13 +49,31 @@ func TestPauseNeedsWindowsOnlyForGeometryRules(t *testing.T) {
 	}{
 		{pauseRules{}, false},
 		{pauseRules{processEnabled: true, overviewOnly: true, capOverviewState: true}, false},
-		{pauseRules{fullWidth: true}, false},
-		{pauseRules{fullWidth: true, capColumnFill: true}, true},
+		{pauseRules{fullWidth: true, capsKnown: true}, false},
+		{pauseRules{fullWidth: true, capColumnFill: true, capsKnown: true}, true},
 		{pauseRules{fullscreen: true}, true},
 		{pauseRules{maximized: true}, true},
 	} {
 		if got := pauseNeedsWindows(tc.rules); got != tc.want {
 			t.Fatalf("pauseNeedsWindows(%+v) = %v, want %v", tc.rules, got, tc.want)
+		}
+	}
+}
+
+// Until the caps probe answers, a full-width rule keeps the window list in the
+// stream; once caps rule column fill out, it is dropped.
+func TestStreamNeedsWindowsWhileCapsUnknown(t *testing.T) {
+	for _, tc := range []struct {
+		rules pauseRules
+		want  bool
+	}{
+		{pauseRules{fullWidth: true}, true},
+		{pauseRules{fullWidth: true, capsKnown: true}, false},
+		{pauseRules{processEnabled: true}, false},
+		{pauseRules{fullscreen: true, capsKnown: true}, true},
+	} {
+		if got := streamNeedsWindows(tc.rules); got != tc.want {
+			t.Fatalf("streamNeedsWindows(%+v) = %v, want %v", tc.rules, got, tc.want)
 		}
 	}
 }

@@ -71,6 +71,13 @@ func ryogamiWatchKinds(windows bool) []wm.FrameKind {
 	return append(kinds, wm.FrameWorkspaces, wm.FrameFocus, wm.FrameOverview)
 }
 
+// streamNeedsWindows reads unknown caps as possible column fill: a full-width
+// rule whose caps probe failed at stream start keeps the list instead of going
+// blind until the next settings change or reconnect.
+func streamNeedsWindows(r pauseRules) bool {
+	return pauseNeedsWindows(r) || (r.fullWidth && !r.capsKnown)
+}
+
 var wmWatch struct {
 	mu      sync.Mutex
 	windows bool
@@ -86,7 +93,7 @@ func (d *daemon) watchWindowManager() {
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
 		wmWatch.mu.Lock()
-		windows := pauseNeedsWindows(d.currentPauseRules())
+		windows := streamNeedsWindows(d.currentPauseRules())
 		wmWatch.windows, wmWatch.cancel = windows, cancel
 		wmWatch.mu.Unlock()
 		if !windows {
@@ -113,7 +120,7 @@ func (d *daemon) watchWindowManager() {
 func (d *daemon) rewatchForPauseRules() {
 	wmWatch.mu.Lock()
 	defer wmWatch.mu.Unlock()
-	if wmWatch.cancel != nil && wmWatch.windows != pauseNeedsWindows(d.currentPauseRules()) {
+	if wmWatch.cancel != nil && wmWatch.windows != streamNeedsWindows(d.currentPauseRules()) {
 		wmWatch.cancel()
 	}
 }
