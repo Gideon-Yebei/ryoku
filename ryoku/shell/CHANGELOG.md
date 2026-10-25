@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
+
 ### Fixed
 - **Controls settings stay on-screen and add Top center.** The gear popup now
   fits and scrolls within its window at every position, edge gap and display
