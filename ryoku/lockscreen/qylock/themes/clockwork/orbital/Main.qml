@@ -60,10 +60,7 @@ Rectangle {
         }
     }
 
-    // The clock rings sample wall time once per second. Sampling every 16 ms
-    // rebuilt both 60-item rings and submitted a full-screen frame while idle,
-    // competing with software cursor composition on high-refresh displays.
-    // Backgrounded greeters still stop the timer entirely.
+    // Ring transforms interpolate between one-second wall-clock samples.
     readonly property bool clockAwake: root.isSessionLock || Window.active
 
     // ── fingerprint sensor hint ─────────────────────────────────────────────
@@ -113,24 +110,36 @@ Rectangle {
     property var clockLocale: Qt.locale()
 
     // Time Logic
-    property int curH: new Date().getHours()
-    property int curM: new Date().getMinutes()
-    property int curS: new Date().getSeconds()
-    property int curMS: new Date().getMilliseconds()
-    property date curDate: new Date()
-    readonly property real localTimeMS: (curH * 3600000) + (curM * 60000) + (curS * 1000) + curMS
+    readonly property date initialClockSample: new Date()
+    property int curH: initialClockSample.getHours()
+    property int curM: initialClockSample.getMinutes()
+    property int curS: initialClockSample.getSeconds()
+    property int curMS: initialClockSample.getMilliseconds()
+    property date curDate: initialClockSample
+    property real secRingTarget: -(((curS * 1000) + curMS) / 60000.0) * 360.0
+    property real minRingTarget: -(((curM * 60000) + (curS * 1000) + curMS) / 3600000.0) * 360.0
+
+    function sampleClock() {
+        var d = new Date()
+        root.curH = d.getHours()
+        root.curM = d.getMinutes()
+        root.curS = d.getSeconds()
+        root.curMS = d.getMilliseconds()
+        if (d.getFullYear() !== root.curDate.getFullYear()
+                || d.getMonth() !== root.curDate.getMonth()
+                || d.getDate() !== root.curDate.getDate()) {
+            root.curDate = d
+        }
+        var projectedMS = d.getMilliseconds() + 1000
+        root.secRingTarget = -(((d.getSeconds() * 1000) + projectedMS) / 60000.0) * 360.0
+        root.minRingTarget = -(((d.getMinutes() * 60000) + (d.getSeconds() * 1000) + projectedMS) / 3600000.0) * 360.0
+    }
 
     Timer {
-        interval: 1000; running: root.clockAwake; repeat: true
-        onTriggered: {
-            var d = new Date()
-            root.curH = d.getHours(); root.curM = d.getMinutes(); root.curS = d.getSeconds(); root.curMS = d.getMilliseconds()
-            if (d.getFullYear() !== root.curDate.getFullYear()
-                    || d.getMonth() !== root.curDate.getMonth()
-                    || d.getDate() !== root.curDate.getDate()) {
-                root.curDate = d
-            }
-        }
+        interval: 1000
+        running: root.clockAwake
+        repeat: true
+        onTriggered: root.sampleClock()
     }
 
     // Animation Props
@@ -177,8 +186,8 @@ Rectangle {
         NumberAnimation { target: root; property: "boomOpacity"; to: 1.0; duration: 130; easing.type: Easing.InQuad }
     }
 
-    readonly property real smoothSecAngle: -((localTimeMS % 60000) / 60000.0) * 360.0 - windupOffset * 10.0
-    readonly property real smoothMinAngle: -((localTimeMS % 3600000) / 3600000.0) * 360.0 - windupOffset * 5.0
+    readonly property real smoothSecAngle: secRingTarget - windupOffset * 10.0
+    readonly property real smoothMinAngle: minRingTarget - windupOffset * 5.0
 
     // Font Loading
     FolderListModel { id: fontFolder; folder: Qt.resolvedUrl("font"); nameFilters: ["*.ttf", "*.otf"] }
@@ -201,6 +210,7 @@ Rectangle {
     Timer { interval: 300; running: true; onTriggered: passInput.forceActiveFocus() }
 
     Component.onCompleted: {
+        root.sampleClock()
         keyboard.numLock = true
         if (typeof sessionModel !== "undefined")
             root.sessionIndex = preferredSessionIndex()
@@ -248,56 +258,98 @@ Rectangle {
                 }
             }
 
-            Repeater {
-                model: 60
-                delegate: Item {
-                    z: 10; property real base: index * 6
-                    property real relAngle: { var a = (base + root.smoothMinAngle) % 360; if (a > 180) a -= 360; if (a < -180) a += 360; return a }
-                    property real spotlight: Math.max(0, 1.0 - Math.abs(relAngle) / 4.0)
-                    property bool isMajor: index % 5 == 0
-                    property real disp: (base + root.smoothMinAngle) * Math.PI / 180
-                    property real tx: clockContainer.cx + clockContainer.minR * Math.cos(disp)
-                    property real ty: clockContainer.cy + clockContainer.minR * Math.sin(disp)
-                    visible: tx > -600 * s && tx < 1800 * s
-                    Rectangle {
-                        x: parent.tx - width/2; y: parent.ty - height/2; width: isMajor ? 2 * s : 1 * s; height: isMajor ? 18 * s : 10 * s
-                        color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? 1.0 : (isMajor ? 0.8 : 0.6)) : Qt.rgba(1, 1, 1, spotlight > 0 ? 1.0 : (isMajor ? 0.3 : 0.15))
-                        rotation: disp * 180 / Math.PI + 90
-                    }
-                    Text {
-                        visible: isMajor; property real nRad: clockContainer.minR - 35 * s
-                        x: clockContainer.cx + nRad * Math.cos(disp) - width/2
-                        y: clockContainer.cy + nRad * Math.sin(disp) - height/2
-                        text: String(index).padStart(2, '0'); font.family: outfitFont.name; font.pixelSize: 22 * s; font.weight: spotlight > 0.5 ? Font.Bold : Font.Normal
-                        color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? (0.6 + 0.4 * spotlight) : 0.6) : Qt.rgba(1, 1, 1, spotlight > 0 ? (0.4 + spotlight * 0.6) : 0.25)
-                        rotation: disp * 180 / Math.PI; transformOrigin: Item.Center
+            Item {
+                id: minuteRing
+                x: clockContainer.cx - clockContainer.minR
+                y: clockContainer.cy - clockContainer.minR
+                width: clockContainer.minR * 2
+                height: width
+                rotation: root.minRingTarget
+                Behavior on rotation {
+                    RotationAnimation { duration: 1000; direction: RotationAnimation.Shortest; easing.type: Easing.Linear }
+                }
+
+                Item {
+                    anchors.fill: parent
+                    rotation: -root.windupOffset * 5.0
+                    Repeater {
+                        model: 60
+                        delegate: Item {
+                            z: 10
+                            property real base: index * 6
+                            property real relAngle: {
+                                var a = (base + root.smoothMinAngle) % 360
+                                if (a > 180) a -= 360
+                                if (a < -180) a += 360
+                                return a
+                            }
+                            property real spotlight: Math.max(0, 1.0 - Math.abs(relAngle) / 4.0)
+                            property bool isMajor: index % 5 == 0
+                            property real disp: base * Math.PI / 180
+                            property real tx: minuteRing.width * 0.5 + clockContainer.minR * Math.cos(disp)
+                            property real ty: minuteRing.height * 0.5 + clockContainer.minR * Math.sin(disp)
+                            Rectangle {
+                                x: parent.tx - width/2; y: parent.ty - height/2; width: isMajor ? 2 * s : 1 * s; height: isMajor ? 18 * s : 10 * s
+                                color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? 1.0 : (isMajor ? 0.8 : 0.6)) : Qt.rgba(1, 1, 1, spotlight > 0 ? 1.0 : (isMajor ? 0.3 : 0.15))
+                                rotation: base + 90
+                            }
+                            Text {
+                                visible: isMajor; property real nRad: clockContainer.minR - 35 * s
+                                x: minuteRing.width * 0.5 + nRad * Math.cos(disp) - width/2
+                                y: minuteRing.height * 0.5 + nRad * Math.sin(disp) - height/2
+                                text: String(index).padStart(2, '0'); font.family: outfitFont.name; font.pixelSize: 22 * s; font.weight: spotlight > 0.5 ? Font.Bold : Font.Normal
+                                color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? (0.6 + 0.4 * spotlight) : 0.6) : Qt.rgba(1, 1, 1, spotlight > 0 ? (0.4 + spotlight * 0.6) : 0.25)
+                                rotation: base; transformOrigin: Item.Center
+                            }
+                        }
                     }
                 }
             }
 
-            Repeater {
-                model: 60
-                delegate: Item {
-                    z: 10; property real base: index * 6
-                    property real relAngle: { var a = (base + root.smoothSecAngle) % 360; if (a > 180) a -= 360; if (a < -180) a += 360; return a }
-                    property real spotlight: Math.max(0, 1.0 - Math.abs(relAngle) / 4.0)
-                    property bool isMajor: index % 5 == 0
-                    property real disp: (base + root.smoothSecAngle) * Math.PI / 180
-                    property real tx: clockContainer.cx + clockContainer.secR * Math.cos(disp)
-                    property real ty: clockContainer.cy + clockContainer.secR * Math.sin(disp)
-                    visible: tx > -600 * s && tx < 1800 * s
-                    Rectangle {
-                        x: parent.tx - width/2; y: parent.ty - height/2; width: isMajor ? 1.5 * s : 1 * s; height: isMajor ? 13 * s : 8 * s
-                        color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? 1.0 : (isMajor ? 0.8 : 0.6)) : Qt.rgba(1, 1, 1, spotlight > 0 ? 1.0 : (isMajor ? 0.3 : 0.15))
-                        rotation: disp * 180 / Math.PI + 90
-                    }
-                    Text {
-                        visible: isMajor; property real nRad: clockContainer.secR - 30 * s
-                        x: clockContainer.cx + nRad * Math.cos(disp) - width/2
-                        y: clockContainer.cy + nRad * Math.sin(disp) - height/2
-                        text: String(index).padStart(2, '0'); font.family: outfitFont.name; font.pixelSize: 16 * s; font.weight: spotlight > 0.5 ? Font.Bold : Font.Normal
-                        color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? (0.6 + 0.4 * spotlight) : 0.6) : Qt.rgba(1, 1, 1, spotlight > 0 ? (0.4 + spotlight * 0.6) : 0.25)
-                        rotation: disp * 180 / Math.PI; transformOrigin: Item.Center
+            Item {
+                id: secondRing
+                x: clockContainer.cx - clockContainer.secR
+                y: clockContainer.cy - clockContainer.secR
+                width: clockContainer.secR * 2
+                height: width
+                rotation: root.secRingTarget
+                Behavior on rotation {
+                    RotationAnimation { duration: 1000; direction: RotationAnimation.Shortest; easing.type: Easing.Linear }
+                }
+
+                Item {
+                    anchors.fill: parent
+                    rotation: -root.windupOffset * 10.0
+                    Repeater {
+                        model: 60
+                        delegate: Item {
+                            z: 10
+                            property real base: index * 6
+                            property real relAngle: {
+                                var a = (base + root.smoothSecAngle) % 360
+                                if (a > 180) a -= 360
+                                if (a < -180) a += 360
+                                return a
+                            }
+                            property real spotlight: Math.max(0, 1.0 - Math.abs(relAngle) / 4.0)
+                            property bool isMajor: index % 5 == 0
+                            property real disp: base * Math.PI / 180
+                            property real tx: secondRing.width * 0.5 + clockContainer.secR * Math.cos(disp)
+                            property real ty: secondRing.height * 0.5 + clockContainer.secR * Math.sin(disp)
+                            Rectangle {
+                                x: parent.tx - width/2; y: parent.ty - height/2; width: isMajor ? 1.5 * s : 1 * s; height: isMajor ? 13 * s : 8 * s
+                                color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? 1.0 : (isMajor ? 0.8 : 0.6)) : Qt.rgba(1, 1, 1, spotlight > 0 ? 1.0 : (isMajor ? 0.3 : 0.15))
+                                rotation: base + 90
+                            }
+                            Text {
+                                visible: isMajor; property real nRad: clockContainer.secR - 30 * s
+                                x: secondRing.width * 0.5 + nRad * Math.cos(disp) - width/2
+                                y: secondRing.height * 0.5 + nRad * Math.sin(disp) - height/2
+                                text: String(index).padStart(2, '0'); font.family: outfitFont.name; font.pixelSize: 16 * s; font.weight: spotlight > 0.5 ? Font.Bold : Font.Normal
+                                color: isLight ? Qt.rgba(0, 0, 0, spotlight > 0 ? (0.6 + 0.4 * spotlight) : 0.6) : Qt.rgba(1, 1, 1, spotlight > 0 ? (0.4 + spotlight * 0.6) : 0.25)
+                                rotation: base; transformOrigin: Item.Center
+                            }
+                        }
                     }
                 }
             }

@@ -20,6 +20,11 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **Orbital's clock pointer moves smoothly and stays complete.** The minute and
+  second rings now interpolate only their transforms between one-second clock
+  samples instead of rebuilding every tick on every frame
+  (`qylock/themes/clockwork/orbital/Main.qml`,
+  `tests/lock-date-rollover.qml`).
 - **The stock lock screen leaves cursor frames to the compositor.** Its SDDM
   fallback cursor also ran under the in-session lock, repainting the scene for
   every pointer event while the compositor drew a second software cursor. The

@@ -35,7 +35,7 @@ ShellRoot {
                 root.phase++;
             } else if (root.phase === 1) {
                 if (!root.hasText(theme.item, root.day(root.yesterday))) {
-                    console.error("FAIL: lockscreen repainted its clock before one second"); Qt.quit(); return;
+                    console.error("FAIL: date changed before the next clock sample"); Qt.quit(); return;
                 }
                 root.phase++;
             } else if (root.phase < 4) {
@@ -44,7 +44,7 @@ ShellRoot {
                 if (!root.hasText(theme.item, root.day(new Date())) || root.hasText(theme.item, root.day(root.yesterday))) {
                     console.error("FAIL: date label stayed on " + root.day(root.yesterday)); Qt.quit(); return;
                 }
-                console.log("PASS: lockscreen clock rests between one-second updates and rolls the date"); Qt.quit();
+                console.log("PASS: lockscreen samples the date once per second and rolls it over"); Qt.quit();
             }
         }
     }
