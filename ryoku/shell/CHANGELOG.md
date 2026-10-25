@@ -10,6 +10,9 @@
   Log out, Restart and Power off together in a compact trailing group, with the
   shell's usual confirmation before an action runs
   (`quickshell/shell/modules/desktop/DesktopContextMenu.qml`).
+- **Single Vitals choices stay visible in Controls.** Identity now keeps its
+  system details live when selected alone, and the panel no longer reserves an
+  empty readings block (`quickshell/shell/modules/sidebar/ControlsHero.qml`).
 - **Controls settings stay on-screen and add Top center.** The gear popup now
   fits and scrolls within its window at every position, edge gap and display
   scale, and the new upper-centred placement is saved and honoured by the shell
