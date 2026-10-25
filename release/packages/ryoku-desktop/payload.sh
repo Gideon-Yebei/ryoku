@@ -443,6 +443,10 @@ EOF
     "$pkgdir/usr/lib/udev/rules.d/60-ryoku-i2c.rules"
 
   if [[ $RYOKU_INIT_MODE == systemd ]]; then
+    # The rule's group; Void declares it as a template system_group instead.
+    install -Dm644 "$_repo/system/hardware/ddc/ryoku-i2c.sysusers" \
+      "$pkgdir/usr/lib/sysusers.d/ryoku-i2c.conf"
+
     # No usable NvPCRs without a PCR-signed UKI, so keep systemd from starting
     # TPM units that cannot work.
     install -Dm644 "$_repo/system/hardware/tpm/60-ryoku-tpm-nvpcr.rules" \

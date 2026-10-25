@@ -17,6 +17,11 @@
   headless one exits at once.
 
 ### Fixed
+- `ddc/ryoku-i2c.sysusers`: **udev no longer fails on the `i2c` group at boot.**
+  `60-ryoku-i2c.rules` assigns `/dev/i2c-*` to an `i2c` group that only the Void
+  template created, so Fedora and Arch logged `Failed to resolve group 'i2c'` on
+  every boot. Systemd editions now ship it as `/usr/lib/sysusers.d/ryoku-i2c.conf`;
+  session access through `uaccess` is unchanged.
 - `power/ryoku-idle`: **idle dimming never makes a dark screen brighter.**
   The shared idle policy now lowers the selected panel only when it is above
   20%, keeps the original raw level across overlapping battery and AC

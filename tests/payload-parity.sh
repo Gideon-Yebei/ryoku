@@ -280,7 +280,7 @@ adapter_entry() {
     void:etc/elogind/logind.conf.d/10-ryoku-lid.conf)
       normalized_path=etc/systemd/logind.conf.d/10-ryoku-lid.conf
       ;;
-    *:usr/lib/systemd/*|*:usr/lib/tmpfiles.d/ryoku.conf|*:usr/share/ryoku/config/systemd/*|\
+    *:usr/lib/systemd/*|*:usr/lib/tmpfiles.d/ryoku.conf|*:usr/lib/sysusers.d/ryoku-i2c.conf|*:usr/share/ryoku/config/systemd/*|\
     *:usr/share/ryoku/palette-bridge/packaging/systemd/*|\
     *:usr/lib/environment.d/99-ryoku-session.conf|\
     *:usr/lib/ryoku/runit/*|*:etc/sv/*|*:etc/skel/.config/service/*|\
