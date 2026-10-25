@@ -17,6 +17,10 @@
   headless one exits at once.
 
 ### Fixed
+- `audio/ryoku-bt-audio`: **the codec watcher stays asleep between reconnects.**
+  `watch` filters the PulseAudio event stream down to card events before bash
+  sees it, and a burst of card events from one reconnect now costs one apply
+  pass instead of one per event. Covered by `tests/bt-audio-codec.sh`.
 - `power/ryoku-idle`: **idle dimming never makes a dark screen brighter.**
   The shared idle policy now lowers the selected panel only when it is above
   20%, keeps the original raw level across overlapping battery and AC
