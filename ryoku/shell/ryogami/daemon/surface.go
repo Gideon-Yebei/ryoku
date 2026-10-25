@@ -98,6 +98,14 @@ type videoClip struct {
 // video's still; clip.path, when set, is the in-shell clip (video_engine
 // "in_shell") and carries its audio.
 func (w *wallSurface) show(pic, fit string, tr interface{}, live, isVideo bool, clip videoClip) {
+	w.showEntry(pic, fit, tr, live, isVideo, false, clip)
+}
+
+func (w *wallSurface) showPreview(pic, fit string, tr interface{}, live, isVideo bool, clip videoClip) {
+	w.showEntry(pic, fit, tr, live, isVideo, true, clip)
+}
+
+func (w *wallSurface) showEntry(pic, fit string, tr interface{}, live, isVideo, preview bool, clip videoClip) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	w.seq++
@@ -105,6 +113,7 @@ func (w *wallSurface) show(pic, fit string, tr interface{}, live, isVideo bool, 
 	w.def.Live = live
 	w.def.Video = isVideo
 	w.def.VideoPath = clip.path
+	w.def.Preview = preview
 	w.def.Mute = clip.mute
 	w.def.Volume = clip.volume
 	w.outputs = map[string]frameEntry{}
@@ -113,6 +122,14 @@ func (w *wallSurface) show(pic, fit string, tr interface{}, live, isVideo bool, 
 
 // showOutput writes one per-output override, leaving the rest intact.
 func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, isVideo bool, clip videoClip) {
+	w.showOutputEntry(name, pic, fit, tr, live, isVideo, false, clip)
+}
+
+func (w *wallSurface) showOutputPreview(name, pic, fit string, tr interface{}, live, isVideo bool, clip videoClip) {
+	w.showOutputEntry(name, pic, fit, tr, live, isVideo, true, clip)
+}
+
+func (w *wallSurface) showOutputEntry(name, pic, fit string, tr interface{}, live, isVideo, preview bool, clip videoClip) {
 	if name == "" {
 		return
 	}
@@ -123,30 +140,10 @@ func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, is
 	e.Live = live
 	e.Video = isVideo
 	e.VideoPath = clip.path
+	e.Preview = preview
 	e.Mute = clip.mute
 	e.Volume = clip.volume
 	w.outputs[name] = e
-	w.publishLocked()
-}
-
-// markPreview flags the entries a preview paint just published and
-// republishes, so the frame itself carries that the paint is uncommitted.
-// It mirrors the paint's addressing: a broadcast preview flags the default
-// entry, a named one flags exactly those outputs. The next paint on an
-// entry replaces it with a fresh one, clearing the flag on its own.
-func (w *wallSurface) markPreview(outputs []string) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if len(outputs) == 0 || contains(outputs, "*") {
-		w.def.Preview = true
-	} else {
-		for _, name := range outputs {
-			if e, ok := w.outputs[name]; ok {
-				e.Preview = true
-				w.outputs[name] = e
-			}
-		}
-	}
 	w.publishLocked()
 }
 

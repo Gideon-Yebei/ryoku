@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -44,9 +46,16 @@ func TestPreviewPaintsFlaggedAndRecordsNothing(t *testing.T) {
 	d := previewTestDaemon(t)
 	committed := previewTestStill(t, d, "committed.png")
 	preview := previewTestStill(t, d, "preview.png")
+	events := d.events.subscribe()
 	if err := d.applyWallpaper("static", committed, "set", nil, nil, nil); err != nil {
 		t.Fatal(err)
 	}
+	select {
+	case <-events:
+	default:
+		t.Fatal("committed apply did not publish its event")
+	}
+	_, _, frames := d.surface.topic.subscribe()
 	savedBefore, err := os.ReadFile(filepath.Join(d.config().cacheDir(), "outputs.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -55,6 +64,29 @@ func TestPreviewPaintsFlaggedAndRecordsNothing(t *testing.T) {
 	if err := d.previewWallpaper(preview, nil); err != nil {
 		t.Fatal(err)
 	}
+	var published wallFrame
+	if err := json.Unmarshal([]byte(<-frames), &published); err != nil {
+		t.Fatal(err)
+	}
+	if !published.Default.Preview {
+		t.Fatal("the first published preview frame was not flagged")
+	}
+	select {
+	case frame := <-frames:
+		t.Fatalf("preview published a second frame: %s", frame)
+	default:
+	}
+	for {
+		select {
+		case event := <-events:
+			if strings.Contains(event, `"event":"ryogami.wall.applied"`) {
+				t.Fatalf("preview published an applied event: %s", event)
+			}
+		default:
+			goto eventsDrained
+		}
+	}
+eventsDrained:
 	frame := d.surface.snapshot()
 	if frame.Default.Path != preview {
 		t.Fatalf("frame path=%q, want the previewed still %q", frame.Default.Path, preview)
@@ -122,6 +154,47 @@ func TestClearPreviewRepaintsCommitted(t *testing.T) {
 	}
 	if got := d.currentName(); got != "committed.png" {
 		t.Fatalf("current name=%q, want the pre-preview name restored", got)
+	}
+}
+
+func TestClearPreviewRestoresEveryTouchedOutput(t *testing.T) {
+	d := previewTestDaemon(t)
+	base := previewTestStill(t, d, "base.png")
+	left := previewTestStill(t, d, "left.png")
+	right := previewTestStill(t, d, "right.png")
+	first := previewTestStill(t, d, "first.png")
+	second := previewTestStill(t, d, "second.png")
+	for _, apply := range []struct {
+		path    string
+		outputs []string
+	}{
+		{base, nil},
+		{left, []string{"DP-1"}},
+		{right, []string{"DP-2"}},
+	} {
+		if err := d.applyWallpaper("static", apply.path, "set", apply.outputs, nil, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := d.previewWallpaper(first, []string{"DP-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.previewWallpaper(second, []string{"DP-2"}); err != nil {
+		t.Fatal(err)
+	}
+	frame := d.surface.snapshot()
+	if frame.Outputs["DP-1"].Path != first || frame.Outputs["DP-2"].Path != second {
+		t.Fatalf("preview frame = %+v", frame.Outputs)
+	}
+	if err := d.clearPreview(); err != nil {
+		t.Fatal(err)
+	}
+	frame = d.surface.snapshot()
+	if frame.Outputs["DP-1"].Path != left || frame.Outputs["DP-2"].Path != right {
+		t.Fatalf("restored frame = %+v", frame.Outputs)
+	}
+	if frame.Outputs["DP-1"].Preview || frame.Outputs["DP-2"].Preview {
+		t.Fatal("a restored output is still marked as a preview")
 	}
 }
 

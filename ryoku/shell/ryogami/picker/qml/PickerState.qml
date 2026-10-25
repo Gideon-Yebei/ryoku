@@ -79,6 +79,17 @@ QtObject {
     property SettingValue _shellHover: SettingValue { key: "shell.hoverPreview" }
     property SettingValue _barAlwaysVisible: SettingValue { key: "general.filterBarAlwaysVisible" }
 
+    property Connections _livePreviewConn: Connections {
+        target: state._livePreview
+        function onValueChanged() {
+            if (state._bool(state._livePreview))
+                return
+            state._hoverDwell.stop()
+            Theme.previewPalette = null
+            Daemon.call("wall.preview.clear", {})
+        }
+    }
+
     function _bool(sv) { return sv && sv.value === true }
 
     function setCollection(name) {
@@ -235,6 +246,7 @@ QtObject {
         onTriggered: state._pushHover()
     }
     onHoverKeyChanged: if (state._hoverActive) state._hoverDwell.restart()
+    onHoverTypeChanged: if (state._hoverActive) state._hoverDwell.restart()
 
     // Accepts either chrome role names or the desktop's material names.
     function _chromePalette(p) {
@@ -267,6 +279,8 @@ QtObject {
                 // a video or a scene has no still for the daemon to paint.
                 if (state.hoverType === "static")
                     Daemon.call("wall.preview", { key: key })
+                else
+                    Daemon.call("wall.preview.clear", {})
             } else {
                 Theme.previewPalette = null
                 Daemon.call("wall.preview.clear", {})
@@ -284,8 +298,7 @@ QtObject {
             state._hoverDwell.stop()
             if (Theme.previewPalette)
                 Theme.previewPalette = null
-            if (state._bool(state._livePreview))
-                Daemon.call("wall.preview.clear", {})
+            Daemon.call("wall.preview.clear", {})
             if (state._bool(state._shellHover))
                 Daemon.call("palette.hover", ({}))
             Settings.flush()

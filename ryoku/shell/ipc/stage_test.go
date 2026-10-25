@@ -1051,6 +1051,44 @@ func TestStageRyogamiFrameWake(t *testing.T) {
 	}
 }
 
+func TestPreviewFrameDoesNotReachCommittedConsumers(t *testing.T) {
+	d := &daemon{stageSig: make(chan struct{}, 1), paintSig: make(chan struct{}, 1)}
+	feed := func(js string) { d.consumeRyogamiFrames(strings.NewReader(js + "\n")) }
+	drain := func(ch chan struct{}) {
+		select {
+		case <-ch:
+		default:
+		}
+	}
+	quiet := func(ch chan struct{}) bool {
+		select {
+		case <-ch:
+			return false
+		default:
+			return true
+		}
+	}
+
+	feed(`{"default":{"path":"/w/base.png"},"outputs":{"DP-1":{"path":"/w/left.png"}}}`)
+	drain(d.stageSig)
+	drain(d.paintSig)
+	feed(`{"default":{"path":"/w/preview.png","preview":true},"outputs":{}}`)
+	if !quiet(d.stageSig) || !quiet(d.paintSig) {
+		t.Fatal("broadcast preview woke a committed wallpaper consumer")
+	}
+	if got := d.currentWall(); got != "/w/base.png" {
+		t.Fatalf("current wall changed to preview %q", got)
+	}
+
+	feed(`{"default":{"path":"/w/base.png"},"outputs":{"DP-1":{"path":"/w/preview.png","preview":true}}}`)
+	if !quiet(d.stageSig) || !quiet(d.paintSig) {
+		t.Fatal("per-output preview woke a committed wallpaper consumer")
+	}
+	if got := d.wallFrame().Outputs["DP-1"].Path; got != "/w/left.png" {
+		t.Fatalf("committed output changed to preview %q", got)
+	}
+}
+
 func TestStageLegacyMigrationV3(t *testing.T) {
 	home := stageHome(t)
 	if err := os.MkdirAll(filepath.Join(stateDir(), "ryoku"), 0o755); err != nil {

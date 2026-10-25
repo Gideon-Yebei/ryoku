@@ -211,6 +211,7 @@ Item {
                     let state = JSON.parse(data);
                     let entry = (state.outputs && state.outputs[wallpaperFeed.screenName]) || state.default;
                     if (!entry) return;
+                    if (entry.preview === true) return;
                     let p = entry.path || "";
                     let live = entry.live === true;
                     if (p !== themeTabRoot.currentWallpaperPath || live !== themeTabRoot.wallpaperIsLive) {

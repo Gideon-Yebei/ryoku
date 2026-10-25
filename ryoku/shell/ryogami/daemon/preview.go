@@ -22,6 +22,29 @@ type previewState struct {
 	prevName string
 }
 
+func mergePreviewOutputs(current, next []string, fresh bool) []string {
+	if len(next) == 0 || contains(next, "*") || (!fresh && len(current) == 0) {
+		return nil
+	}
+	merged := make([]string, 0, len(current)+len(next))
+	seen := make(map[string]bool, len(current)+len(next))
+	if !fresh {
+		for _, output := range current {
+			if output != "" && !seen[output] {
+				merged = append(merged, output)
+				seen[output] = true
+			}
+		}
+	}
+	for _, output := range next {
+		if output != "" && !seen[output] {
+			merged = append(merged, output)
+			seen[output] = true
+		}
+	}
+	return merged
+}
+
 func (d *daemon) previewWallpaper(path string, outputs []string) error {
 	if path == "" {
 		return fmt.Errorf("missing 'path' parameter")
@@ -35,23 +58,20 @@ func (d *daemon) previewWallpaper(path string, outputs []string) error {
 		return fmt.Errorf("unsupported type for preview: %s", typeOf(path))
 	}
 	d.previewMu.Lock()
+	defer d.previewMu.Unlock()
 	fresh := d.preview == nil
 	prevName := ""
 	if fresh {
 		prevName = d.currentName()
 	}
-	d.previewMu.Unlock()
 	if err := d.paintWallpaperReason("preview", "static", path, "set", outputs, nil, nil); err != nil {
 		return err
 	}
-	d.previewMu.Lock()
-	if d.preview == nil {
+	if fresh {
 		d.preview = &previewState{prevName: prevName}
 	}
-	d.preview.outputs = outputs
+	d.preview.outputs = mergePreviewOutputs(d.preview.outputs, outputs, fresh)
 	d.preview.path = path
-	d.previewMu.Unlock()
-	d.surface.markPreview(outputs)
 	return nil
 }
 
@@ -76,25 +96,17 @@ func (d *daemon) previewWallpaperKey(key string, outputs []string) error {
 // closes, committed or not.
 func (d *daemon) clearPreview() error {
 	d.previewMu.Lock()
+	defer d.previewMu.Unlock()
 	st := d.preview
-	d.preview = nil
-	d.previewMu.Unlock()
 	if st == nil {
 		return nil
 	}
+	d.preview = nil
 	d.repaintCommitted(st.outputs)
 	if st.prevName != "" {
 		d.setCurrent(st.prevName)
 	}
 	return nil
-}
-
-// dropPreview forgets the live preview without repainting. A committed apply
-// calls it because the apply itself paints what replaces the preview.
-func (d *daemon) dropPreview() {
-	d.previewMu.Lock()
-	d.preview = nil
-	d.previewMu.Unlock()
 }
 
 // repaintCommitted repaints the committed wallpaper on the given outputs,
