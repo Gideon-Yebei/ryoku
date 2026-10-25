@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
+  only part of the Qt toolchain, so the first `ryoku update` from source
+  stopped at `Failed to find required Qt component "Multimedia"`. It now
+  installs every development package the plugin and the Ryogami picker
+  configure against, matching the RPM specs (`../../bin/ryoku-track`).
 - **A shell restart no longer undoes an active idle dim.** The brightness
   watcher still publishes the temporary level to the OSD, but does not persist
   it or restore an older user level while `ryoku-idle` owns the panel. The
