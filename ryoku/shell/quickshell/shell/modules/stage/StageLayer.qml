@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Effects
+import Ryoku.Ui.Singletons
 import shell.services
 import stage.services
 import "../wallpaper" as WallpaperMod
@@ -105,9 +106,10 @@ Item {
         ? Math.sin(root._phase * 0.7) * 1.6
             * Config.amountFactor("parallax") * root._near : 0
 
-    // Cutting progress rides the subject itself, not a panel (docs/stage.md):
-    // the subject layer (index 1) dims and a ring with the percent floats over it.
-    readonly property bool _busyHere: root.layerIndex === 1 && StageBackend.busy && root.url !== ""
+    // A scene job on this wallpaper dims the subject and exposes cancellation.
+    readonly property var _wallJob: StageBackend.jobFor(root.wallPath)
+    readonly property bool _busyHere: root.layerIndex === 1 && root.url !== ""
+        && root._wallJob && root._wallJob.kind === "scene"
 
     Item {
         id: visual
@@ -158,7 +160,7 @@ Item {
         }
     }
 
-    // Progress ring centred on the subject; tap to cancel the cut.
+    // Indeterminate ring centred on the subject; tap to cancel the scene job.
     Item {
         anchors.centerIn: parent
         width: 96
@@ -167,10 +169,17 @@ Item {
         Canvas {
             id: ring
             anchors.fill: parent
-            property int pct: StageBackend.percent
-            onPctChanged: ring.requestPaint()
+            property real phase: 0.12
+            onPhaseChanged: ring.requestPaint()
             onVisibleChanged: ring.requestPaint()
             Component.onCompleted: ring.requestPaint()
+            NumberAnimation on phase {
+                from: 0
+                to: 1
+                duration: 950
+                loops: Animation.Infinite
+                running: ring.visible && !Tokens.reduceMotion
+            }
             onPaint: {
                 const ctx = getContext("2d");
                 const w = width, cx = w / 2, cy = height / 2, r = w / 2 - 6;
@@ -182,18 +191,11 @@ Item {
                 ctx.arc(cx, cy, r, 0, 2 * Math.PI);
                 ctx.stroke();
                 ctx.strokeStyle = Theme.primary;
+                const start = -Math.PI / 2 + 2 * Math.PI * ring.phase;
                 ctx.beginPath();
-                ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * Math.max(0, Math.min(1, ring.pct / 100)));
+                ctx.arc(cx, cy, r, start, start + Math.PI * 0.62);
                 ctx.stroke();
             }
-        }
-        Text {
-            anchors.centerIn: parent
-            text: StageBackend.percent + "%"
-            color: "white"
-            font.family: Theme.fontPrimary
-            font.pixelSize: Theme.fontSm
-            font.weight: Font.DemiBold
         }
         MouseArea {
             anchors.fill: parent

@@ -12,7 +12,7 @@ Names, so the parts are findable:
 |---|---|---|
 | The feature and editor | **Stage** | `ryoku/shell/quickshell/shell/modules/stage/`, `ryoku/shell/quickshell/stage/` |
 | The cut-out engine helper | **`ryostage`** | `ryoku/shell/scripts/ryostage`, shipped to `/usr/bin` |
-| The daemon module | `stage` topic and verbs | `ryoku/shell/ipc/stage.go` |
+| The daemon module | `stage` topic and verbs | `ryoku/shell/ipc/stage.go`, `stage_job.go` |
 | The settings | `~/.config/ryoku/stage.json` | user-owned, GUI-managed, never materialized |
 | Per-wallpaper scene state | `~/.local/state/ryoku/stage-walls.json` | daemon-owned |
 | Artifacts | `~/Pictures/Stage/<stem>/` | the user's files, one folder per wallpaper |
@@ -74,10 +74,12 @@ catalogue:
 - Parallax: `set-effect parallax`.
 - Spatial: `set-effect spatial`.
 
-Each mode generates only what it needs. Depth makes `subject.png`. Parallax
-makes `subject.png` and `background.png`, and optionally `depth.png` for its 3D
-backdrop. Spatial makes only `depth.png`. A saved subject is reused when the
-selected mode uses the same cut model and refinement setting.
+Choosing a mode only records the choice. Processing never starts from a mode
+change, wallpaper wake, settings change, missing file, or failed job. The scene
+card shows what is ready and starts work only when the user presses Generate,
+Update, Redo, or a per-step Redo action. Depth needs `subject.png`. Parallax
+needs `subject.png` and `background.png`, plus `depth.png` when its 3D backdrop
+is on. Spatial needs only `depth.png`.
 
 ## Catalogue routes
 
@@ -240,9 +242,10 @@ face options, and other appearance settings stay global.
 
 ### Depth catalogue
 
-The page starts with the current mode and a short status such as Ready,
-Cutting the subject, Building the depth map, or Pick a model. The mode picker
-offers Plain, Depth, Parallax, and Spatial.
+The page starts with the current mode, then a **This wallpaper** scene card.
+The card lists each required step and whether it is ready, missing, stale, or
+outdated. It owns Generate, Update, per-step Redo, Redo all, Cancel, and Force
+stop. The mode picker offers Plain, Depth, Parallax, and Spatial.
 
 The selected mode decides which tabs are shown:
 
@@ -252,9 +255,10 @@ The selected mode decides which tabs are shown:
 - **Spatial** has Camera and Model.
 
 Look controls edge softness, shadow strength, and shadow direction. Parallax
-also has the 3D backdrop switch. Layers lists the subject and added PNGs, and
-offers Cut a layer, Add a PNG, and Clear cut-outs. Distance is shown only for
-Parallax. Front chooses which widgets rise over the cut layers.
+also has the 3D backdrop switch. Layers can draw a box around something in the
+wallpaper, cut a subject from another picture, add an existing PNG, arrange
+layers, and clear cut-outs. Distance is shown only for Parallax. Front chooses
+which widgets rise over the cut layers.
 
 Parallax Motion has the Soft, Cinematic, and Beat presets, pointer follow,
 idle motion, music response, backdrop drift, and a reset action. Spatial
@@ -263,8 +267,9 @@ direction, and a reset action.
 
 The Depth and Parallax Model tabs show the cut-out catalogue. Each mode keeps
 its own selected model and Refine edges choice. The Spatial Model tab shows
-Depth Anything V2 Small, Base, and Large, with download, remove, and rebuild
-actions. The picture and PNG pickers stay on this page rather than opening Hub.
+Depth Anything V2 Small, Base, and Large. Model tabs download and remove
+models; the scene card owns every processing run. Picture and PNG selection
+stays inside the Stage page rather than opening a separate window.
 
 ## The visualizer in the Stage Editor
 
@@ -336,8 +341,8 @@ that is the name `ryostage check <id>` and `remove <id>` look up.
 Depth and Parallax each store one model id and one Refine edges switch.
 Refinement enables alpha matting and is slower. The picker shows download size,
 licence, installed state, and Download or Remove in place. `.index.json`
-records the model and refinement that made `subject.png`, so equal mode
-settings reuse it and different mode settings re-cut it.
+records the model and refinement that made `subject.png`, so a different pick
+is reported as outdated until the user explicitly updates or redoes the cut.
 
 The runtime (`rembg[cpu]`, MIT, on ONNX Runtime, MIT) installs once, on the
 first download, into the shared cache. Nothing ML ships in the base image.
@@ -364,9 +369,9 @@ CC-BY-NC-4.0 and therefore non-commercial:
 upstream, selection and installed state for the Stage tab to render.
 `depth-install`, `depth-remove` and `depth` all take `--model` and default to
 `small`, so the legacy one-model invocations keep working. `stage.json` stores
-the pick at `spatial.model` (default `small`). The daemon probes that exact
-model and uses it for Spatial and Parallax's optional 3D backdrop. A downloaded
-model can rebuild the current `depth.png`; a missing model downloads first.
+the pick at `spatial.model` (default `small`). The daemon uses that exact model
+for Spatial and Parallax's optional 3D backdrop. A model choice only changes
+readiness; downloading it never starts a depth build.
 
 ## Engine: `ryostage`
 
@@ -380,46 +385,88 @@ rembg's range, `uv` provisioning a managed 3.13 otherwise).
 | `models [--json]` | the curated ids one per line, or full catalogue metadata as JSON |
 | `install [model...]` | provision the runtime and fetch the named models (default `u2netp`); opt-in, streams progress |
 | `remove <model>` | drop a cached model |
-| `cut <in> <out.png> [--model id] [--matting]` | the subject as an alpha-matted PNG; never writes a partial file |
-| `inpaint <image> <mask> <out.png>` | fill the cut-out's hole with the surrounding colour (the parallax backdrop) |
+| `cut <in> <out.png> [--model id] [--matting] [--region nx,ny,nw,nh]` | cut the full picture, or cut a normalized region and place it on a full-size transparent canvas; never write a partial file |
+| `inpaint <image> <mask> <out.png>` | fill the cut-out's hole with surrounding colour at a bounded working size for the Parallax backdrop |
 
 Cache: `~/.local/state/ryoku/ryostage/{venv,models}`. On first run the
 helper adopts a pre-split `~/.local/state/ryoku/depth` or `.../parallax` tree by
 rename (same filesystem, no re-download); a leftover second tree is reported
 by the doctor as reclaimable space.
 
-`inpaint` makes the Parallax backdrop from the one cut: the subject's hole
-(the matte grown outward so no subject pixel seeds the fill) is filled from its
-surroundings by normalized convolution, growing inward until covered, then the
-whole image is softened as the far plane (a 4 px blur, a touch darker). A
-drifting subject therefore reveals the colours around it, never a flat plate
-or its own silhouette. Half resolution above 1600 px keeps a 4K wallpaper at a
-few seconds. Backdrops made before this land are regenerated by a re-cut or
-Refresh.
+`inpaint` makes the Parallax backdrop from one cut. It builds the same half-size
+base above 1600 px, grows the matte so subject pixels cannot seed the fill, then
+runs the iterative fill at a working size whose longest side is at most 1280
+px. Only the filled colour is scaled back and composited into the hole. The
+existing final upscale, 4 px blur, and 0.90 dim remain unchanged, so pixels away
+from the hole keep the established look while 4K and 8K processing stays
+bounded.
 
-## Daemon: `ipc/stage.go`
+## Daemon: `ipc/stage.go` and `ipc/stage_job.go`
 
-One worker owns generation, the registry, and the `stage` topic.
+The coalescing Stage worker is a pure registry and publication pass. It derives
+layers, evaluates readiness, updates Ryogami's Depth pixel-lock hand-off, saves
+dirty registry state, and publishes. It never probes models or starts the
+engine. `stage_job.go` owns the one explicit job that may run at a time.
 
 - **Artifacts** live in `~/Pictures/Stage/<stem>/`. `subject.png` is the cut,
-  `background.png` is Parallax's inpainted backdrop, `depth.png` is the Spatial
-  map, `layer-NN.png` files are added layers, and `.index.json` records the cut
-  model and refinement.
-- **Topic** `stage` publishes `{ current, busy, stage, percent, notice, walls }`.
-  Each wall frame keeps the fields `effect`, `subject`, `background`, `depth`,
-  `rev`, and `layers`. Depth publishes the subject and layers. Parallax also
-  publishes the background, plus the depth map only while 3D backdrop is on.
-  Spatial publishes only the depth map. Plain publishes no artifacts.
-- **Verbs** include `set-effect <off|depth|parallax|spatial>`, layer management,
-  `refresh`, `depth-refresh`, `cancel`, `clear`, `status`, and `models`.
-  `depth-refresh` keeps its old wire name and rebuilds the Spatial map.
-- **Generation** is per wallpaper. Depth cuts only the subject. Parallax cuts
-  the subject and inpaints the background, then builds a map only when 3D
-  backdrop is on and its Spatial model is installed. Spatial builds only the
-  map. The engine probe names the model selected for that mode.
-- **Clear** removes `subject.png`, `background.png`, and `.index.json`. It keeps
-  manual layers and `depth.png`. It changes Depth or Parallax to Plain, but
-  leaves Spatial selected.
+  `background.png` is Parallax's filled backdrop, `depth.png` is the Spatial
+  map, `layer-NN.png` files are manual layers, and `.index.json` records cut and
+  depth-model provenance.
+- **Transactions** write every step to `<wall dir>/.job-<id>/`. Only a fully
+  successful job moves its outputs and provenance into place. Failure or
+  cancellation removes the transaction and leaves earlier artifacts untouched.
+  Startup removes abandoned `.job-*` folders and stray engine process groups.
+- **Readiness** is published per wall in `steps`. Missing means no artifact;
+  stale means the wallpaper, or for a fill its subject, is newer; outdated means
+  the artifact is usable but its recorded model differs from the current pick;
+  ready means current. Unknown provenance is usable. Rendering publishes a
+  Depth subject only when its cut is usable, a Parallax scene only when cut is
+  usable and fill is ready, and a Spatial map when depth is usable. A change to
+  `stage.json` republishes at once, so a new model pick shows as outdated
+  without waiting for any other event.
+- **Topic** `stage` publishes `{ current, busy, job, last, walls }`. `job` names
+  the running or stopping job, ordered steps, current step and model, source
+  picture or region, and start times. `last` records the most recent `done`,
+  `failed`, or `cancelled` result with a stable error code and bounded engine
+  detail. The old synthetic `stage`, `percent`, and `notice` fields do not
+  exist.
+- **Jobs** are `generate`, `refresh [cut|fill|depth]`, `depth-refresh`,
+  `cut-layer`, and `cut-region`. Generate runs only steps not ready. Refresh
+  reruns the selected step or all mode steps; refreshing a Parallax cut also
+  refills its background. `depth-refresh` remains an alias for
+  `refresh depth`.
+- **Cancellation** uses `cancel` for SIGTERM and a `stopping` frame. `cancel
+  --force` sends SIGKILL, records cancellation, removes the transaction, frees
+  the runner immediately, prevents a late child exit from committing, and
+  kills user-owned orphan engine groups whose command mentions the Stage root.
+- **Wall scope** appends ` -- <wall path>` to any wall-owned verb. Without it,
+  the current default wallpaper is used. Paths may contain spaces, so the
+  daemon splits the raw line at the first ` -- `.
+- **Clear** force-cancels a job for that wall, removes `subject.png`,
+  `background.png`, and `.index.json`, keeps manual layers and `depth.png`, and
+  changes Depth or Parallax to Plain.
+
+The complete intent verbs are:
+
+```text
+stage set-effect <off|depth|parallax|spatial> [-- wall]
+stage generate [-- wall]
+stage refresh [cut|fill|depth] [-- wall]
+stage depth-refresh [-- wall]
+stage cancel [--force]
+stage cut-layer <picture> [-- wall]
+stage cut-region <nx> <ny> <nw> <nh> [-- wall]
+stage add-layer <png> [-- wall]
+stage remove-layer <index> [-- wall]
+stage set-layer <index> <json> [-- wall]
+stage clear [-- wall]
+stage status
+stage models
+stage depth-sample <wall> <nx> <ny> <width> <height> <fit>
+```
+
+Cut and depth steps have 20 minute limits; fill has a 5 minute limit. A job
+probes every cut or depth model it needs before its first processing step.
 
 ## Settings: `~/.config/ryoku/stage.json`
 

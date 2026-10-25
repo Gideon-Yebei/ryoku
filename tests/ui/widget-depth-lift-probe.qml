@@ -69,7 +69,7 @@ ShellRoot {
             depth: "/tmp/ryoku-probe-depth.png", rev: 1, layers: []
         };
         Stage.StageBackend.apply(JSON.stringify({
-            current: wall, busy: false, stage: "", percent: 0, walls: walls
+            current: wall, job: null, last: null, walls: walls
         }));
     }
 
