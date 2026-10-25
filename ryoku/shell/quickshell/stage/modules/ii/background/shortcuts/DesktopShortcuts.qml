@@ -625,7 +625,11 @@ Singleton {
         const id = root.uniqueFolderId(items);
         const folder = { id: id, type: "group", name: root.nextFolderName(items, name),
             icon: "folder", apps: [], x: point.x, y: point.y, addedAt: Date.now() };
-        return root.save(screenName, items.concat([folder])) ? id : "";
+        if (!root.save(screenName, items.concat([folder])))
+            return "";
+        if (root.hidden)
+            root.setHidden(false);
+        return id;
     }
     function addToFolder(screenName, folderId, entries) {
         const items = root.itemsFor(screenName);

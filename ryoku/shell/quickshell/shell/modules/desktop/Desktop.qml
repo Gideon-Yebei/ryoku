@@ -360,7 +360,7 @@ Scope {
             return;
         Qt.callLater(() => {
             if (desktopIcons.item)
-                desktopIcons.item.openFolder(folderId, true);
+                desktopIcons.item.openContext(folderId, x, y, "rename");
         });
     }
     // Outside Edit Mode Customize keeps its lightweight floating sheet. Inside

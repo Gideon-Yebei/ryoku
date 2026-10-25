@@ -35,9 +35,9 @@ ItemContextDialog {
         : entry.path || (entry.type === "group"
             ? (entry.stack ? Translation.tr("Stack") : Translation.tr("Folder"))
             : entry.type === "url" ? Translation.tr("Web link") : Translation.tr("Application"))
-    iconSource: Quickshell.iconPath(entry.icon || (entry.type === "group" ? "folder-applications"
-        : entry.type === "directory" ? "folder"
-        : entry.type === "url" ? "internet-web-browser" : "text-x-generic"), "image-missing")
+    iconSymbol: entry.type === "group" ? "folder" : ""
+    iconSource: entry.type === "group" ? "" : Quickshell.iconPath(entry.icon || (entry.type === "directory"
+        ? "folder" : entry.type === "url" ? "internet-web-browser" : "text-x-generic"), "image-missing")
 
     // Windows-like contextual actions. The source stays untouched: the
     // clipboard receives data via wl-copy with single-quote escaping.
@@ -501,7 +501,7 @@ ItemContextDialog {
                         MaterialSymbol {
                             anchors.centerIn: parent
                             visible: root.iconSource.toString().length === 0
-                            text: root.entry.type === "directory" ? "folder"
+                            text: root.entry.type === "group" || root.entry.type === "directory" ? "folder"
                                 : root.entry.type === "file" ? "description"
                                 : root.entry.type === "url" ? "language" : "apps"
                             iconSize: Tokens.s5

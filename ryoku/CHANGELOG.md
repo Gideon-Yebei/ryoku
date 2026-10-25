@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **New desktop folders appear and open ready to rename.** Creating one turns
+  desktop icons back on when they were hidden, gives an empty folder its proper
+  glyph, and opens its name field instead of an app picker
+  (`shell/quickshell/shell/modules/desktop/Desktop.qml`,
+  `shell/quickshell/stage/modules/ii/background/shortcuts/`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to
