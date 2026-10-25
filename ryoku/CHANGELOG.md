@@ -8,6 +8,9 @@
   glyph, and opens its name field instead of an app picker
   (`shell/quickshell/shell/modules/desktop/Desktop.qml`,
   `shell/quickshell/stage/modules/ii/background/shortcuts/`).
+- **Shima's workspace card shows the apps on every workspace.** Opaque
+  workspace and window IDs now pass through the neutral window-manager frames
+  without numeric coercion (`shell/quickshell/inir/modules/iris/components/IrisColumnStrip.qml`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to
