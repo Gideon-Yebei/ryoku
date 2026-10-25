@@ -14,6 +14,11 @@
   styles, variants, designs and other face settings can change repeatedly and
   survive shell reloads
   (`quickshell/shell/modules/desktop/{WidgetMenu.qml,WidgetInspector.qml}`).
+- **The Python dock and launcher share the active palette.** Both surfaces now
+  follow the bar by default, with accent and custom-colour choices in the
+  Python dock settings and contrast-safe text
+  (`quickshell/shell/modules/bar/barstyles/python/{dock,guide,singletons/theme}/`,
+  `quickshell/shell/modules/launcher/variants/python/LauncherSurface.qml`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
