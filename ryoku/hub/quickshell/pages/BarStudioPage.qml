@@ -251,11 +251,13 @@ Item {
             font.family: Tokens.display
             font.pixelSize: Tokens.fTitle
         }
+        // One compact legend serves both Subshells and Bar Studio.
         Text {
-            width: Math.min(parent.width, 720)
-            text: page.subshellsOnly
+            width: parent.width
+            text: (page.subshellsOnly
                 ? I18n.tr("Complete shell experiences with their own panels, docks and tools.")
-                : I18n.tr("Which bar the desktop draws, and how it looks.")
+                : I18n.tr("Which bar the desktop draws, and how it looks."))
+                + "   |   ▲ = " + I18n.tr("Uses more resources than other options")
             color: Tokens.inkMuted
             font.family: Tokens.ui
             font.pixelSize: Tokens.fBody

@@ -150,9 +150,8 @@ Item {
             width: parent.width
             spacing: Tokens.s2
             readonly property int perRow: Math.max(2, Math.floor((width + Tokens.s2) / 210))
-            readonly property bool hasResourceWarnings: gallery.designs.some(
-                design => design.resourceTier === "heavy")
-            readonly property int tileH: hasResourceWarnings ? 88 : 64
+            // Warning markers fit the card corner, so every tile can be compact.
+            readonly property int tileH: 64
             readonly property int rowCount: Math.max(1, Math.ceil(cardRepeater.count / perRow))
             height: rowCount * tileH + (rowCount - 1) * spacing
 
@@ -170,6 +169,9 @@ Item {
                         && designCard.modelData.version.length > 0
                         && !designCard.modelData.unavailable && !designCard.modelData.downloadPaused
                     readonly property bool heavy: designCard.modelData.resourceTier === "heavy"
+                        || (gallery.category === "barstyles"
+                            && ["ricelin", "sukunabikona"].indexOf(
+                                String(designCard.modelData.id || "")) !== -1)
                     readonly property string subText: {
                         if (designCard.updatable) {
                             const current = designCard.modelData.installedVersion.length > 0
@@ -201,6 +203,30 @@ Item {
                     border.color: designCard.worn ? Tokens.bone : Tokens.line
                     objectName: gallery.cardObjectPrefix + designCard.modelData.id
 
+                    // Small pale marker for more resource-intensive designs.
+                    // Give selected (bone-coloured) tiles a dark backdrop.
+                    Rectangle {
+                        id: resourceMark
+                        visible: designCard.heavy
+                        width: 18
+                        height: 18
+                        radius: 3
+                        color: designCard.worn ? Tokens.inkOnBone : "transparent"
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.topMargin: Tokens.s2
+                        anchors.rightMargin: Tokens.s2
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "▲"
+                            color: Tokens.bone
+                            font.family: Tokens.mono
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                        }
+                    }
+
                     MouseArea {
                         id: cardMouse
                         anchors.fill: parent
@@ -213,7 +239,8 @@ Item {
                     Column {
                         anchors {
                             left: parent.left
-                            right: updateButton.visible ? updateButton.left : parent.right
+                            right: updateButton.visible ? updateButton.left
+                                : (resourceMark.visible ? resourceMark.left : parent.right)
                             margins: Tokens.s3
                             rightMargin: updateButton.visible ? Tokens.s2 : Tokens.s3
                             verticalCenter: parent.verticalCenter
@@ -235,31 +262,6 @@ Item {
                             font.family: Tokens.ui
                             font.pixelSize: Tokens.fTiny
                             elide: Text.ElideRight
-                        }
-                        Row {
-                            width: parent.width
-                            spacing: Tokens.s2
-                            visible: designCard.heavy
-
-                            Text {
-                                text: "▲"
-                                color: Tokens.alert
-                                font.family: Tokens.mono
-                                font.pixelSize: Tokens.fMicro
-                            }
-                            Text {
-                                width: Math.max(0, parent.width - x)
-                                text: I18n.tr("May need more CPU, GPU and memory.")
-                                color: designCard.worn ? Tokens.inkOnBoneDim : Tokens.inkFaint
-                                font.family: Tokens.mono
-                                font.pixelSize: Tokens.fMicro
-                                font.weight: Font.Medium
-                                font.letterSpacing: Tokens.trackMark
-                                font.capitalization: Font.AllUppercase
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: 2
-                                elide: Text.ElideRight
-                            }
                         }
                     }
 
