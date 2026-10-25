@@ -153,11 +153,7 @@ func missingDepth(f ryogamiFrame) bool {
 	return false
 }
 
-// consumeRyogamiFrames mirrors ryogami's wallpaper topic into d.ryoWall. A
-// changed picture wakes the Stage publication pass and the palette worker; a
-// frame that lost its subject fold wakes only Stage. Stage derives and
-// republishes existing state here, but model probes and engine work remain
-// exclusive to explicit job verbs, so the topic chain settles without retrying.
+// Passive wallpaper frames may republish state but must never start engine work.
 func (d *daemon) consumeRyogamiFrames(r io.Reader) {
 	sc := bufio.NewScanner(r)
 	for sc.Scan() {

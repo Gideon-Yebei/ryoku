@@ -550,8 +550,7 @@ wait_qylock_cutover() {
   # Every attempt stops and re-reaches the session target, so a persistent
   # failure must not become a restart loop that burns the desktop (#275):
   # three attempts with backoff, then leave the running session untouched and
-  # say exactly what to run by hand. The transient unit allows only three such
-  # runs in ten minutes, for at most nine cutover attempts.
+  # report the manual retry command; the transient unit caps restart loops.
   while (( ++attempt <= 3 )); do
     rc=0
     RYOKU_QYLOCK_WAITER=1 "$self_path" user || rc=$?

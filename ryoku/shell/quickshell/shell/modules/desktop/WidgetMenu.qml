@@ -52,8 +52,6 @@ Item {
     readonly property bool isShape: menu.scope === "shape"
     readonly property bool locked: menu.isWidget && !menu.isVisualizer
         ? menu.configValue(menu.scope + "Locked") : false
-    // Cut modes offer this widget a place above every in-front cut-out. Each
-    // mode owns its own lift list.
     readonly property string stageMode: menu.wall === "" ? "off"
         : StageCfg.StageBackend.effectFor(menu.wall)
     readonly property bool stageActive: menu.stageMode === "depth"

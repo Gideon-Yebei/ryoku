@@ -8,10 +8,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// watchFile calls onChange each time path's modification time changes, for the
-// daemon's life. It watches the parent directory because the shell and the Hub
-// save with rename-and-replace; a slow timeout reconciles filesystems without
-// inotify support.
+// Watch the parent because shell and Hub saves replace the file by rename.
 func (d *daemon) watchFile(path string, onChange func()) {
 	var last time.Time
 	check := func() {

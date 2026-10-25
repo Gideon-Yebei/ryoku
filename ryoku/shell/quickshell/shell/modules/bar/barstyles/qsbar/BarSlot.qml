@@ -1816,8 +1816,6 @@ PanelWindow {
                     onReleased: barSlot.endDrag()
                     onCanceled: barSlot.cancelDrag()
                 }
-                // The target sits over the real widget island, so its outline
-                // must keep the shell's corner geometry while editing.
                 Rectangle {
                     anchors.fill: parent
                     radius: barSlot.shellRadius

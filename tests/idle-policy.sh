@@ -181,8 +181,6 @@ ryoku-idle on-ac && ryoku-shell suspend
 EOF
 cmp "$tmp/swayidle-default.expected" "$sway_log"
 
-# Dimming below the fixed target is a no-op, including across duplicate
-# listener edges, and resume restores the same exact raw level.
 printf '10\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/brightness"
 "$helper" brightness-dim
 [[ "$(<"$RYOKU_IDLE_TEST_BACKLIGHT/brightness")" == 10 ]]
@@ -192,8 +190,6 @@ printf '10\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/brightness"
 [[ "$(<"$RYOKU_IDLE_TEST_BACKLIGHT/brightness")" == 10 ]]
 [[ ! -e $RYOKU_IDLE_BRIGHTNESS_STATE_DIR/state ]]
 
-# A second listener must not save the already-dimmed level. Only the first
-# resume restores, and repeated resumes are harmless.
 printf '80\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/brightness"
 "$helper" brightness-dim
 [[ "$(<"$RYOKU_IDLE_TEST_BACKLIGHT/brightness")" == 20 ]]
@@ -204,8 +200,6 @@ printf '80\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/brightness"
 "$helper" brightness-restore
 [[ "$(<"$RYOKU_IDLE_TEST_BACKLIGHT/brightness")" == 80 ]]
 
-# Repeated idle cycles recompute the raw 20% target and preserve a non-round
-# user level exactly.
 printf '101\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/max_brightness"
 printf '37\n' >"$RYOKU_IDLE_TEST_BACKLIGHT/brightness"
 "$helper" brightness-dim

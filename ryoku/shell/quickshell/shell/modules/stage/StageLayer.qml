@@ -64,8 +64,7 @@ Item {
             && Config.followMouse("parallax"))
         ? Config.sensitivity("parallax") * Config.range("parallax")
             * Config.amountFactor("parallax") * root._near : 0
-    // A parallax cut over a 3D backdrop takes a barely visible counter-slide
-    // so its moving edge crosses the stationary desktop cards.
+    // Counter-slide parallax cut-outs so their edges move against stationary desktop cards.
     readonly property real _nearGain: root.spatial && root.motionEnabled
             && Config.followMouse("parallax")
         ? Config.sensitivity("parallax") * Config.range("parallax")
@@ -84,7 +83,7 @@ Item {
             * Config.amountFactor("parallax") * root._near;
     }
 
-    // Idle life is gated to Parallax; Depth stays perfectly still.
+    // Idle motion is restricted to Parallax; Depth must remain still.
     readonly property bool _idleOn: root.motionEnabled
         && root.motion.idle !== "none"
     property real animT: 0
@@ -106,7 +105,6 @@ Item {
         ? Math.sin(root._phase * 0.7) * 1.6
             * Config.amountFactor("parallax") * root._near : 0
 
-    // A scene job on this wallpaper dims the subject and exposes cancellation.
     readonly property var _wallJob: StageBackend.jobFor(root.wallPath)
     readonly property bool _busyHere: root.layerIndex === 1 && root.url !== ""
         && root._wallJob && root._wallJob.kind === "scene"
@@ -160,7 +158,6 @@ Item {
         }
     }
 
-    // Indeterminate ring centred on the subject; tap to cancel the scene job.
     Item {
         anchors.centerIn: parent
         width: 96

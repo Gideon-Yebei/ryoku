@@ -2846,8 +2846,6 @@ func TestManifestReportsPackagesSatisfiedByProviders(t *testing.T) {
 	}
 }
 
-// Systemd app launch units are transient bookkeeping, not service-health
-// failures. Real services, including a non-instanced app-prefixed one, remain.
 func TestTransientAppUnitsAreFilteredFromFailedServices(t *testing.T) {
 	transient := []string{
 		"app-discord-155691.scope",

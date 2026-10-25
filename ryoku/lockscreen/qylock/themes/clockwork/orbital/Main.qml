@@ -23,9 +23,7 @@ Rectangle {
     readonly property bool softwareCursorEnabled: !isQuickshell && !isSessionLock
 
     // --- Software cursor for the SDDM login screen --------------------------
-    // The shim identifies the in-session lock through fingerprintHint. It also
-    // supplies hostName for SDDM skin compatibility, so isQuickshell alone
-    // cannot distinguish the two surfaces.
+    // hostName exists in the lock shim too, so fingerprintHint distinguishes it from SDDM.
     HoverHandler {
         id: swPointer
         enabled: root.softwareCursorEnabled

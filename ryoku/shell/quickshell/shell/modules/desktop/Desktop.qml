@@ -70,9 +70,7 @@ Scope {
     property bool wallpaperLive: false
 
     // Stage z-ordering (docs/stage.md): behind-layers sit below the widgets
-    // (z 2), in-front layers above them (z 4), and a widget lifted for this
-    // cut mode rises above even the in-front layers (z 5). Video and live walls
-    // stay flat because the daemon does not build artifacts for them.
+    // while front layers and explicit lifts sit above; video and live walls have no artifacts.
     readonly property string stageMode: (root.videoUrl === "" && !root.wallpaperLive)
         ? StageCfg.StageBackend.effectFor(root.wallpaperPath) : "off"
     readonly property bool stageOn: root.stageMode !== "off"
@@ -789,9 +787,7 @@ Scope {
         }
 
         // While the stage is on (or the Stage Editor frames this monitor), the
-        // visualizer lives inside this surface. In a cut mode it sits behind
-        // every cut-out unless that mode's Front list lifts it. Spatial and
-        // plain walls have no Front list.
+        // visualizer shares this surface so Stage cut-outs can layer around it.
         Item {
             id: vizHost
             z: root.stageCut

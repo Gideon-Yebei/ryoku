@@ -21,7 +21,6 @@ Singleton {
     property string installingModel: ""
     property bool removing: false
     property string removingModel: ""
-    // Curated cut catalogue objects: {id,tier,label,size,installed,licence,upstream}.
     property var models: []
     property string progress: ""
 
@@ -67,8 +66,7 @@ Singleton {
             ["small", "base", "large"].indexOf(pick) >= 0 ? pick : "small"];
         spatialCheckProc.running = true;
     }
-    // Downloads run in their own process group (setsid) so a cancel reaches
-    // pip, python and curl as well as the engine script that started them.
+    // Downloads use setsid, so signaling the process group also reaches pip, Python and curl.
     function stopGroup(proc) {
         if (proc.running && proc.processId)
             Quickshell.execDetached(["kill", "-TERM", "--", "-" + proc.processId]);
@@ -124,8 +122,7 @@ Singleton {
         stdout: StdioCollector {
             onStreamFinished: {
                 root.available = ("" + this.text).trim() === "available";
-                // Fetch the static catalogue before anything is installed so
-                // the model tab can offer the first download.
+                // Load the catalogue before any model is installed so the first download is available.
                 modelsProc.running = true;
             }
         }
@@ -214,8 +211,7 @@ Singleton {
     readonly property bool busy: root.frame.busy === true
     readonly property string effect: root.effectFor(root.current)
 
-    // Optimistic per-layer values remain attached to the wallpaper that was
-    // edited, even if another monitor becomes current before the flush lands.
+    // Key optimistic values by wallpaper so a monitor switch cannot retarget a pending flush.
     property var _opt: ({})
 
     function apply(line) {
@@ -364,8 +360,6 @@ Singleton {
         return false;
     }
 
-    // Words for jobs, shared by the scene card and the Layers tab so a step or a
-    // failure reads the same everywhere.
     function stepLabel(step) {
         if (step === "cut") return I18n.tr("Cut out the subject");
         if (step === "fill") return I18n.tr("Fill in behind the subject");
@@ -476,7 +470,7 @@ Singleton {
         return i === 0 ? I18n.tr("Subject") : I18n.tr("Layer %1").arg(i + 1);
     }
 
-    // Verbs are fire-and-forget; the topic republish is the confirmation.
+    // Topic republish, not process exit, confirms fire-and-forget verbs.
     function call(verb, args, wall) {
         const cmd = ["ryoku-shell", "stage", verb];
         const values = args || [];

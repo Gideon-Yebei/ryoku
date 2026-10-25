@@ -94,8 +94,6 @@ Item {
             onAct: fp.canceled()
         }
 
-        // wraps instead of clipping when the picker opens on a narrow surface
-        // (a Stage Editor drawer); wide surfaces still get one line.
         Flow {
             id: fpNav
             anchors { left: parent.left; right: parent.right; top: fpTitle.bottom; leftMargin: Tokens.s5; rightMargin: Tokens.s5; topMargin: Tokens.s5 }

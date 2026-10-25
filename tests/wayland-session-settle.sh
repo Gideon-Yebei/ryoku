@@ -7,11 +7,6 @@
 # session environment, a fake session records its argv and environment, and
 # RYOKU_DRI_DIR / RYOKU_DRM_CLASS_DIR provide graphics fixtures.
 #
-# The load-bearing assertions: the wrapper waits while the greeter is still
-# present and owns the foreground seat, stops immediately when logind activates
-# the user session, and always hands off by the bounded deadline.
-# The remaining assertions cover argument forwarding, the shared environment,
-# panel-specific NVIDIA hints and the KMS-only software-renderer fallback.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -119,7 +114,6 @@ env_value() { sed -n "s/^$1=//p" "$tmp/session-env"; }
 drm_single="$tmp/drm-single"
 mkdir -p "$drm_single/card0/device"
 
-# ---- single GPU, greeter still owns seat: keep waiting -----------------------
 reset
 echo 3 >"$tmp/pglimit"   # weston present for the first three polls
 RYOKU_DRM_CLASS_DIR="$drm_single" RYOKU_SESSION_SETTLE_DEADLINE=10 \
@@ -146,7 +140,6 @@ echo 0 >"$tmp/pglimit"   # weston already gone
 [[ -e "$tmp/session-ran" ]] || fail "wrapper did not hand off when weston was absent"
 (( "$(polls)" == 1 )) || fail "wrapper polled $(polls)x when weston was already gone; expected 1"
 
-# ---- single GPU, active seat: logind has revoked the greeter's DRM access ----
 reset
 printf 'yes\n' >"$tmp/session-active"
 echo 100000 >"$tmp/pglimit"

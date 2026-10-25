@@ -16,9 +16,6 @@ import (
 	"time"
 )
 
-// writeStageStub installs a fake ryostage engine via RYOKU_STAGE_ENGINE. It
-// records every invocation and writes deterministic processing outputs.
-// Behaviour is steered per-test through STAGE_STUB_* environment variables.
 func writeStageStub(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -102,9 +99,6 @@ func (d *daemon) showWall(pic string) {
 	d.ryoWallMu.Unlock()
 }
 
-// TestStageWallsRoundTrip pins the v3 registry contract: a saved registry loads
-// back identically, including its version, effect and layer flags. Corrupt input
-// still loads with a non-nil map.
 func TestStageWallsRoundTrip(t *testing.T) {
 	home := stageHome(t)
 	wall := filepath.Join(home, "w.png")
@@ -157,8 +151,6 @@ func TestStageWallsRoundTrip(t *testing.T) {
 	}
 }
 
-// TestStageSetEffectAndRyogamiWakeAreManualOnly pins that every passive wake is
-// a pure publication pass.
 func TestStageSetEffectAndRyogamiWakeAreManualOnly(t *testing.T) {
 	home := stageHome(t)
 	logFile := writeStageStub(t)
@@ -472,9 +464,6 @@ func TestStageRemoveLayerRejectsSubject(t *testing.T) {
 	}
 }
 
-// TestStageRegistryMigrationV1toV3 pins the legacy fold and mode split. The
-// v1 static `subject` and `depth` effects stay Depth even when their cut file is
-// missing, while scene order and layer distance still fold into the v3 shape.
 func TestStageRegistryMigrationV1toV3(t *testing.T) {
 	home := stageHome(t)
 	if err := os.MkdirAll(filepath.Join(stateDir(), "ryoku"), 0o755); err != nil {
@@ -1062,9 +1051,6 @@ func TestStageRyogamiFrameWake(t *testing.T) {
 	}
 }
 
-// TestStageLegacyMigrationV3 pins the pre-v1 fold a stable box takes jumping
-// straight to v3. Retired static Depth and Parallax state land in the v3
-// registry, their artifacts move by rename, and the settings split by mode.
 func TestStageLegacyMigrationV3(t *testing.T) {
 	home := stageHome(t)
 	if err := os.MkdirAll(filepath.Join(stateDir(), "ryoku"), 0o755); err != nil {
@@ -1171,8 +1157,6 @@ func TestStageLegacyMigrationV3(t *testing.T) {
 		t.Fatal("old parallax folder was copied, not moved")
 	}
 
-	// Settings fold: v3 shape, the fine cut copied to both cut modes, and the
-	// static Depth front list carried from depth.json.
 	sb, err := os.ReadFile(filepath.Join(cfg, "stage.json"))
 	if err != nil {
 		t.Fatalf("stage.json not written: %v", err)

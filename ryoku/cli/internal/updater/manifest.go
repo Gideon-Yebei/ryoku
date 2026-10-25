@@ -320,13 +320,7 @@ var (
 // as far as pacman is concerned, but read by name alone those look never
 // delivered, and installing the stock package over the box's own provider
 // conflicts under --noconfirm, so the converge failed the same way on every
-// update. AUR -bin and -git names ask about their base package: yay satisfies
-// yay-bin without replacing it, while an installed yay-bin remains an ordinary
-// exact-name hit.
-//
-// pacman only: `pacman -T` prints the requirements nothing satisfies, so every
-// other absent name is present. A failed query leaves the set as it was.
-// provided names the manifest entries widened this way for user-facing output.
+// update; AUR variants keep exact installed matches before probing providers.
 func SatisfiedByProviders(m ryokumanifest.Manifest, installed map[string]bool) (map[string]bool, []string) {
 	if updatePackageManager() != host.Pacman {
 		return installed, nil
