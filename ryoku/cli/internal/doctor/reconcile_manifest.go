@@ -45,10 +45,7 @@ var (
 	installManifestPkgs = func(pkgs []string) {
 		_ = sys.Sudo(append([]string{"ryoku-host", "pkg", "install"}, pkgs...)...)
 	}
-	// AUR builds run as the user and the helper escalates only its pacman step.
-	// Through sudo that step landed on sudo's own pty, where the credential the
-	// update keeps alive does not apply, so it prompted unseen after the builds
-	// and timed out.
+	// Running an AUR helper through sudo hides its package-install prompt.
 	installManifestAUR = func(pkgs []string) {
 		_ = host.Default().Package(append([]string{"install", "--aur"}, pkgs...))
 	}

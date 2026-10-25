@@ -153,8 +153,7 @@ SettingCard {
                         id: dragArea
                         anchors.fill: parent
                         cursorShape: Qt.CrossCursor
-                        // The page scrolls; without this its Flickable takes a
-                        // vertical drag as a scroll and the box never grows.
+                        // preventStealing keeps the parent Flickable from taking vertical box drags.
                         preventStealing: true
                         property bool drawing: false
                         onPressed: mouse => {

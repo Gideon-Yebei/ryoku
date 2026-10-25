@@ -365,6 +365,7 @@ func reconcilers() []reconciler {
 		{i18n.T("prowl for rashin"), reconcileProwl},
 		{i18n.T("Prowl gateway for rashin"), reconcileProwlGateway},
 		{i18n.T("recordings directory"), reconcileRecordingsDir},
+		{i18n.T("memory pressure"), reconcileMemoryHealth},
 		{i18n.T("failed services"), reconcileFailedUnits},
 		{i18n.T("btrfs device health"), reconcileBtrfsHealth},
 		{i18n.T("wireless regulatory domain"), reconcileWifiRegdom},
@@ -1700,8 +1701,7 @@ func reconcileShellConfig(checkOnly bool) recResult {
 // reconcileDockStore converges retired dock stores onto shell.json's top-level
 // dock object and removes Stage Editor widget keys retired from its schema. The
 // shell store carries old QS and Python settings plus frame-bar pins; Stage
-// carries the former iRiS pins and Shima appearance. Pins keep source order,
-// current universal values win, and retired keys are removed after merge.
+// keeps its pins below universal values during merge.
 func reconcileDockStore(checkOnly bool) recResult {
 	path := filepath.Join(sys.ConfigHome(), "ryoku", "shell.json")
 	raw, err := os.ReadFile(path)
@@ -4588,7 +4588,7 @@ func reconcileFailedUnits(checkOnly bool) recResult {
 	if initSystem == host.Runit {
 		return reconcileRunitFailures()
 	}
-	// Clear lingering transient app launch units (safe: the app is already gone)
+	// App-launch failures are transient once the process has exited,
 	// and the TPM units that failed only for want of NvPCRs (reconcile_tpm_nvpcr.go),
 	// then report whatever real failures remain.
 	var reset int
@@ -5076,10 +5076,7 @@ func reconcileConflictingRyokuFiles(checkOnly bool) recResult {
 		len(stray), strings.Join(stray, ", "))
 }
 
-// transientAppUnit reports whether a --user unit is a systemd GUI app launch.
-// XDG autostart and desktop launches use either app-*.scope or the generated
-// app-<name>@<instance>.service form. A named service without an instance never
-// matches, so a real daemon failure stays visible.
+// Named non-instanced services stay visible as real failures.
 func transientAppUnit(unit string) bool {
 	if !strings.HasPrefix(unit, "app-") {
 		return false

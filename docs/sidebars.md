@@ -84,10 +84,13 @@ are not instantiated, so their panel-owned probes, processes, watches, and
 animations do not continue in the background.
 
 The gear in Controls also saves where the panel opens and how far it sits from
-the screen edge. **Top left** keeps the shipped placement, **Top right** mirrors
-it, and **Center** centres the panel in both directions. **Edge gap** accepts 0
-to 96 pixels and starts at 12, matching the earlier fixed spacing. These choices
-live beside the panel arrangement in `shell.json` under `controls`.
+the screen edge. **Top left** keeps the shipped placement, **Top center** and
+**Top right** keep it against the upper edge, and **Center** centres the panel
+in both directions. **Edge gap** accepts 0 to 96 pixels and starts at 12,
+matching the earlier fixed spacing. The settings popup stays inside the panel
+window at every placement and scale, scrolling when the available room is
+short. These choices live beside the panel arrangement in `shell.json` under
+`controls`.
 
 Controls remains a global shell surface. The same arrangement is used by every
 bar style and every supported compositor.

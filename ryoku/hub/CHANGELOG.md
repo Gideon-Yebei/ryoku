@@ -3,6 +3,21 @@
 ## Unreleased
 
 ### Fixed
+- **Vial keyboards follow the desktop accent.** Boards identified by their Vial
+  serial use the VialRGB raw HID interface, including the board's brightness
+  range, instead of sending VIA lighting commands the firmware ignores
+  (`backend/qmk.go`, `backend/qmk_test.go`).
+- **QS Bar settings stay saved when Ryoku Settings saves another change.**
+  Incoming `shell.json` values now refresh untouched drafts instead of being
+  replaced by the older values held when Settings opened (`quickshell/Hub.qml`).
+- **Dictation releases its local speech model while idle.** New Ryoku-managed
+  Voxtype configs load models only for recordings, and existing managed configs
+  gain the setting without overriding a manual choice (`backend/voxtype.go`).
+- **A disabled Phone integration no longer starts KDE Connect.** Device
+  discovery first asks D-Bus whether KDE Connect already owns its name, so
+  checking installed phone support cannot activate `kdeconnectd` while Phone
+  is off (`backend/phone.go`,
+  `../shell/quickshell/shell/modules/phone/KdeConnectService.qml`).
 - **The sidebar identifies a CachyOS install as RYOKU CACHYOS.** It reads the
   reported distribution before falling back to the package manager, so
   CachyOS no longer appears as RYOKU ARCH (`quickshell/Hub.qml`).

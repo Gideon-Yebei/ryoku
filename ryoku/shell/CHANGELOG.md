@@ -2,12 +2,92 @@
 
 ## Unreleased
 
+### Added
+- Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
+
 ### Fixed
+- **Desktop power actions are one right-click away.** The desktop menu now keeps
+  Log out, Restart and Power off together in a compact trailing group, with the
+  shell's usual confirmation before an action runs
+  (`quickshell/shell/modules/desktop/DesktopContextMenu.qml`).
+- **Single Vitals choices stay visible in Controls.** Identity now keeps its
+  system details live when selected alone, and the panel no longer reserves an
+  empty readings block (`quickshell/shell/modules/sidebar/ControlsHero.qml`).
+- **Controls settings stay on-screen and add Top center.** The gear popup now
+  fits and scrolls within its window at every position, edge gap and display
+  scale, and the new upper-centred placement is saved and honoured by the shell
+  and Ryoku Settings (`quickshell/shell/modules/sidebar/{ControlsBar.qml,ControlsSettingsPopup.qml,Sidebar.qml}`,
+  `quickshell/shell/services/SidebarState.qml`, `ipc/{settings.go,settings_test.go}`,
+  `../hub/quickshell/schema/ControlsPage.js`).
+- **Shima widget face controls keep responding.** The menu and
+  Customize sheet now read the selected display's saved choices, so sizes,
+  styles, variants, designs and other face settings can change repeatedly and
+  survive shell reloads
+  (`quickshell/shell/modules/desktop/{WidgetMenu.qml,WidgetInspector.qml}`).
+- **The Python dock and launcher share the active palette.** Both surfaces now
+  follow the bar by default, with accent and custom-colour choices in the
+  Python dock settings and contrast-safe text
+  (`quickshell/shell/modules/bar/barstyles/python/{dock,guide,singletons/theme}/`,
+  `quickshell/shell/modules/launcher/variants/python/LauncherSurface.qml`).
+- **Stage Editor wallpaper cards load from Ryogami's library again.**
+  Home-relative image and thumbnail paths are resolved before the gallery opens,
+  including custom wallpaper folders (`quickshell/stage/services/Wallpapers.qml`).
+- **Clipboard history no longer keeps every payload in daemon memory.** Entries
+  retain metadata only, stream their backing files when copied or restored, and
+  bound starred storage without silently deleting payloads
+  (`ipc/clipboard.go`, `ipc/clipboard_restore.go`, `ipc/clipboard_test.go`,
+  `ipc/clipboard_restore_test.go`).
+- **Closing the launcher gives its working memory back.** Providers withdraw
+  their dispatcher references as the surface unloads, then one deferred
+  collection reclaims the released QML objects while compiled components stay
+  warm for the next open. Hero also leaves its answer, help and result drawer
+  unbuilt in the rest view
+  (`quickshell/shell/modules/launcher/{shared/Singletons/Dispatcher.qml,shared/providers/Provider.qml,variants/hero/Launcher.qml}`,
+  `quickshell/shell/shell.qml`).
+- **Switching between empty and busy workspaces no longer rebuilds the desktop
+  frost.** The frost's blur layer stays once it has shown and only its strength
+  changes (`quickshell/shell/modules/desktop/Desktop.qml`).
+- **The frame overlay unmaps when it has nothing to show.** Outside Sumi it maps
+  only while a menu, popout, dock preview or music card is on screen, which
+  frees a full-output buffer the rest of the time
+  (`quickshell/shell/modules/bar/Frame.qml`,
+  `quickshell/shell/modules/bar/FrameMenuManager.qml`,
+  `../hyprland/modules/decoration.lua`).
+- **A window retitling in the background no longer wakes the shell.** The
+  focused window keeps its object until one of its own fields changes, screen
+  time banks only when the focused app changes, the Sumi rails load only under
+  Sumi, and workspace pills keep their icons when the app set is unchanged
+  (`../ui/Singletons/Wm.qml`, `quickshell/shell/services/ScreenTime.qml`,
+  `quickshell/shell/modules/bar/Frame.qml`,
+  `quickshell/shell/modules/bar/framebars/widgets/RailWorkspaces.qml`).
+- **Bar network speed comes from the shared system sampler.** The bar no
+  longer parses `/proc/net/dev` in QML every two seconds, and sampling stops
+  while the session is locked or the displays are off
+  (`quickshell/shell/services/Network.qml`).
+- **Ryogami settings cap decoded preview images.** One-off display and transition
+  previews decode at their displayed size instead of retaining source-resolution
+  images (`ryogami/picker/qml/folio/{DisplayRow,PreviewRow}.qml`).
+- **Shima now follows Ryoku's interface language.** Menus, settings, dock
+  controls, pieces and notifications use the shared catalog and update with
+  the selected language (`quickshell/inir/`, `../i18n/{tools,catalog}/`).
+- **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
+  only part of the Qt toolchain, so the first `ryoku update` from source
+  stopped at `Failed to find required Qt component "Multimedia"`. It now
+  installs every development package the plugin, the Ryogami picker and the
+  Rashin window configure against, matching the RPM specs
+  (`../../bin/ryoku-track`).
 - **A shell restart no longer undoes an active idle dim.** The brightness
   watcher still publishes the temporary level to the OSD, but does not persist
   it or restore an older user level while `ryoku-idle` owns the panel. The
   exact pre-idle level remains the reboot and resume value (`ipc/osd.go`,
   `ipc/osd_test.go`, `quickshell/keys/commands/catalog/ryoku-tools.json`).
+- **Compositor login uses one guarded startup path.** Wayfire now enters the
+  same neutral session owner as Hyprland and niri. The owner still imports the
+  graphical environment and maps the boot cover before services start, but no
+  longer asks the user manager to reload twice: the power cutover reloads it
+  synchronously before starting `ryoku-session.target`
+  (`../cli/internal/host/session.go`, `../wayfire/wayfire.ini`,
+  `../../system/hardware/power/ryoku-power-cutover`).
 - **Shima's notification panels list what they count, newest first.** The
   notification bridge now offers the per-app groups the Today panel and the
   quick panel were written for, so the bell no longer opens an empty list. It
@@ -65,6 +145,11 @@
   resolver and launch helper, and republishes the body throughout the Stage
   frame transition without an old asynchronous surface clearing its replacement
   (`quickshell/inir/modules/iris/`).
+- **The Ryoku dock stays visible and live in the Stage Editor.** Dock writes
+  now advance an explicit revision so added apps and settings repaint at once,
+  and its layer remains stable while the editor opens and closes instead of
+  leaving only the reserved strip behind
+  (`quickshell/shell/{services/Dock.qml,modules/dock/DockSurface.qml}`).
 - **A pinned Ryoku dock stays visible after fullscreen and display changes.**
   Fullscreen state now suppresses only an auto-hiding dock, so stale
   compositor state cannot slide a pinned dock off-screen while leaving its
@@ -161,6 +246,18 @@
   (`quickshell/shell/modules/{desktop,stage}/`).
 
 ### Added
+- **The wallpaper picker previews the hovered still on the desktop.** With
+  Live preview on, dwelling on a card paints the still itself on the desktop
+  while its palette previews in the picker chrome, in both picker faces, and
+  moving off the card or closing the picker restores the committed wallpaper.
+  The daemon gained a `wall.preview` / `wall.preview.clear` pair behind it,
+  addressed by path or by catalog key: a preview is an unrecorded paint whose
+  frame entries are flagged as previews, so the palette bridge never mistakes
+  one for an apply, and a committed apply supersedes a live preview outright
+  (`ryogami/daemon/{preview.go,rpc.go,verbs.go,surface.go}`,
+  `ryogami/picker/qml/PickerState.qml`,
+  `quickshell/inir/services/Wallpapers.qml`,
+  `quickshell/shell/modules/wallpaper/WallpaperFrame.qml`).
 - **Depth processing runs on request, with Cancel and Force stop.** The Depth
   page's This wallpaper card lists each step the mode needs (cut, fill, depth
   map), the model behind it and whether it is ready, missing, out of date or

@@ -1847,7 +1847,6 @@ func (d *daemon) watchSunMode() {
 	}
 }
 
-// watchMatugenKnobs retints the desktop whenever the knob store changes.
 func (d *daemon) watchMatugenKnobs() {
 	d.watchFile(matugenKnobsPath(), func() {
 		d.scheduleTheme()

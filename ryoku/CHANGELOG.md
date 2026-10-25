@@ -3,6 +3,44 @@
 ## Unreleased
 
 ### Fixed
+- **Bar Studio and RyoStore show every bar style again.** Subshells remain
+  grouped on their own pages while also appearing in the complete bar-style
+  galleries, with Python selecting its real shell instead of disappearing
+  (`hub/quickshell/pages/`, `apps/ryostore/`).
+- **New desktop folders appear and open ready to rename.** Creating one turns
+  desktop icons back on when they were hidden, gives an empty folder its proper
+  glyph, and opens its name field instead of an app picker
+  (`shell/quickshell/shell/modules/desktop/Desktop.qml`,
+  `shell/quickshell/stage/modules/ii/background/shortcuts/`).
+- **Shima's workspace card shows the apps on every workspace.** Opaque
+  workspace and window IDs now pass through the neutral window-manager frames
+  without numeric coercion (`shell/quickshell/inir/modules/iris/components/IrisColumnStrip.qml`).
+- **Super+Space closes when the desktop around it is clicked.** Hero, OkShell,
+  and Kairos now keep search focus and click-away dismissal in one surface,
+  matching the other launchers without disturbing Escape, dragging, or answer
+  selection (`shell/quickshell/shell/modules/launcher/variants/`,
+  `../docs/launcher.md`).
+- **Apps launched from the shell live independently from it.** Launcher, dock,
+  desktop and Hub actions now pass through `ryoku-host app`, which gives each
+  application its own systemd scope or detached Void session without leaking
+  Quickshell crash state. The shell survives a child OOM and is deprioritized by
+  oomd (`cli/internal/host/app.go`, `ui/Singletons/Spawn.qml`,
+  `shell/systemd/user/ryoku-shell.service`, `shell/quickshell/`).
+- **Switching workspaces no longer probes the monitors.** Every switch ran
+  `ddcutil detect`, about half a second of i2c traffic that woke the GPU from
+  idle. The probe now runs only when a display is plugged in or removed, and
+  only while the brightness faders are open (`shell/quickshell/shell/services/Devices.qml`,
+  `shell/quickshell/shell/services/lib/displays.js`).
+- **Hyprland state reads no longer launch processes.** The provider reads
+  monitors, workspaces, windows and devices over Hyprland's request socket
+  instead of running `hyprctl`, and Ryogami watches the window list only while
+  a fullscreen, maximized or full-width pause rule needs it
+  (`wm/hyprland/query.go`, `shell/ryogami/daemon/restore_watch.go`).
+- **The palette bridge sleeps while nothing changes.** It used to wake every
+  second to check whether a folder above the palette had been renamed. It now
+  watches those folders for a rename or removal and picks up the new location
+  at once, with a once-a-minute check only as a safety net
+  (`palette-bridge/watch.go`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to

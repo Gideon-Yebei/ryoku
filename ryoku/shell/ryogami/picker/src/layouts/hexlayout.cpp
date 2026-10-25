@@ -510,8 +510,7 @@ void HexLayout::build(const LayoutContext &ctx, std::vector<CardVisual> &out)
         float scx, scy, sscale;
         p.stage.transform(dcx, dcy, cx, cy, vw, vh, scx, scy, sscale);
         const float scale = hexScale(col, scx, fadeZone, vw, colMs);
-        // Edge columns can begin at zero scale. Keep them in the tick window so
-        // they can grow when scrolling brings them on screen.
+        // Keep zero-scale edge columns ticking so they can grow into view.
         if (firstCol < 0)
             firstCol = col;
         lastCol = col;

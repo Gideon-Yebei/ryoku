@@ -54,8 +54,7 @@ Rectangle {
                 const copy = {};
                 Object.keys(item).forEach(key => copy[key] = item[key]);
                 const category = Store.category(item.category);
-                copy.categoryName = StoreLogic.isSubshell(item) ? "Subshells"
-                    : (category ? category.name : item.category);
+                copy.categoryName = StoreLogic.categoryName(item, category);
                 copy.searchIndex = StoreLogic.searchText(copy);
                 return copy;
             })

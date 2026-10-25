@@ -906,9 +906,7 @@ func killStrayStageEngines() {
 	}
 }
 
-// isStageEngineRun reports whether a /proc cmdline is the engine running one
-// of its job verbs on a file under the stage root, so an editor or viewer
-// that merely has a stage file open is never mistaken for an orphaned job.
+// Only engine job verbs writing under the stage root count as orphaned jobs.
 func isStageEngineRun(cmdline []byte, engine, root string) bool {
 	args := strings.Split(strings.TrimRight(string(cmdline), "\x00"), "\x00")
 	for i, arg := range args {

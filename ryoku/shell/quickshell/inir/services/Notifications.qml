@@ -45,9 +45,7 @@ Singleton {
         };
     }
 
-    // The reference keeps the list in arrival order, oldest first: views read the
-    // tail as the newest and reverse a group to show it on top. The shell's lists
-    // are newest first, so merge them and sort by the shell's arrival stamps.
+    // iRiS expects oldest-first groups and reads each tail as the newest notification.
     function _rebuild() {
         const popups = Ryoku.Notifs.popups ?? [];
         const popupIds = {};
@@ -85,8 +83,6 @@ Singleton {
         return String(name ?? "").trim().toLowerCase();
     }
 
-    // The reference's group API: one entry per app, keyed like appNameList, each
-    // holding that app's notifications in arrival order.
     readonly property var groupsByAppName: {
         const groups = {};
         for (const w of root.list) {
@@ -104,7 +100,6 @@ Singleton {
         return groups;
     }
 
-    // Apps with the most recent notification first, as the reference sorts them.
     readonly property var appNameList: Object.keys(root.groupsByAppName)
         .sort((a, b) => root.groupsByAppName[b].latest.time - root.groupsByAppName[a].latest.time)
 

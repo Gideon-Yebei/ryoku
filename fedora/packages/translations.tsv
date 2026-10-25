@@ -178,7 +178,7 @@ python-pillow	python3-pillow	optional
 python-pip	python3-pip	dev	
 python-pipx	pipx	dev	
 qemu-desktop	qemu-kvm	desktop	
-qmk_hid	ryoku-extras	optional	Bundled by the Ryoku extras RPM.
+qmk-hid	ryoku-extras	optional	Bundled by the Ryoku extras RPM.
 qrencode	qrencode	desktop	
 qt5-wayland	qt5-qtwayland	desktop	
 qt6-5compat	qt6-qt5compat	desktop	

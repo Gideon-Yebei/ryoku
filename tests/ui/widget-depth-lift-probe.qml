@@ -5,8 +5,7 @@ import "modules/stage/Singletons" as Stage
 
 // widget-depth-lift-probe: the per-widget `Depth` row (built-in menu, plugin
 // tile menu, and the visualiser's own menu scope) lifts the named widget above
-// the in-front stage cut-outs via the mode's `front` list on stage.json, shows
-// only while the monitor's wallpaper is in Depth or Parallax, and persists the
+// Stage cut-outs and persists the
 // choice.
 // Loads the real shell components against the mirrored shell tree, the way
 // center-popout-probe does. Commit nothing.
@@ -91,7 +90,6 @@ ShellRoot {
         check("backend inactive for a plain wall",
             Stage.StageBackend.isActiveFor(other) === false);
 
-        // Each mode's front list round-trips and lifts are idempotent.
         Stage.Config.setFront("depth", "clock", true);
         check("isFront after lift",
             Stage.Config.isFront("depth", "clock") === true);
@@ -148,8 +146,7 @@ ShellRoot {
             Stage.Config.isFront("depth", "visualizer") === false);
 
         // Final state: clock + tile lifted, visualizer behind. The coalesced
-        // stage.json write lands after the last setFront; the harness checks
-        // the file after exit.
+        // write is asynchronous, so the harness checks the file after exit.
         console.log(failures === 0 ? "PROBE-CHECKS-PASS" : "PROBE-CHECKS-FAIL " + failures);
         finish.restart();
     }

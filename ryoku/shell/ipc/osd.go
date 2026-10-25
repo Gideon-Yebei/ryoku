@@ -36,9 +36,7 @@ func backlightLevelPath() string {
 	return filepath.Join(stateDir(), "ryoku", "backlight")
 }
 
-// idleBrightnessActive is the runtime transaction marker owned by ryoku-idle.
-// A dimmed level is temporary, so it must neither replace the user's saved
-// level nor be raised by that saved level when the shell daemon restarts.
+// Idle dimming must not overwrite or restore the user's persistent level.
 func idleBrightnessActive() bool {
 	dir := os.Getenv("RYOKU_IDLE_BRIGHTNESS_STATE_DIR")
 	if dir == "" {
@@ -62,8 +60,6 @@ func saveBacklight(level int) {
 	_ = os.WriteFile(backlightLevelPath(), []byte(strconv.Itoa(level)), 0o644)
 }
 
-// saveObservedBacklight excludes ryoku-idle's temporary write from the
-// persistent level while still publishing it to the live OSD.
 func saveObservedBacklight(level int) {
 	if idleBrightnessActive() {
 		return

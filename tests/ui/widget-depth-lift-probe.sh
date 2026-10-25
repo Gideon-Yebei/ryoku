@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# widget-depth-lift-probe: the lift row in a desktop widget's right-click menu
-# (WidgetMenu), a plugin tile's menu (PluginWidgetMenu), and the visualiser's
-# own menu scope writes the active cut mode's `front` list on stage.json. It
-# toggles only the named widget, hides while the wallpaper has no cut-out, keeps
-# the menu card open on trigger, and persists across the seam.
 # Loads the real components against a mirrored shell/ tree, the way
 # center-popout-probe.sh does. Commit nothing.
 set -euo pipefail
@@ -44,8 +39,6 @@ if ! grep -q WIDGET-DEPTH-LIFT-PROBE-PASS "$work/probe.log"; then
 fi
 
 # The lift the probe ended with must be the file the next shell start reads:
-# clock and the plugin tile stay lifted in Depth, the visualiser was put back
-# behind, and the v3 mode sections survive.
 stage="$work/cfg/ryoku/stage.json"
 if [[ ! -f "$stage" ]]; then
     echo "widget-depth-lift-probe: stage.json was never written" >&2

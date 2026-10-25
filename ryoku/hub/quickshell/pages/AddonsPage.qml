@@ -238,10 +238,10 @@ Item {
             omarchyListProc.running = true;
     }
     function browseStore() {
-        Spawn.run(["ryostore", "open"]);
+        Spawn.runApp(["ryostore", "open"], { label: "ryostore" });
     }
     function browseOmarchyMarket() {
-        Spawn.run(["ryostore", "open", "omarchy-plugins"]);
+        Spawn.runApp(["ryostore", "open", "omarchy-plugins"], { label: "ryostore" });
     }
     function requestPluginRemove(id, name) {
         pg.confirmKind = "plugin";
@@ -280,8 +280,8 @@ Item {
         pg.bundleMutationItem = item || "";
         pg.bundleMutationAction = "remove";
         const scope = item ? ["item", id, item] : ["bundle", id];
-        bundleMutProc.command = ["kitty", "--class", "ryostore", "-e",
-            "ryostore-install", "remove"].concat(scope);
+        bundleMutProc.command = ["ryoku-host", "app", "--label", "ryostore", "--",
+            "kitty", "--class", "ryostore", "-e", "ryostore-install", "remove"].concat(scope);
         bundleMutProc.running = true;
     }
     function repairBundle(id) {
@@ -291,8 +291,8 @@ Item {
         pg.bundleMutationId = id;
         pg.bundleMutationItem = "";
         pg.bundleMutationAction = "repair";
-        bundleMutProc.command = ["kitty", "--class", "ryostore", "-e",
-            "ryostore-install", "install", "bundle", id];
+        bundleMutProc.command = ["ryoku-host", "app", "--label", "ryostore", "--",
+            "kitty", "--class", "ryostore", "-e", "ryostore-install", "install", "bundle", id];
         bundleMutProc.running = true;
     }
     function catalogEntry(id) {

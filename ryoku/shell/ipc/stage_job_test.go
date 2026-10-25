@@ -579,9 +579,6 @@ func TestStageJobFrameCarriesCurrentStep(t *testing.T) {
 	waitForStageIdle(t, d)
 }
 
-// TestStageStrayEngineMatch pins which processes force stop may kill: only the
-// engine running a job verb on a stage file, never something that merely has a
-// stage file open or an engine doing something else.
 func TestStageStrayEngineMatch(t *testing.T) {
 	const engine = "/usr/bin/ryostage"
 	const root = "/home/u/Pictures/Stage/"

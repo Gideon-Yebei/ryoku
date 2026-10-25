@@ -1,6 +1,10 @@
 # Changelog: system/
 
 ## Unreleased
+- **QMK keyboard lighting names the package each edition can install.** Arch and
+  CachyOS use the `qmk-hid` AUR package while Fedora and Void translate it to
+  their shipped providers (`../fedora/packages/translations.tsv`,
+  `../void/packages/translations.tsv`).
 - **Global user services no longer start in the login greeter.** Every
   systemd user unit enabled for all accounts rejects system users, so SDDM
   cannot launch Rashin, take its dashboard port, or start Ryoku's other

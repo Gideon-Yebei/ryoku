@@ -20,6 +20,11 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **Orbital's clock pointer moves smoothly and stays complete.** The minute and
+  second rings now interpolate only their transforms between one-second clock
+  samples instead of rebuilding every tick on every frame
+  (`qylock/themes/clockwork/orbital/Main.qml`,
+  `tests/lock-date-rollover.qml`).
 - **The stock lock screen leaves cursor frames to the compositor.** Its SDDM
   fallback cursor also ran under the in-session lock, repainting the scene for
   every pointer event while the compositor drew a second software cursor. The
@@ -27,6 +32,12 @@
   once per second instead of rebuilding the full surface 60 times a second
   (`qylock/themes/clockwork/orbital/Main.qml`,
   `tests/lock-date-rollover.qml`).
+- **Sessions stop waiting once logind completes the DRM handoff.** SDDM's
+  wrapper starts the compositor as soon as the user session becomes foreground,
+  even if the retiring Weston process still exists. It keeps the bounded wait
+  while the greeter still owns the seat, preserving the hybrid-GPU protection
+  (`sddm/ryoku-wayland-session`,
+  `../../tests/wayland-session-settle.sh`).
 - **The stock lock screen's date follows Language & Region.** Its day, month
   and 12-hour meridiem now use the selected regional-format locale. The
   in-session clock keeps following the desktop's shared 12/24-hour setting,

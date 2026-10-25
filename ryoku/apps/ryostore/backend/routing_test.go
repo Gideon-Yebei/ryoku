@@ -97,25 +97,8 @@ func TestDispatchRoutesHandoffCommands(t *testing.T) {
 	}
 }
 
-func TestSubshellStyleSettingsRouting(t *testing.T) {
-	if section, ok := settingsSection("subshells"); !ok || section != "subshells" {
-		t.Fatalf("subshell settings page = %q, %v", section, ok)
-	}
-	for _, id := range []string{"gokko", "caelestia", "tansu", "python"} {
-		if !subshellStyle(id) {
-			t.Fatalf("%s is not a subshell", id)
-		}
-	}
-	for _, id := range []string{"sumi", "orpheus", "obi", "nacre", "chroma"} {
-		if subshellStyle(id) {
-			t.Fatalf("%s incorrectly classified", id)
-		}
-	}
-}
-
-// Exercise the real CLI handoff without touching a running Hub instance.
-// The fake qs reports each navigation and fake flock bypasses the live lock.
-func TestSubshellSettingsHandoff(t *testing.T) {
+// Bar-style routes stay complete while the dedicated Subshells route remains.
+func TestBarStyleSettingsHandoff(t *testing.T) {
 	dir := t.TempDir()
 	log := filepath.Join(dir, "navigation.log")
 	t.Setenv("RYOKU_TEST_QS_LOG", log)
@@ -128,13 +111,16 @@ func TestSubshellSettingsHandoff(t *testing.T) {
 		}
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	for _, tc := range []struct{ id, expected string }{
-		{"python", "subshells"}, {"gokko", "subshells"},
-		{"tansu", "subshells"}, {"caelestia", "subshells"},
-		{"obi", "bar-studio"},
+	for _, tc := range []struct{ category, id, expected string }{
+		{"barstyles", "python", "bar-studio"},
+		{"barstyles", "gokko", "bar-studio"},
+		{"barstyles", "tansu", "bar-studio"},
+		{"barstyles", "caelestia", "bar-studio"},
+		{"barstyles", "iris", "bar-studio"},
+		{"subshells", "python", "subshells"},
 	} {
-		if err := runSettings([]string{"barstyles", tc.id}); err != nil {
-			t.Fatalf("settings barstyles %s: %v", tc.id, err)
+		if err := runSettings([]string{tc.category, tc.id}); err != nil {
+			t.Fatalf("settings %s %s: %v", tc.category, tc.id, err)
 		}
 		raw, err := os.ReadFile(log)
 		if err != nil {
@@ -143,7 +129,7 @@ func TestSubshellSettingsHandoff(t *testing.T) {
 		want := "-c hub ipc call nav open " + tc.expected
 		got := strings.TrimSpace(string(raw))
 		if !strings.HasSuffix(got, want) {
-			t.Fatalf("settings barstyles %s routed to %q, want suffix %q", tc.id, got, want)
+			t.Fatalf("settings %s %s routed to %q, want suffix %q", tc.category, tc.id, got, want)
 		}
 		if err := os.Remove(log); err != nil {
 			t.Fatal(err)

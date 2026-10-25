@@ -36,9 +36,7 @@ static_assert(sizeof(Uniforms) == 96);
 
 constexpr QSize kFarLayer(2048, 2048);
 constexpr QSize kFarTile(256, 160);
-// Size the atlas for the library at open. Growing a QRhi array copies every old
-// layer on the render thread; eight layers cap far thumbnails at 128 MiB while
-// keeping up to 768 cards resident.
+// Eight layers avoid render-thread growth copies and cap the far atlas at 128 MiB.
 constexpr int kFarMaxLayers = 8;
 constexpr int kNearLayers = 12;
 

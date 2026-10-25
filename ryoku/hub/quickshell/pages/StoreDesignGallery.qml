@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import Ryoku.Ui
 import Ryoku.Ui.Singletons
+import "../barstudio/Subshells.js" as Subshells
 
 Item {
     id: gallery
@@ -14,9 +15,8 @@ Item {
     required property var shippedDesigns
     property bool onlySubshells: false
     property string browseCategory: gallery.category
-    readonly property var subshellIds: ["gokko", "caelestia", "tansu", "python"]
     function isSubshellStyle(id) {
-        return gallery.subshellIds.indexOf(String(id || "")) >= 0;
+        return Subshells.isStyle(id);
     }
     property var catalogueDesigns: []
     readonly property string cardObjectPrefix: gallery.category === "barstyles"
@@ -68,11 +68,11 @@ Item {
             seen[item.id] = true;
             out.push(item);
         }
-        return out.filter(card => gallery.isSubshellStyle(card.id) === gallery.onlySubshells);
+        return Subshells.visibleStyles(out, gallery.onlySubshells);
     }
 
     function browse() {
-        Quickshell.execDetached(["ryostore", "open", gallery.browseCategory]);
+        Spawn.runApp(["ryostore", "open", gallery.browseCategory], { label: "ryostore" });
     }
 
     function updateDesign(id) {
@@ -172,6 +172,8 @@ Item {
                         || (gallery.category === "barstyles"
                             && ["ricelin", "sukunabikona"].indexOf(
                                 String(designCard.modelData.id || "")) !== -1)
+                    readonly property bool subshell: gallery.category === "barstyles"
+                        && gallery.isSubshellStyle(designCard.modelData.id)
                     readonly property string subText: {
                         if (designCard.updatable) {
                             const current = designCard.modelData.installedVersion.length > 0
@@ -203,8 +205,6 @@ Item {
                     border.color: designCard.worn ? Tokens.bone : Tokens.line
                     objectName: gallery.cardObjectPrefix + designCard.modelData.id
 
-                    // Small pale marker for more resource-intensive designs.
-                    // Give selected (bone-coloured) tiles a dark backdrop.
                     Rectangle {
                         id: resourceMark
                         visible: designCard.heavy
@@ -227,6 +227,20 @@ Item {
                         }
                     }
 
+                    Text {
+                        id: subshellMark
+                        visible: designCard.subshell
+                        text: I18n.tr("SUBSHELL")
+                        color: designCard.worn ? Tokens.inkOnBoneDim : Tokens.inkFaint
+                        font.family: Tokens.mono
+                        font.pixelSize: Tokens.fMicro
+                        font.weight: Font.Medium
+                        font.letterSpacing: Tokens.trackLabel
+                        anchors.verticalCenter: resourceMark.verticalCenter
+                        anchors.right: resourceMark.visible ? resourceMark.left : parent.right
+                        anchors.rightMargin: resourceMark.visible ? Tokens.s1 : Tokens.s2
+                    }
+
                     MouseArea {
                         id: cardMouse
                         anchors.fill: parent
@@ -240,7 +254,8 @@ Item {
                         anchors {
                             left: parent.left
                             right: updateButton.visible ? updateButton.left
-                                : (resourceMark.visible ? resourceMark.left : parent.right)
+                                : (subshellMark.visible ? subshellMark.left
+                                    : (resourceMark.visible ? resourceMark.left : parent.right))
                             margins: Tokens.s3
                             rightMargin: updateButton.visible ? Tokens.s2 : Tokens.s3
                             verticalCenter: parent.verticalCenter

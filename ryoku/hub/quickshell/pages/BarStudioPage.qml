@@ -25,7 +25,8 @@ Item {
     id: page
     property var hub
     property bool subshellsOnly: false
-    readonly property bool showActiveDetails: page.subshellsOnly === styleGallery.isSubshellStyle(page.activeStyle)
+    readonly property bool showActiveDetails: !page.subshellsOnly
+        || styleGallery.isSubshellStyle(page.activeStyle)
 
     // which rail is on the bench
     property string edge: "left"

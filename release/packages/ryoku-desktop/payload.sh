@@ -443,6 +443,10 @@ EOF
     "$pkgdir/usr/lib/udev/rules.d/60-ryoku-i2c.rules"
 
   if [[ $RYOKU_INIT_MODE == systemd ]]; then
+    # The rule's group; Void declares it as a template system_group instead.
+    install -Dm644 "$_repo/system/hardware/ddc/ryoku-i2c.sysusers" \
+      "$pkgdir/usr/lib/sysusers.d/ryoku-i2c.conf"
+
     # No usable NvPCRs without a PCR-signed UKI, so keep systemd from starting
     # TPM units that cannot work.
     install -Dm644 "$_repo/system/hardware/tpm/60-ryoku-tpm-nvpcr.rules" \
@@ -466,8 +470,7 @@ EOF
   # keyboards so it works without the broad input group (see the rule header).
   install -Dm644 "$_repo/system/hardware/input/72-ryoku-keyboard-uaccess.rules" \
     "$pkgdir/usr/lib/udev/rules.d/72-ryoku-keyboard-uaccess.rules"
-  # QMK/VIA keyboard lighting: grant the seat user a uaccess ACL on a VIA board's
-  # raw HID node so qmk_hid drives its RGB matrix without root (see rule header).
+  # Restore QMK/Vial lighting when a board appears.
   install -Dm644 "$_repo/system/hardware/input/62-ryoku-qmk-hid.rules" \
     "$pkgdir/usr/lib/udev/rules.d/62-ryoku-qmk-hid.rules"
 

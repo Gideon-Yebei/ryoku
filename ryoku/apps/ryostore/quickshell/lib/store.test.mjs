@@ -230,9 +230,14 @@ const shellProducts = [
 eq(Store.collection(shellProducts, { categoryID: "subshells" }).map(i => i.id),
    ["python", "gokko", "tansu", "caelestia"], "subshell browse tab");
 eq(Store.collection(shellProducts, { categoryID: "barstyles" }).map(i => i.id),
-   ["obi", "chroma", "nacre"], "barstyle browse tab");
+   ["python", "gokko", "tansu", "caelestia", "obi", "chroma", "nacre"],
+   "barstyle browse tab includes subshells");
 eq(Store.collection(shellProducts, { view: "library" }).map(i => i.id),
    ["python", "tansu", "obi", "chroma", "launcher"], "library unchanged");
 eq(Store.barCategories([{ id: "barstyles", name: "Bar styles", count: 7, group: "wear" }], shellProducts)
-  .map(cat => [cat.id, cat.count]), [["subshells", 4], ["barstyles", 3]],
-   "navigation counts match filtered products");
+  .map(cat => [cat.id, cat.count]), [["subshells", 4], ["barstyles", 7]],
+   "barstyles count keeps every bar style");
+eq(Store.categoryName(shellProducts[0], { name: "Bar styles" }), "Subshell",
+   "subshell cards carry a small marker");
+eq(Store.categoryName(shellProducts[4], { name: "Bar styles" }), "Bar styles",
+   "ordinary barstyle cards keep their category");

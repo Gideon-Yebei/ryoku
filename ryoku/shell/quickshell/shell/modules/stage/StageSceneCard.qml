@@ -20,8 +20,7 @@ SettingCard {
     readonly property var steps: card.backend.stepsFor(card.wall)
     readonly property var wallJob: card.backend.jobFor(card.wall)
     readonly property var otherJob: card.backend.job && !card.wallJob ? card.backend.job : null
-    // Only this wall's own scene results for the mode on show: a failed layer
-    // cut is the Layers tab's, and another mode's failure is not this one's.
+    // Ignore layer and other-mode results so failures stay with their owning editor.
     readonly property var wallLast: {
         const result = card.backend.lastFor(card.wall);
         return result && result.kind === "scene" && result.mode === card.mode ? result : null;
@@ -167,8 +166,7 @@ SettingCard {
             && String(card.backend.spatialInstalledModel) === String(id);
     }
 
-    // A redo runs with the model chosen now, so it can only start once that
-    // model is on disk; the fill step needs no model.
+    // Redo uses the current model selection; fill is the only model-free step.
     function wantInstalled(step) {
         const id = String(step && step.want || "");
         if (!step || step.step === "fill" || !id) return true;
@@ -233,10 +231,7 @@ SettingCard {
         running: card.visible && card.backend.job !== null
         onTriggered: card.now = Date.now()
     }
-    // The actions sit in the headline's band so Cancel and Force stop are on
-    // screen with the status, not below the step list. Rows never switch
-    // between inline and band at runtime: SettingRow keeps a stale control
-    // position when `block` flips, which blanks the row's text.
+    // Keep actions in a fixed block; toggling SettingRow.block leaves stale control geometry.
     SettingRow {
         width: parent.width
         label: card.headline
@@ -249,8 +244,7 @@ SettingCard {
             width: parent.width
             spacing: Tokens.s2
 
-            // One job runs at a time, so a stuck job anywhere must be
-            // stoppable from whichever wallpaper the editor shows.
+            // Jobs are global, so every wallpaper card must be able to stop the active one.
             Btn {
                 visible: !!card.backend.job && card.backend.job.state !== "stopping"
                 text: I18n.tr("Cancel")

@@ -19,12 +19,6 @@ import (
 	"time"
 )
 
-// Ryostage v3 (docs/stage.md): one per-wallpaper effect and one artifact tree.
-// Depth is the still cut-out, Parallax adds motion and an inpainted backdrop,
-// and Spatial is the Depth Anything mesh. Generation stays off the wallpaper
-// hot path. A finished Depth subject is also folded into ryogami's wallpaper
-// frame under the stable `depth` wire so it remains pixel-locked.
-
 type stageEffect string
 
 const (
@@ -57,17 +51,12 @@ type stageWall struct {
 	Layers []stageLayer `json:"layers,omitempty"`
 }
 
-// stageWalls is the daemon-owned v3 registry at
-// ~/.local/state/ryoku/stage-walls.json. `current` mirrors the wallpaper on
-// screen now so the shell can key its lookup.
 type stageWalls struct {
 	Version int                  `json:"version"`
 	Current string               `json:"current"`
 	Walls   map[string]stageWall `json:"walls"`
 }
 
-// stageIndex records the model provenance of generated artifacts. Cut and
-// depth jobs update only their own fields so either artifact remains reusable.
 type stageIndex struct {
 	Source     string `json:"source"`
 	Model      string `json:"model,omitempty"`
@@ -91,9 +80,6 @@ type stageTarget struct {
 	source string
 }
 
-// stageWallFrame and stageFrame are the `stage` topic shape QML binds to.
-// `rev` is the max mtime across the wall's published artifacts so the shell can
-// cache-bust every PNG URL with one revision.
 type stageWallFrame struct {
 	Effect     stageEffect      `json:"effect"`
 	Subject    string           `json:"subject"`
@@ -250,9 +236,7 @@ func validStageCutModel(id string) bool {
 	return false
 }
 
-// stageCutFor reads one cut mode's model and edge-refinement choice. Missing or
-// unknown models use the small built-in catalogue default rather than making
-// the cut pipeline unavailable.
+// Unknown models use the default so stale settings cannot disable cutting.
 func stageCutFor(mode stageEffect) stageCut {
 	cut := stageCut{model: "u2netp"}
 	if mode != stageEffectDepth && mode != stageEffectParallax {
@@ -294,8 +278,6 @@ func stageCutFor(mode stageEffect) stageCut {
 	return cut
 }
 
-// stageSpatialModel reads the Depth Anything model used by Spatial and by
-// Parallax's optional 3D backdrop.
 func stageSpatialModel() string {
 	id := "small"
 	if dir := ryokuConfigDir(); dir != "" {
@@ -319,8 +301,7 @@ func stageSpatialModel() string {
 	}
 }
 
-// stageDepthBackdrop reports whether Parallax may use its depth map as a mesh.
-// The setting defaults on when the file or key is absent.
+// Missing settings keep the depth backdrop enabled.
 func stageDepthBackdrop() bool {
 	dir := ryokuConfigDir()
 	if dir == "" {
@@ -486,8 +467,7 @@ func (d *daemon) stageTargets() []stageTarget {
 	return out
 }
 
-// reconcileStage is a publish pass. Wallpaper and settings wakes may update
-// registry presentation, but only an explicit job verb can start the engine.
+// Passive wakes republish state but never start engine work.
 func (d *daemon) reconcileStage() {
 	wall := d.currentWall()
 	reg := loadStageWalls()
@@ -601,9 +581,6 @@ func (d *daemon) stageDepthSampleCall(wall, xs, ys, ws, hs, fit string) (string,
 
 // --- topic -----------------------------------------------------------------
 
-// buildStageFrame assembles one entry per on-screen wallpaper and includes the
-// active and last job walls so a result remains observable after an output
-// changes wallpaper.
 func (d *daemon) buildStageFrame() stageFrame {
 	reg := loadStageWalls()
 	cur := d.currentWall()
@@ -715,7 +692,6 @@ func splitStageWall(line string) (string, string, bool) {
 	return parts[0], strings.TrimSpace(parts[1]), true
 }
 
-// stageSetEffect records a mode without probing or starting the engine.
 func (d *daemon) stageSetEffect(wall string, effect stageEffect) {
 	if wall == "" {
 		return
@@ -831,8 +807,7 @@ func (d *daemon) stageRemoveLayer(wall, indexArg string) error {
 	return nil
 }
 
-// stageClear removes generated cut artifacts and keeps manual layers and the
-// reusable Spatial depth map. A job for this wall is force-cancelled first.
+// Clearing a cut preserves manual layers and the reusable depth map.
 func (d *daemon) stageClear(wall string) {
 	if wall == "" {
 		return
@@ -856,9 +831,6 @@ func (d *daemon) stageClear(wall string) {
 }
 
 // --- migration -------------------------------------------------------------
-
-// The corrective v2 fold runs first for old installations. The v3 fold then
-// separates the still Depth cut-out from the Spatial depth-map scene.
 
 type stageWallV1 struct {
 	Effect string           `json:"effect"`
@@ -885,8 +857,7 @@ func oldStageMigrationMarker() string {
 	return filepath.Join(stateDir(), "ryoku", "migrations", "ryostage-v2")
 }
 
-// migrateStage finishes the corrective v2 fold before the v3 mode split. Both
-// folds are convergent and each marker is written only after its files persist.
+// Write migration markers last so interrupted folds retry safely.
 func migrateStage() {
 	foldedLegacy := false
 	if marker := stageMigrationMarker(); !isFile(marker) {
@@ -960,10 +931,7 @@ func migrateStageRegistry() (bool, error) {
 	return true, writeJSONFileAtomic(stageWallsPath(), out)
 }
 
-// migrateStageRegistryV3 gives the old `depth` wire its final meaning. A v2
-// depth map identifies the 3D scene as Spatial; a subject without a map
-// identifies the static cut-out. Entries just folded from legacy or v1 are
-// known static Depth walls even when their artifact is currently missing.
+// Artifact presence disambiguates the old depth wire during migration.
 func migrateStageRegistryV3(foldedLegacy bool) error {
 	b, err := os.ReadFile(stageWallsPath())
 	if os.IsNotExist(err) {
@@ -1348,8 +1316,6 @@ func defaultStageModels() stageModels {
 	}
 }
 
-// legacyStageCutFor resolves the v2 quality preset during the one-time v3
-// migration. Runtime reads no quality tier after that migration.
 func legacyStageCutFor(tier string, models stageModels) stageCut {
 	defaults := defaultStageModels()
 	switch tier {
@@ -1414,7 +1380,6 @@ func migrateStageSettings() error {
 	return writeJSONFileAtomic(path, settingsToV2(legacy))
 }
 
-// migrateStageSettingsV3 splits the v2 globals into mode-owned settings.
 func migrateStageSettingsV3() error {
 	dir := ryokuConfigDir()
 	if dir == "" {
@@ -1445,8 +1410,7 @@ func stageSettingsVersion(m map[string]any) int {
 	return 0
 }
 
-// settingsToV3 preserves editor and unknown keys while moving every
-// presentation and motion choice under the mode that owns it.
+// Preserve unknown keys so migration cannot discard newer editor settings.
 func settingsToV3(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m)+1)
 	for key, value := range m {
@@ -1797,10 +1761,6 @@ func firstList(v any) []any {
 	return []any{}
 }
 
-// startStage clears abandoned transactions and engine children before exposing
-// the first idle frame, then starts the coalesced publish worker. A change to
-// stage.json (a model, edge refinement, the 3D backdrop) republishes, so the
-// editor shows a step as outdated or ready the moment the setting moves.
 func (d *daemon) startStage() {
 	removeStageJobDirs()
 	killStrayStageEngines()

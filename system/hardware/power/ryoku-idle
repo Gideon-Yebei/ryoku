@@ -174,9 +174,7 @@ backlight_device() {
   printf '%s\n' "$device"
 }
 
-# An absolute 20% target raises a panel already below it. Save the raw level
-# once, then subtract only the amount above 20%; a relative decrease cannot
-# brighten the panel even if another writer moves it between the read and write.
+# Use a relative decrease so a panel already below 20% is never brightened.
 brightness_dim() (
   local device current maximum target delta tmp
   mkdir -p "$BRIGHTNESS_STATE_DIR"
@@ -205,9 +203,7 @@ brightness_dim() (
   fi
 )
 
-# Battery and AC listeners can both resume. The runtime marker turns their dim
-# and restore hooks into one transaction, so a later listener cannot overwrite
-# the original level with an already-dimmed value.
+# One state marker makes concurrent listener dim/restore hooks a single transaction.
 brightness_restore() (
   local device level extra
   mkdir -p "$BRIGHTNESS_STATE_DIR"

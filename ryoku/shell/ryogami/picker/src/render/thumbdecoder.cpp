@@ -137,8 +137,6 @@ void ThumbDecoder::request(const QString &key, const QString &path, const QStrin
     int generation;
     {
         QMutexLocker lock(&m_mutex);
-        // A request is the current frame declaring this key wanted. retain()
-        // replaces the set after the frame and cancels anything that fell out.
         m_wanted.insert(key);
         if (m_inflight.contains(token))
             return;

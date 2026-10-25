@@ -97,8 +97,6 @@ Column {
             }
         }
 
-        // A cut started here is followed here, with its own stop buttons, so
-        // nobody has to scroll back up to the scene card to end it.
         SettingRow {
             id: busyRow
             readonly property var job: root.backend.job
