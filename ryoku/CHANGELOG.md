@@ -32,6 +32,11 @@
   instead of running `hyprctl`, and Ryogami watches the window list only while
   a fullscreen, maximized or full-width pause rule needs it
   (`wm/hyprland/query.go`, `shell/ryogami/daemon/restore_watch.go`).
+- **The palette bridge sleeps while nothing changes.** It used to wake every
+  second to check whether a folder above the palette had been renamed. It now
+  watches those folders for a rename or removal and picks up the new location
+  at once, with a once-a-minute check only as a safety net
+  (`palette-bridge/watch.go`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to
