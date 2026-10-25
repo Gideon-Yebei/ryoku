@@ -170,3 +170,34 @@ func TestPreviewRejectsNonStaticAndMissing(t *testing.T) {
 		t.Fatal("a rejected preview left state behind")
 	}
 }
+
+func TestPreviewByKeyResolvesEntry(t *testing.T) {
+	d := previewTestDaemon(t)
+	still := previewTestStill(t, d, "still.png")
+	clip := filepath.Join(d.config().wallpaperDir(), "clip.mp4")
+	if err := os.WriteFile(clip, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	d.store.entries["clip.mp4"] = Entry{Key: "clip.mp4", Name: "clip.mp4", Type: "video", Path: clip}
+	d.store.entries["scene"] = Entry{Key: "scene", Name: "scene", Type: "we", Path: filepath.Join(d.config().wallpaperDir(), "scene")}
+
+	if err := d.previewWallpaperKey("still.png", nil); err != nil {
+		t.Fatal(err)
+	}
+	frame := d.surface.snapshot()
+	if frame.Default.Path != still || !frame.Default.Preview {
+		t.Fatalf("frame=(%q, preview=%v), want the keyed still %q flagged", frame.Default.Path, frame.Default.Preview, still)
+	}
+	if err := d.previewWallpaperKey("never-scanned", nil); err == nil {
+		t.Fatal("preview accepted an unknown key")
+	}
+	if err := d.previewWallpaperKey("clip.mp4", nil); err == nil {
+		t.Fatal("preview accepted a video entry by key")
+	}
+	if err := d.previewWallpaperKey("scene", nil); err == nil {
+		t.Fatal("preview accepted a Wallpaper Engine entry by key")
+	}
+	if st := d.preview; st == nil || st.path != still {
+		t.Fatalf("preview state=%+v, want it still tracking the keyed still after the rejections", st)
+	}
+}

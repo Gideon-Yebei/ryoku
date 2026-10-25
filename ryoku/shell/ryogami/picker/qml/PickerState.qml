@@ -64,6 +64,9 @@ QtObject {
     readonly property string hoverKey: (state.field && state.view && state.field.hoveredIndex >= 0)
         ? (state.view.get(state.field.hoveredIndex).key || "")
         : ""
+    readonly property string hoverType: (state.field && state.view && state.field.hoveredIndex >= 0)
+        ? (state.view.get(state.field.hoveredIndex).type || "static")
+        : ""
 
     signal toastRequested(string message, string kind)
     signal hideRequested()
@@ -260,8 +263,13 @@ QtObject {
                         return
                     Theme.previewPalette = (!error && result) ? state._chromePalette(result) : null
                 })
+                // The desktop previews the hovered still beside its palette;
+                // a video or a scene has no still for the daemon to paint.
+                if (state.hoverType === "static")
+                    Daemon.call("wall.preview", { key: key })
             } else {
                 Theme.previewPalette = null
+                Daemon.call("wall.preview.clear", {})
             }
         }
         if (state._bool(state._shellHover))
@@ -276,6 +284,8 @@ QtObject {
             state._hoverDwell.stop()
             if (Theme.previewPalette)
                 Theme.previewPalette = null
+            if (state._bool(state._livePreview))
+                Daemon.call("wall.preview.clear", {})
             if (state._bool(state._shellHover))
                 Daemon.call("palette.hover", ({}))
             Settings.flush()

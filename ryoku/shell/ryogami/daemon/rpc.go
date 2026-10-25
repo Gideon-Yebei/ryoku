@@ -88,18 +88,27 @@ func (d *daemon) dispatchRequest(req *request) response {
 		return ok(req.ID, map[string]interface{}{"applied": d.currentName()})
 
 	case "wall.preview":
-		path := strParam(p, "path", "")
-		if path == "" {
-			return errResp(req.ID, 1, "missing 'path' parameter")
-		}
 		outputs := strsParam(p, "outputs")
 		if screen := strParam(p, "screen", ""); screen != "" {
 			outputs = []string{screen}
 		}
-		if err := d.previewWallpaper(path, outputs); err != nil {
+		// The path wins when both are given; a caller holding only a
+		// catalog key (the folio picker works in keys) names the entry
+		// instead, and the daemon resolves it through the store.
+		if path := strParam(p, "path", ""); path != "" {
+			if err := d.previewWallpaper(path, outputs); err != nil {
+				return errResp(req.ID, 4, err.Error())
+			}
+			return ok(req.ID, map[string]interface{}{"previewing": path})
+		}
+		key := strParam(p, "key", "")
+		if key == "" {
+			return errResp(req.ID, 1, "missing 'path' parameter")
+		}
+		if err := d.previewWallpaperKey(key, outputs); err != nil {
 			return errResp(req.ID, 4, err.Error())
 		}
-		return ok(req.ID, map[string]interface{}{"previewing": path})
+		return ok(req.ID, map[string]interface{}{"previewing": key})
 
 	case "wall.preview.clear":
 		if err := d.clearPreview(); err != nil {

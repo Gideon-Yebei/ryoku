@@ -55,6 +55,21 @@ func (d *daemon) previewWallpaper(path string, outputs []string) error {
 	return nil
 }
 
+// previewWallpaperKey previews the catalog entry a key names. The folio
+// picker works in store keys rather than paths, so it asks by key; the
+// entry's recorded type decides suitability, since a key carries no
+// extension for typeOf to read.
+func (d *daemon) previewWallpaperKey(key string, outputs []string) error {
+	entry, ok := d.store.get(key)
+	if !ok {
+		return fmt.Errorf("unknown wallpaper: %s", key)
+	}
+	if entry.Type != "static" {
+		return fmt.Errorf("unsupported type for preview: %s", entry.Type)
+	}
+	return d.previewWallpaper(entry.Path, outputs)
+}
+
 // clearPreview ends the live preview, repainting the committed wallpaper on
 // every output it covered and restoring the name that was current when it
 // began. With no live preview it is a no-op: the picker calls it whenever it
