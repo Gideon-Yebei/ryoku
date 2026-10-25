@@ -10,6 +10,7 @@ import inir.services
 import inir.modules.common
 import inir.modules.iris.components
 import inir.modules.iris.style
+import Ryoku.Ui.Singletons
 
 Flickable {
     id: root
@@ -180,7 +181,7 @@ Flickable {
                         anchors.left: parent.left
                         anchors.leftMargin: 16 * root.d
                         anchors.verticalCenter: parent.verticalCenter
-                        text: infoRow.modelData.label
+                        text: I18n.tr(infoRow.modelData.label)
                         font.pixelSize: IrisStyle.typeLabel
                     }
                     IrisText {

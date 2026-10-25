@@ -67,6 +67,9 @@
 - **Ryogami settings cap decoded preview images.** One-off display and transition
   previews decode at their displayed size instead of retaining source-resolution
   images (`ryogami/picker/qml/folio/{DisplayRow,PreviewRow}.qml`).
+- **Shima now follows Ryoku's interface language.** Menus, settings, dock
+  controls, pieces and notifications use the shared catalog and update with
+  the selected language (`quickshell/inir/`, `../i18n/{tools,catalog}/`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now

@@ -1071,7 +1071,7 @@ Item {
                     spacing: 6 * root.d
                     IrisText {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: nameLabel.label
+                        text: Ui.I18n.tr(nameLabel.label)
                         width: Math.min(implicitWidth, Math.round(260 * root.d))
                         elide: Text.ElideRight
                         font.pixelSize: IrisStyle.typeLabel
@@ -1439,7 +1439,7 @@ Item {
                             IrisText {
                                 id: menuRowLabel
                                 Layout.fillWidth: true
-                                text: menuRow.label
+                                text: Ui.I18n.tr(menuRow.label)
                                 elide: Text.ElideRight
                                 color: menuRow.danger ? IrisStyle.danger : IrisStyle.text
                                 font.pixelSize: IrisStyle.typeLabel
