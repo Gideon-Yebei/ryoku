@@ -57,6 +57,9 @@
   longer parses `/proc/net/dev` in QML every two seconds, and sampling stops
   while the session is locked or the displays are off
   (`quickshell/shell/services/Network.qml`).
+- **Ryogami settings cap decoded preview images.** One-off display and transition
+  previews decode at their displayed size instead of retaining source-resolution
+  images (`ryogami/picker/qml/folio/{DisplayRow,PreviewRow}.qml`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
