@@ -84,6 +84,34 @@ The Ryoku Plymouth splash shows from GRUB to the login screen: `ryoku-desktop`
 pulls in the script and label plugins it draws with, and `ryoku-plymouth-apply`
 (`system/boot/ryoku-plymouth-apply`) makes it the default and rebuilds the dracut
 images on install. Later updates rebuild only while it is still the default.
-NVIDIA stays on nouveau. Wayfire is unavailable because Fedora ships
+Wayfire is unavailable because Fedora ships
 0.10.1 and Ryoku requires 0.11. AUR-only extras such as Zen Browser, LocalSend,
 Voxtype, Looking Glass, and SteamCMD are not shipped in the Fedora lane.
+
+Ryoku leaves NVIDIA GPUs on nouveau. To install NVIDIA's driver, add RPM Fusion
+and create a signing key for the driver:
+
+```sh
+sudo dnf install \
+  https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+  https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+sudo dnf install akmods mokutil openssl
+sudo kmodgenca -a
+```
+
+With Secure Boot on, enroll the key. Set a password, reboot, choose Enroll MOK,
+and enter that password:
+
+```sh
+sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+```
+
+Then install the driver, wait a few minutes for it to build, and reboot:
+
+```sh
+sudo dnf install akmod-nvidia
+```
+
+`lsmod | grep '^nvidia'` lists the driver when it works. If the shell does not
+start, Secure Boot rejected the driver: enroll the key again, or go back to
+nouveau with `sudo dnf remove akmod-nvidia xorg-x11-drv-nvidia\*`.
