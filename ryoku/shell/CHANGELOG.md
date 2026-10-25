@@ -9,6 +9,11 @@
   and Ryoku Settings (`quickshell/shell/modules/sidebar/{ControlsBar.qml,ControlsSettingsPopup.qml,Sidebar.qml}`,
   `quickshell/shell/services/SidebarState.qml`, `ipc/{settings.go,settings_test.go}`,
   `../hub/quickshell/schema/ControlsPage.js`).
+- **Shima widget face controls keep responding.** The menu and
+  Customize sheet now read the selected display's saved choices, so sizes,
+  styles, variants, designs and other face settings can change repeatedly and
+  survive shell reloads
+  (`quickshell/shell/modules/desktop/{WidgetMenu.qml,WidgetInspector.qml}`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
