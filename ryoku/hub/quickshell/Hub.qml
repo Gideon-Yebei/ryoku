@@ -655,11 +655,23 @@ Rectangle {
         return s;
     }
     function rebase() {
-        hub.committed = snapshot();
-        if (hub.pristine) hub.draft = JSON.parse(JSON.stringify(hub.committed));
-        // the first real daemon frame is the saved state Bar Studio's live
-        // edits are measured against (and walked back to on an unsaved close)
-        if (!hub.liveBaseline && Settings.ready) hub.captureLiveBaseline();
+        var next = snapshot();
+        var d = {};
+        var b = hub.liveBaseline ? JSON.parse(JSON.stringify(hub.liveBaseline)) : null;
+        for (var k in defs) {
+            var untouched = hub.pristine || draft[k] === undefined
+                || JSON.stringify(draft[k]) === JSON.stringify(committed[k]);
+            var value = untouched ? next[k] : draft[k];
+            d[k] = JSON.parse(JSON.stringify(value));
+            if (untouched && b && hub.liveKeys.indexOf(k) >= 0)
+                b[k] = JSON.parse(JSON.stringify(next[k]));
+        }
+        hub.committed = next;
+        hub.draft = d;
+        if (b)
+            hub.liveBaseline = b;
+        if (!hub.liveBaseline && Settings.ready)
+            hub.captureLiveBaseline();
     }
     function val(k) { var v = draft[k]; return v === undefined ? committed[k] : v; }
     function edit(k, v) {
