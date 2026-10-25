@@ -68,7 +68,7 @@ func evaluatePause(r pauseRules, s wmSnapshot, running map[string]bool) (bool, [
 	if r.overviewOnly && r.capOverviewState && !s.overviewOpen {
 		reasons = append(reasons, "overview")
 	}
-	if r.fullscreen || r.maximized || (r.fullWidth && r.capColumnFill) {
+	if pauseNeedsWindows(r) {
 		for _, w := range s.windows {
 			if len(s.activeWorkspaces) > 0 && !s.activeWorkspaces[w.workspace] {
 				continue
@@ -93,6 +93,12 @@ func evaluatePause(r pauseRules, s wmSnapshot, running map[string]bool) (bool, [
 		}
 	}
 	return len(reasons) > 0, dedupReasons(reasons)
+}
+
+// pauseNeedsWindows says whether any enabled rule reads window geometry, which
+// decides whether the provider stream carries the window list at all.
+func pauseNeedsWindows(r pauseRules) bool {
+	return r.fullscreen || r.maximized || (r.fullWidth && r.capColumnFill)
 }
 
 func dedupReasons(in []string) []string {
