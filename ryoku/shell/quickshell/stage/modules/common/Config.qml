@@ -6529,7 +6529,7 @@ Singleton {
             property JsonObject tray: JsonObject {
                 property bool monochromeIcons: true
                 property bool showItemId: false
-                property bool invertPinnedItems: false // Makes the below a whitelist for the tray and blacklist for the pinned area
+                property bool invertPinnedItems: false // Makes the below an allowlist for the tray and blocklist for the pinned area
                 property list<var> pinnedItems: ["Fcitx"]
                 property bool filterPassive: false
             }

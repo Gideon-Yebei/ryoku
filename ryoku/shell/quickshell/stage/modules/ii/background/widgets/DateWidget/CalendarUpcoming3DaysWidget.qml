@@ -49,8 +49,8 @@ AbstractBackgroundWidget {
 
     // Fixed 3-day data model structure
     readonly property var next3DaysGrouped: {
-        let dummy1 = root.todayDayNum;
-        let dummy2 = root.eventsCount;
+        let trackedDay = root.todayDayNum;
+        let trackedEvents = root.eventsCount;
         let now = root.todayDate;
         if (!now) now = new Date();
 

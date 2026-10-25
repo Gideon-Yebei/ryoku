@@ -223,7 +223,7 @@ PanelWindow {
     })
 
     property var rawLauncherSettings: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         if (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.launcher) {
             return Config.rawSettings.launcher;
         }
@@ -251,12 +251,12 @@ PanelWindow {
     }
 
     property var rawBarSettings: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({});
     }
 
     property string barStyle: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         if (typeof Config === "undefined" || !Config.rawSettings || !Config.rawSettings.bar) return "modular";
         let s = Config.rawSettings.bar.style;
         if (typeof s === "string") return s;
@@ -268,13 +268,13 @@ PanelWindow {
     }
 
     property string barPosition: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         if (typeof Config === "undefined" || !Config.rawSettings || !Config.rawSettings.bar) return "top";
         return Config.rawSettings.bar.position || "top";
     }
 
     property real barOpacity: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         if (!rawBarSettings || rawBarSettings.opacity === undefined) return 1.0;
         let op = Number(rawBarSettings.opacity);
         return op > 1.0 ? (op / 100.0) : op;
@@ -314,7 +314,7 @@ PanelWindow {
     readonly property bool isBarEffectivelyHidden: barAutohide || isFullscreenActive
 
     property real barHeight: {
-        let dummy = configRevision;
+        let trackedRevision = configRevision;
         return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar && Config.rawSettings.bar.height) ? s(Config.rawSettings.bar.height) : s(40);
     }
 

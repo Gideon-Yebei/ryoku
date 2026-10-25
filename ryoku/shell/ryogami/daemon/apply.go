@@ -801,7 +801,7 @@ func (d *daemon) deleteWallpaper(key string) error {
 	return nil
 }
 
-// marshalable sanity check for events carrying Entry values.
+// marshalable quick check for events carrying Entry values.
 var _ = json.Marshal
 
 type paintToken map[string]int64

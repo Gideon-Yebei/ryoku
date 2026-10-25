@@ -633,7 +633,7 @@ Variants {
                         || dockContainer.revealProgress > 0.001)
 
                 property var rawBarSettings: {
-                    let dummy = configRevision;
+                    let trackedRevision = configRevision;
                     return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({});
                 }
 
@@ -642,7 +642,7 @@ Variants {
                 property real barHeight: (rawBarSettings && rawBarSettings.height !== undefined) ? s(rawBarSettings.height) : s(40)
 
                 property string barStyle: {
-                    let dummy = configRevision;
+                    let trackedRevision = configRevision;
                     if (typeof Config === "undefined" || !Config.rawSettings || !Config.rawSettings.bar) return "modular";
                     let s = Config.rawSettings.bar.style;
                     if (typeof s === "string") return s;
