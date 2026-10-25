@@ -77,6 +77,23 @@
   what the switch itself installed (`internal/host/phone.go`).
 
 ### Fixed
+- **AUR packages install during updates instead of timing out on sudo.**
+  Doctor's manifest step ran yay through sudo, which put yay's own pacman
+  step on sudo's private terminal where the update's cached credential does
+  not apply, so it asked for a password nobody saw after the builds and
+  nothing landed. The backfill now runs as you, like the other AUR installs
+  (`internal/doctor/reconcile_manifest.go`).
+- **An installed `yay` satisfies `yay-bin`.** Doctor asks pacman whether an
+  AUR `-bin` or `-git` package's base is already provided before handing the
+  batch to yay, so CachyOS's own `yay` no longer cancels every other AUR
+  install, and the skipped packages are named as already provided
+  (`internal/updater/manifest.go`).
+- **Snapshot notes match the filesystem.** On a root that is not btrfs the
+  update says snapshots and rollback are unavailable instead of suggesting
+  doctor can enable them (`internal/updater/update.go`).
+- **App launches are not failed services.** Doctor clears and stops reporting
+  systemd's transient app launch units (`app-<name>@<id>.service`) as well as
+  app scopes (`internal/doctor/doctor.go`).
 - **Updates restore the bar and wallpaper after restart failures.** Deliberate
   shell and wallpaper restarts clear systemd's start-limit counters immediately
   before restarting, including the required refresh after session-target

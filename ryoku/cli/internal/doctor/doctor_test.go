@@ -2838,19 +2838,45 @@ func TestReconcileHyprlandConfigRepairsCorruptKeyboard(t *testing.T) {
 	}
 }
 
-// transientAppScope must match systemd's per-launch GUI scopes (app-*.scope) so
-// doctor auto-clears their lingering failed state, and must never match a real
-// service, which stays reported.
-func TestTransientAppScope(t *testing.T) {
-	for _, u := range []string{"app-discord-155691.scope", "app-firefox-8043.scope", "app-org.foo.Bar-1.scope"} {
-		if !transientAppScope(u) {
-			t.Errorf("transientAppScope(%q) = false, want true", u)
+func TestManifestReportsPackagesSatisfiedByProviders(t *testing.T) {
+	result := withProvidedManifestPackages(okRes("the box matches the manifest"), []string{"yay-bin"})
+	if !strings.Contains(result.detail, "yay-bin") ||
+		!strings.Contains(result.detail, "already provided by installed packages") {
+		t.Fatalf("result = %+v", result)
+	}
+}
+
+// Systemd app launch units are transient bookkeeping, not service-health
+// failures. Real services, including a non-instanced app-prefixed one, remain.
+func TestTransientAppUnitsAreFilteredFromFailedServices(t *testing.T) {
+	transient := []string{
+		"app-discord-155691.scope",
+		"app-firefox-8043.scope",
+		"app-org.foo.Bar-1.scope",
+		"app-filelight@54a2896b4f0e476bb90019b97b02faed.service",
+		"app-org.kde.kate@2d43bb8f.service",
+	}
+	for _, unit := range transient {
+		if !transientAppUnit(unit) {
+			t.Errorf("transientAppUnit(%q) = false, want true", unit)
 		}
 	}
-	for _, u := range []string{"app-daemon.service", "ryoku-shell.service", "session-2.scope", "user@1000.service", "sshd.service"} {
-		if transientAppScope(u) {
-			t.Errorf("transientAppScope(%q) = true, want false", u)
+	real := []string{
+		"app-daemon.service",
+		"app-missing-instance@.service",
+		"ryoku-shell.service",
+		"session-2.scope",
+		"user@1000.service",
+		"sshd.service",
+	}
+	for _, unit := range real {
+		if transientAppUnit(unit) {
+			t.Errorf("transientAppUnit(%q) = true, want false", unit)
 		}
+	}
+	units := append(append([]string{}, transient...), real...)
+	if got := reportableFailedUnits(units); !reflect.DeepEqual(got, real) {
+		t.Fatalf("reportable failed units = %v, want %v", got, real)
 	}
 }
 
