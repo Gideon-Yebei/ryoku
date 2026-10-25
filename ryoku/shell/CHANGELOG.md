@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **Ryogami opens on the display you are using.** The picker reads the live
+  focused output on every open instead of a focus flag frozen at the last
+  monitor change, so it no longer sticks to one screen
+  (`ryogami/daemon/rpc.go`).
 - **Bar controls start with a complete compositor capability set.** Every
   capability is now false until the provider's first frame arrives, so QS Bar
   and the other styles hide unavailable controls cleanly instead of binding an
