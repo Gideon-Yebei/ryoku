@@ -27,6 +27,13 @@
   bound starred storage without silently deleting payloads
   (`ipc/clipboard.go`, `ipc/clipboard_restore.go`, `ipc/clipboard_test.go`,
   `ipc/clipboard_restore_test.go`).
+- **Closing the launcher gives its working memory back.** Providers withdraw
+  their dispatcher references as the surface unloads, then one deferred
+  collection reclaims the released QML objects while compiled components stay
+  warm for the next open. Hero also leaves its answer, help and result drawer
+  unbuilt in the rest view
+  (`quickshell/shell/modules/launcher/{shared/Singletons/Dispatcher.qml,shared/providers/Provider.qml,variants/hero/Launcher.qml}`,
+  `quickshell/shell/shell.qml`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
