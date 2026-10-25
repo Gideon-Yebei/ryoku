@@ -205,42 +205,40 @@ Item {
                     border.color: designCard.worn ? Tokens.bone : Tokens.line
                     objectName: gallery.cardObjectPrefix + designCard.modelData.id
 
-                    Row {
-                        id: markers
-                        visible: designCard.subshell || designCard.heavy
-                        spacing: Tokens.s1
+                    Rectangle {
+                        id: resourceMark
+                        visible: designCard.heavy
+                        width: 18
+                        height: 18
+                        radius: 3
+                        color: designCard.worn ? Tokens.inkOnBone : "transparent"
                         anchors.top: parent.top
                         anchors.right: parent.right
                         anchors.topMargin: Tokens.s2
                         anchors.rightMargin: Tokens.s2
 
                         Text {
-                            visible: designCard.subshell
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: I18n.tr("SUBSHELL")
-                            color: designCard.worn ? Tokens.inkOnBoneDim : Tokens.inkFaint
+                            anchors.centerIn: parent
+                            text: "▲"
+                            color: Tokens.bone
                             font.family: Tokens.mono
-                            font.pixelSize: Tokens.fMicro
-                            font.weight: Font.Medium
-                            font.letterSpacing: Tokens.trackLabel
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
                         }
+                    }
 
-                        Rectangle {
-                            visible: designCard.heavy
-                            width: 18
-                            height: 18
-                            radius: 3
-                            color: designCard.worn ? Tokens.inkOnBone : "transparent"
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "▲"
-                                color: Tokens.bone
-                                font.family: Tokens.mono
-                                font.pixelSize: 10
-                                font.weight: Font.DemiBold
-                            }
-                        }
+                    Text {
+                        id: subshellMark
+                        visible: designCard.subshell
+                        text: I18n.tr("SUBSHELL")
+                        color: designCard.worn ? Tokens.inkOnBoneDim : Tokens.inkFaint
+                        font.family: Tokens.mono
+                        font.pixelSize: Tokens.fMicro
+                        font.weight: Font.Medium
+                        font.letterSpacing: Tokens.trackLabel
+                        anchors.verticalCenter: resourceMark.verticalCenter
+                        anchors.right: resourceMark.visible ? resourceMark.left : parent.right
+                        anchors.rightMargin: resourceMark.visible ? Tokens.s1 : Tokens.s2
                     }
 
                     MouseArea {
@@ -256,7 +254,8 @@ Item {
                         anchors {
                             left: parent.left
                             right: updateButton.visible ? updateButton.left
-                                : (markers.visible ? markers.left : parent.right)
+                                : (subshellMark.visible ? subshellMark.left
+                                    : (resourceMark.visible ? resourceMark.left : parent.right))
                             margins: Tokens.s3
                             rightMargin: updateButton.visible ? Tokens.s2 : Tokens.s3
                             verticalCenter: parent.verticalCenter
