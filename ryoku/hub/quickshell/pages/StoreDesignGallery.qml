@@ -72,7 +72,7 @@ Item {
     }
 
     function browse() {
-        Quickshell.execDetached(["ryostore", "open", gallery.browseCategory]);
+        Spawn.runApp(["ryostore", "open", gallery.browseCategory], { label: "ryostore" });
     }
 
     function updateDesign(id) {

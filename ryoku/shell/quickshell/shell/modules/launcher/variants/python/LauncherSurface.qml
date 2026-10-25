@@ -7,6 +7,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Io
 import Ryoku.Ui.Singletons
+import shell.services
 import "../../../bar/barstyles/python"
 import "../../../bar/barstyles/python/reusables"
 import "../../../bar/barstyles/python/WindowRegistry.js" as WindowRegistry
@@ -926,7 +927,7 @@ PanelWindow {
                 + "else\n"
                 + "  xdg-open \"$(dirname \"$p\")\" >/dev/null 2>&1 &\n"
                 + "fi";
-            Quickshell.execDetached(["bash", "-c", script, "_", item.filePath]);
+            Spawn.runApp(["bash", "-c", script, "_", item.filePath], { label: "file" });
             closeLauncher();
             return;
         }
@@ -935,14 +936,14 @@ PanelWindow {
             if (item.command && item.command.trim().length > 0) {
                 let term = launcherWindow.terminalCommand ? launcherWindow.terminalCommand.trim() : "";
                 let fullCmd = term !== "" ? (term + " " + item.command) : item.command;
-                Quickshell.execDetached(["bash", "-c", fullCmd]);
+                Spawn.runApp(["bash", "-c", fullCmd], { label: term.split(/\s+/)[0] || "terminal" });
             }
             closeLauncher();
             return;
         }
 
         if (item.isCalc) {
-            Quickshell.execDetached(["wl-copy", "--", item.calcResult]);
+            Spawn.run(["wl-copy", "--", item.calcResult]);
             closeLauncher();
             return;
         }
@@ -957,17 +958,17 @@ PanelWindow {
 
     function launchWidget(widgetName, widgetTarget) {
         // The python stage router (also handles wallpaper/launcher hand-offs).
-        Quickshell.execDetached(["bash", Caching.scriptsPath + "/qs_manager.sh", "open", widgetTarget]);
+        Spawn.run(["bash", Caching.scriptsPath + "/qs_manager.sh", "open", widgetTarget]);
         closeLauncher();
     }
 
     function launchApp(appName, desktopId) {
         let entry = DesktopEntries.byId(desktopId);
         if (entry) {
-            entry.execute();
+            AppLaunch.run(entry, null);
         }
         if (Caching.qsDir) {
-            Quickshell.execDetached(["python3", Qt.resolvedUrl("app_rank.py").toString().replace("file://", ""), "--log-launch", "--name", appName]);
+            Spawn.run(["python3", Qt.resolvedUrl("app_rank.py").toString().replace("file://", ""), "--log-launch", "--name", appName]);
         }
         closeLauncher();
     }

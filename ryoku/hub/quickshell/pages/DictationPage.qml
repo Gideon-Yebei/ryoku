@@ -159,8 +159,8 @@ Item {
     function installVoxtype() {
         if (!pg.installAvailable)
             return;
-        Spawn.run(["kitty", "--hold", "-e", "ryoku-host", "pkg", "install",
-            "--aur", "voxtype-bin"]);
+        Spawn.runApp(["kitty", "--hold", "-e", "ryoku-host", "pkg", "install",
+            "--aur", "voxtype-bin"], { label: "kitty" });
     }
 
     // Removal stops the user service through the init-neutral host seam, then
@@ -168,11 +168,11 @@ Item {
     function removeVoxtype() {
         if (!pg.installAvailable)
             return;
-        Spawn.run(["kitty", "--hold", "-e", "sh", "-c",
+        Spawn.runApp(["kitty", "--hold", "-e", "sh", "-c",
             "ryoku-host svc --user disable --now voxtype.service 2>/dev/null || true; "
             + "rm -f \"${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/voxtype.service\"; "
             + "ryoku-host svc --user daemon-reload 2>/dev/null || true; "
-            + "sudo ryoku-host pkg remove voxtype-bin"]);
+            + "sudo ryoku-host pkg remove voxtype-bin"], { label: "kitty" });
     }
 
     // Re-probe when the package terminal closes and the Hub regains focus.

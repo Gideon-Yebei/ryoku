@@ -166,7 +166,7 @@ AbstractBackgroundWidget {
                                 color: root.expressive ? WidgetColorScheme.colors.colOnPrimary : root.textColorOnBg
                             }
 
-                            onClicked: Spawn.run(["xdg-open", "https://calendar.google.com/calendar/u/0/r"])
+                            onClicked: Spawn.runApp(["xdg-open", "https://calendar.google.com/calendar/u/0/r"], { label: "calendar" })
                         }
                     }
 

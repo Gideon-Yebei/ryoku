@@ -51,9 +51,9 @@ ItemContextDialog {
         if (!target)
             return;
         if (root.entry.type === "directory")
-            Quickshell.execDetached(["xdg-open", target]);
+            Spawn.runApp(["xdg-open", target], { label: "folder" });
         else
-            Quickshell.execDetached(["xdg-open", target.substring(0, target.lastIndexOf("/") + 1) || "/"]);
+            Spawn.runApp(["xdg-open", target.substring(0, target.lastIndexOf("/") + 1) || "/"], { label: "folder" });
         root.dismiss();
     }
     // A copy answers in place before the menu goes: the row fills, its icon

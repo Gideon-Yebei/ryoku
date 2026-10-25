@@ -16,6 +16,12 @@
   matching the other launchers without disturbing Escape, dragging, or answer
   selection (`shell/quickshell/shell/modules/launcher/variants/`,
   `../docs/launcher.md`).
+- **Apps launched from the shell live independently from it.** Launcher, dock,
+  desktop and Hub actions now pass through `ryoku-host app`, which gives each
+  application its own systemd scope or detached Void session without leaking
+  Quickshell crash state. The shell survives a child OOM and is deprioritized by
+  oomd (`cli/internal/host/app.go`, `ui/Singletons/Spawn.qml`,
+  `shell/systemd/user/ryoku-shell.service`, `shell/quickshell/`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to

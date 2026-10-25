@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Ryoku.Ui.Singletons
 import inir.services
 import inir.modules.common
 import inir.modules.iris.components
@@ -113,8 +114,8 @@ Flickable {
             IrisLinkCard {
                 tinted: true
                 links: [
-                    { label: Translation.tr("Source code"), value: "github.com/snowarch/inir", icon: "code", tint: IrisStyle.identity.lavender, action: () => Qt.openUrlExternally("https://github.com/snowarch/inir") },
-                    { label: Translation.tr("Documentation"), icon: "menu_book", tint: IrisStyle.identity.sky, action: () => Qt.openUrlExternally("https://github.com/snowarch/inir/wiki") }
+                    { label: Translation.tr("Source code"), value: "github.com/snowarch/inir", icon: "code", tint: IrisStyle.identity.lavender, action: () => Spawn.runApp(["xdg-open", "https://github.com/snowarch/inir"], { label: "browser" }) },
+                    { label: Translation.tr("Documentation"), icon: "menu_book", tint: IrisStyle.identity.sky, action: () => Spawn.runApp(["xdg-open", "https://github.com/snowarch/inir/wiki"], { label: "browser" }) }
                 ]
             }
         }
@@ -138,10 +139,10 @@ Flickable {
             IrisLinkCard {
                 tinted: true
                 links: [
-                    { label: Translation.tr("Maintainer"), value: "github.com/neur0map", icon: "person", tint: IrisStyle.identity.purple, action: () => Qt.openUrlExternally("https://github.com/neur0map") },
-                    { label: Translation.tr("Report an issue"), icon: "bug_report", tint: IrisStyle.identity.red, action: () => Qt.openUrlExternally("https://github.com/Ryoku-dev/ryoku/issues") },
-                    { label: Translation.tr("Source code"), value: "github.com/Ryoku-dev/ryoku", icon: "code", tint: IrisStyle.identity.blue, action: () => Qt.openUrlExternally("https://github.com/Ryoku-dev/ryoku") },
-                    { label: Translation.tr("Documentation"), icon: "auto_stories", tint: IrisStyle.identity.teal, action: () => Qt.openUrlExternally("https://github.com/Ryoku-dev/ryoku/tree/main/docs") }
+                    { label: Translation.tr("Maintainer"), value: "github.com/neur0map", icon: "person", tint: IrisStyle.identity.purple, action: () => Spawn.runApp(["xdg-open", "https://github.com/neur0map"], { label: "browser" }) },
+                    { label: Translation.tr("Report an issue"), icon: "bug_report", tint: IrisStyle.identity.red, action: () => Spawn.runApp(["xdg-open", "https://github.com/Ryoku-dev/ryoku/issues"], { label: "browser" }) },
+                    { label: Translation.tr("Source code"), value: "github.com/Ryoku-dev/ryoku", icon: "code", tint: IrisStyle.identity.blue, action: () => Spawn.runApp(["xdg-open", "https://github.com/Ryoku-dev/ryoku"], { label: "browser" }) },
+                    { label: Translation.tr("Documentation"), icon: "auto_stories", tint: IrisStyle.identity.teal, action: () => Spawn.runApp(["xdg-open", "https://github.com/Ryoku-dev/ryoku/tree/main/docs"], { label: "browser" }) }
                 ]
             }
         }
