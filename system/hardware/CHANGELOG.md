@@ -17,6 +17,11 @@
   headless one exits at once.
 
 ### Fixed
+- `power/ryoku-power-cutover`: **the session watcher reacts only to its own
+  session going foreground or background.** `watch-session` subscribes to its
+  own login1 session object instead of every session, and ignores idle and
+  lock hint changes, so other logins and the greeter no longer make it re-run
+  its activity check. Covered by `tests/power-cutover.sh`.
 - `audio/ryoku-bt-audio`: **the codec watcher stays asleep between reconnects.**
   `watch` filters the PulseAudio event stream down to card events before bash
   sees it, and a burst of card events from one reconnect now costs one apply
