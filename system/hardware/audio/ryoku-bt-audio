@@ -189,10 +189,9 @@ watch)
   exec 9>>"$WATCH_LOCK"
   flock -n 9 2>/dev/null || exit 0
   # A device that reconnects appears as a new card, so any card event is the cue
-  # to reconcile. grep keeps every stream, volume and sink event out of bash, and
-  # the inner read drains the burst one connection produces until a second of
-  # quiet, so the whole burst costs a single pass. When pactl exits, grep sees EOF
-  # and so does the loop. Stay subscribed even with an empty store: `set` may
+  # to reconcile. grep keeps every other event out of bash, and the inner read
+  # drains a reconnect's burst until a second of quiet, so it costs one pass.
+  # pactl exiting ends the loop through EOF. Stay subscribed even with an empty store: `set` may
   # remember the first codec later in this login and the next reconnect must
   # still restore it.
   apply_all
