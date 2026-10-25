@@ -182,7 +182,7 @@ python-pillow	python3-Pillow	optional
 python-pip	python3-pip	dev	
 python-pipx	python3-pipx	dev	
 qemu-desktop	qemu	desktop	
-qmk_hid	qmk_hid	optional	repo=ryoku
+qmk-hid	qmk_hid	optional	repo=ryoku
 qrencode	qrencode	desktop	
 qt5-wayland	qt5-wayland	desktop	
 qt6-5compat	qt6-qt5compat	desktop	

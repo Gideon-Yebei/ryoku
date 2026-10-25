@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **Vial keyboards follow the desktop accent.** Boards identified by their Vial
+  serial use the VialRGB raw HID interface, including the board's brightness
+  range, instead of sending VIA lighting commands the firmware ignores
+  (`backend/qmk.go`, `backend/qmk_test.go`).
 - **Dictation releases its local speech model while idle.** New Ryoku-managed
   Voxtype configs load models only for recordings, and existing managed configs
   gain the setting without overriding a manual choice (`backend/voxtype.go`).

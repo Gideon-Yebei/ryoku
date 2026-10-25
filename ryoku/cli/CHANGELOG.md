@@ -455,11 +455,11 @@
 - **`ryoku-host transient` on Void replaces a detached job of the same name**
   instead of orphaning the old process, which left a second OpenRGB server
   running (`internal/host/transient.go`).
-- **Doctor installs the QMK lighting provider by its real package name.** It
-  asked for `qmk-hid`, which no edition ships; every catalogue calls it
-  `qmk_hid`. Aura and QMK guidance now points to the wallpaper picker's
-  Settings > Lighting (`internal/doctor/reconcile_qmk.go`,
-  `reconcile_asus_aura.go`).
+- **Doctor uses the QMK provider's real package and command names.** It installs
+  `qmk-hid`, checks for its `qmk_hid` command, and translates that package to
+  the Fedora and Void providers (`internal/doctor/reconcile_qmk.go`,
+  `../../system/packages/aur.packages`, `../../fedora/packages/translations.tsv`,
+  `../../void/packages/translations.tsv`).
 - **Public source, recovery, issue, and plugin links use the canonical
   `ryoku-dev/ryoku` repository.** Existing source checkouts whose origin still
   uses the retired `ryoku-arch` name remain valid.

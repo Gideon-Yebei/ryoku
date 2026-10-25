@@ -92,14 +92,15 @@ second.
 
 Settings > Lighting is the control for RGB hardware. OpenRGB covers USB
 keyboards, mice and headsets plus SMBus memory and motherboards, `asusd` covers
-ASUS laptop keyboards and `qmk_hid` covers QMK/VIA boards. Nothing is scanned or
-written until **Let Ryoku control lighting** is on, and a device is touched only
-after it is adopted. **Follow wallpaper & theme** adopts a device in a mode that
-can show a colour (its Static mode, else a per-LED mode) and paints the current
-Matugen accent. Every later palette change, from a new wallpaper or a fixed
-theme, repaints it. The picker talks to the daemon, the daemon runs
-`ryoku-hub lighting`, and that command is the only writer of
-`~/.config/ryoku/lighting.json`.
+ASUS laptop keyboards, and Ryoku covers QMK/VIA boards through `qmk_hid` or
+VialRGB raw HID. Nothing is scanned or written until **Let Ryoku control
+lighting** is on, and a device is touched only after it is adopted. **Follow
+wallpaper & theme** adopts a device in a mode that can show a colour (its Static
+mode, else a per-LED mode) and paints the current Matugen accent. Every later
+palette change, from a new wallpaper or a fixed theme, repaints it. The picker
+talks to the daemon, the daemon runs `ryoku-hub lighting`, and that command is
+the only writer of `~/.config/ryoku/lighting.json`. QMK and Vial lighting is
+re-applied when a board is plugged back in.
 
 Arch, CachyOS and Void ship OpenRGB 1.0 (SDK protocol 6); Fedora ships
 1.0~rc2 (protocol 5). The client speaks both and addresses devices by
