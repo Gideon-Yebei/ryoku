@@ -155,9 +155,18 @@ Scope {
         property string query: ""
         property bool active: false
         property int selectedIndex: -1
+        property string selectedEntryId: ""
         signal queryEdited(string text)
         signal closeRequested()
         signal paneClicked()
+
+        function syncSelectedEntryId() {
+            selectedEntryId = selectedIndex >= 0 && items && selectedIndex < items.length
+                ? String(items[selectedIndex].id)
+                : "";
+        }
+
+        onSelectedIndexChanged: syncSelectedEntryId()
 
         function moveSelection(delta) {
             if (!items || items.length === 0) {
@@ -228,20 +237,38 @@ Scope {
         }
 
         onQueryChanged: {
+            selectedEntryId = "";
             selectedIndex = items && items.length > 0 ? 0 : -1;
+            syncSelectedEntryId();
         }
 
         onItemsChanged: {
+            const previousId = selectedEntryId;
+            let preservedIndex = -1;
+            if (previousId && items) {
+                for (let i = 0; i < items.length; i++) {
+                    if (String(items[i].id) === previousId) {
+                        preservedIndex = i;
+                        break;
+                    }
+                }
+            }
+
             if (!items || items.length === 0) {
                 selectedIndex = -1;
+            } else if (preservedIndex >= 0) {
+                selectedIndex = preservedIndex;
             } else if (pane.active) {
-                if (selectedIndex < 0 || selectedIndex >= items.length)
-                    selectedIndex = 0;
-                cards.positionViewAtIndex(selectedIndex, ListView.Contain);
-            } else {
-                if (selectedIndex >= items.length)
-                    selectedIndex = items.length - 1;
+                selectedIndex = selectedIndex < 0
+                    ? 0
+                    : Math.min(selectedIndex, items.length - 1);
+            } else if (selectedIndex >= items.length) {
+                selectedIndex = items.length - 1;
             }
+
+            syncSelectedEntryId();
+            if (pane.active && selectedIndex >= 0)
+                cards.positionViewAtIndex(selectedIndex, ListView.Contain);
         }
 
         onActiveChanged: {
@@ -401,13 +428,13 @@ Scope {
                         } else if (event.key === Qt.Key_PageDown) {
                             root.moveSelection(5);
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Home && ((event.modifiers & Qt.ControlModifier) || input.text.length === 0 || root.activePane !== 0)) {
+                        } else if (event.key === Qt.Key_Home) {
                             root.selectHome();
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_End && ((event.modifiers & Qt.ControlModifier) || input.text.length === 0 || root.activePane !== 0)) {
+                        } else if (event.key === Qt.Key_End) {
                             root.selectEnd();
                             event.accepted = true;
-                        } else if (event.key === Qt.Key_Delete && ((event.modifiers & Qt.ShiftModifier) || (input.text.length === 0 && input.cursorPosition === 0) || root.activePane !== 0)) {
+                        } else if (event.key === Qt.Key_Delete) {
                             root.deleteSelected();
                             event.accepted = true;
                         } else if (event.key === Qt.Key_S && (event.modifiers & (Qt.ControlModifier | Qt.AltModifier))) {
