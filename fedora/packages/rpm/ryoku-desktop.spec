@@ -63,6 +63,7 @@ Requires:       python3
 Requires:       pipewire
 Requires:       pulseaudio-utils
 Requires:       jq
+Requires:       dbus-tools
 Requires:       ImageMagick
 Requires:       ffmpeg-free
 Requires:       curl
