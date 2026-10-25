@@ -27,6 +27,11 @@
   idle. The probe now runs only when a display is plugged in or removed, and
   only while the brightness faders are open (`shell/quickshell/shell/services/Devices.qml`,
   `shell/quickshell/shell/services/lib/displays.js`).
+- **Hyprland state reads no longer launch processes.** The provider reads
+  monitors, workspaces, windows and devices over Hyprland's request socket
+  instead of running `hyprctl`, and Ryogami watches the window list only while
+  a fullscreen, maximized or full-width pause rule needs it
+  (`wm/hyprland/query.go`, `shell/ryogami/daemon/restore_watch.go`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to
