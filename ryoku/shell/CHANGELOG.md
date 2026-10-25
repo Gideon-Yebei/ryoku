@@ -78,6 +78,11 @@
   resolver and launch helper, and republishes the body throughout the Stage
   frame transition without an old asynchronous surface clearing its replacement
   (`quickshell/inir/modules/iris/`).
+- **The Ryoku dock stays visible and live in the Stage Editor.** Dock writes
+  now advance an explicit revision so added apps and settings repaint at once,
+  and its layer remains stable while the editor opens and closes instead of
+  leaving only the reserved strip behind
+  (`quickshell/shell/{services/Dock.qml,modules/dock/DockSurface.qml}`).
 - **A pinned Ryoku dock stays visible after fullscreen and display changes.**
   Fullscreen state now suppresses only an auto-hiding dock, so stale
   compositor state cannot slide a pinned dock off-screen while leaving its
