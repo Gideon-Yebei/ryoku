@@ -236,7 +236,7 @@ Loader {
         required property string appName
         property bool unfolded: false
         signal toggle()
-        readonly property var items: Notifications.groupsByAppName(stack.appName).notifications.slice().reverse()
+        readonly property var items: (Notifications.groupsByAppName[stack.appName]?.notifications ?? []).slice().reverse()
         readonly property int count: stack.items.length
         readonly property bool folded: stack.count > 1 && !stack.unfolded
         spacing: 6 * root.d

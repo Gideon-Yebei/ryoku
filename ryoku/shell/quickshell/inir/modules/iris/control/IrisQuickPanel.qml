@@ -338,7 +338,7 @@ ColumnLayout {
                             id: groupRow
                             required property string modelData
                             required property int index
-                            readonly property var group: Notifications.groupsByAppName(groupRow.modelData)
+                            readonly property var group: Notifications.groupsByAppName[groupRow.modelData]
                             readonly property var newest: groupRow.group?.notifications?.[groupRow.group.notifications.length - 1] ?? null
                             readonly property int count: groupRow.group?.notifications?.length ?? 0
                             Layout.fillWidth: true

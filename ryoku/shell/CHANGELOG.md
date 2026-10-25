@@ -3,11 +3,15 @@
 ## Unreleased
 
 ### Fixed
-- **Shima's notification panels show the notifications they count.** The
-  Today panel and the quick panel now read each app group from the live
-  notification service instead of indexing the group lookup function, so new
-  and dismissed notifications stay in step with the list
-  (`quickshell/inir/modules/iris/{sidebar/IrisSidebarSection,control/IrisQuickPanel}.qml`).
+- **Shima's notification panels list what they count, newest first.** The
+  notification bridge now offers the per-app groups the Today panel and the
+  quick panel were written for, so the bell no longer opens an empty list. It
+  keeps notifications in arrival order, so each app's newest message stays on
+  top after its popup closes, and stamps them in milliseconds, so a popup reads
+  its real age instead of hundreds of thousands of hours. Cards, buttons and
+  fields drawn on the highest surface tier are no longer ink on ink when
+  effects are off (`quickshell/inir/services/Notifications.qml`,
+  `quickshell/inir/modules/iris/style/IrisStyle.qml`).
 - **Large Ryogami libraries scroll without losing their cards.** Geometric
   columns that first enter at zero scale now animate into view, newly visible
   thumbnails are not rejected against the previous frame, and the bounded
