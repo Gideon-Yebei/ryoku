@@ -22,6 +22,11 @@
 - **Stage Editor wallpaper cards load from Ryogami's library again.**
   Home-relative image and thumbnail paths are resolved before the gallery opens,
   including custom wallpaper folders (`quickshell/stage/services/Wallpapers.qml`).
+- **Clipboard history no longer keeps every payload in daemon memory.** Entries
+  retain metadata only, stream their backing files when copied or restored, and
+  bound starred storage without silently deleting payloads
+  (`ipc/clipboard.go`, `ipc/clipboard_restore.go`, `ipc/clipboard_test.go`,
+  `ipc/clipboard_restore_test.go`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
