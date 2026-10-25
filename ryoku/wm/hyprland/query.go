@@ -10,11 +10,10 @@ import (
 	"time"
 )
 
-// query is the choke point for every JSON state read. Reads go straight to
-// Hyprland's request socket, which answers the same request hyprctl -j sends,
-// so a watch refresh costs a local round trip instead of a process launch.
-// Commands that change state stay on ctl. A var so tests can answer reads
-// without a compositor.
+// query is the choke point for every JSON state read: the request hyprctl -j
+// sends, written straight to the request socket so a refresh launches no
+// process. Commands that change state stay on ctl. A var so tests can answer
+// reads without a compositor.
 var query = socketQuery
 
 func socketQuery(args ...string) ([]byte, error) {
