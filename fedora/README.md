@@ -88,38 +88,30 @@ Wayfire is unavailable because Fedora ships 0.10.1 and Ryoku requires 0.11.
 AUR-only extras such as Zen Browser, LocalSend, Voxtype, Looking Glass, and
 SteamCMD are not shipped in the Fedora lane.
 
-Ryoku installs no NVIDIA driver on Fedora: NVIDIA GPUs start on nouveau. To use
-NVIDIA's driver, install RPM Fusion's yourself. With Secure Boot on, create and
-enroll akmods' signing key first, reboot and choose Enroll MOK, then install the
-driver and reboot once its module has built:
+Ryoku leaves NVIDIA GPUs on nouveau. To install NVIDIA's driver, add RPM Fusion
+and create a signing key for the driver:
 
 ```sh
 sudo dnf install \
   https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
   https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-sudo dnf install akmods mokutil openssl && sudo kmodgenca -a                 # Secure Boot only
-sudo mokutil --import /etc/pki/akmods/certs/public_key.der                   # Secure Boot only
+sudo dnf install akmods mokutil openssl
+sudo kmodgenca -a
+```
+
+With Secure Boot on, enroll the key. Set a password, reboot, choose Enroll MOK,
+and enter that password:
+
+```sh
+sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+```
+
+Then install the driver, wait a few minutes for it to build, and reboot:
+
+```sh
 sudo dnf install akmod-nvidia
 ```
 
-RPM Fusion rebuilds the module for each new kernel. The desktop needs no change:
-the Hyprland session sets its NVIDIA variables only while the NVIDIA driver is
-loaded.
-
-`/etc/pki/akmods/certs` is readable only by root and the `akmods` group, so
-`public_key.der` looks missing to a plain `ls` or tab completion; list it with
-`sudo`. Only akmods' key signs the module: a key enrolled for anything else,
-or a second one generated later, does not count. Check after the reboot:
-
-```sh
-lsmod | grep '^nvidia'                                                       # the driver is loaded
-sudo mokutil --test-key /etc/pki/akmods/certs/public_key.der                 # "is already enrolled"
-```
-
-If Secure Boot rejects the module, the GPU stays on nouveau while RPM Fusion's
-NVIDIA Vulkan driver is still installed. Mesa then reaches that driver through
-zink, which opens the X display from inside Xwayland's own startup, so Xwayland
-deadlocks: the shell never appears at login and every X application hangs.
-Enroll akmods' key with the `mokutil --import` line above and reboot, or remove
-the driver with `sudo dnf remove akmod-nvidia xorg-x11-drv-nvidia\*` to go back
-to plain nouveau.
+`lsmod | grep nvidia` lists the driver when it works. If the shell does not
+start, Secure Boot rejected the driver: enroll the key again, or go back to
+nouveau with `sudo dnf remove akmod-nvidia xorg-x11-drv-nvidia\*`.
