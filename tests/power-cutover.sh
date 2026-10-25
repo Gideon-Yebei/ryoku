@@ -1294,9 +1294,14 @@ changed() {
   printf '         string "%s"\n         variant             boolean false\n' "$1"
   printf '      )\n   ]\n   array [\n   ]\n'
 }
+changed_value() {
+  printf 'signal time=1.1 sender=:1.3 -> destination=(null destination) serial=40 path=/org/freedesktop/login1/session/_39; interface=org.freedesktop.DBus.Properties; member=PropertiesChanged\n'
+  printf '   string "org.freedesktop.login1.Session"\n   array [\n      dict entry(\n         string "Desktop"\n         variant             string "Active"\n      )\n   ]\n   array [\n   ]\n'
+}
 if [[ ${REMOVAL_FIRST:-0} != 1 ]]; then
   changed IdleHint
   changed LockedHint
+  changed_value
   changed Active
 fi
 printf 'signal time=1.2 sender=:1.3 -> destination=(null destination) serial=41 path=/org/freedesktop/login1; interface=org.freedesktop.login1.Manager; member=SessionRemoved\n'

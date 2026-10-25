@@ -2165,7 +2165,8 @@ watch_session() (
           props=1
         continue
       fi
-      (( props == 1 )) && [[ $line == *'string "Active"'* ]] || continue
+      (( props == 1 )) &&
+        [[ $line =~ ^[[:space:]]{6}([[:space:]]{3})?string[[:space:]]+\"Active\"[[:space:]]*$ ]] || continue
       props=0
       if transition_if_needed; then
         return 0
