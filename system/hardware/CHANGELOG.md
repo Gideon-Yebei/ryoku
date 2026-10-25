@@ -22,6 +22,15 @@
   template created, so Fedora and Arch logged `Failed to resolve group 'i2c'` on
   every boot. Systemd editions now ship it as `/usr/lib/sysusers.d/ryoku-i2c.conf`;
   session access through `uaccess` is unchanged.
+- `power/ryoku-power-cutover`: **the session watcher reacts only to its own
+  session going foreground or background.** `watch-session` subscribes to its
+  own login1 session object instead of every session, and ignores idle and
+  lock hint changes, so other logins and the greeter no longer make it re-run
+  its activity check. Covered by `tests/power-cutover.sh`.
+- `audio/ryoku-bt-audio`: **the codec watcher stays asleep between reconnects.**
+  `watch` filters the PulseAudio event stream down to card events before bash
+  sees it, and a burst of card events from one reconnect now costs one apply
+  pass instead of one per event. Covered by `tests/bt-audio-codec.sh`.
 - `power/ryoku-idle`: **idle dimming never makes a dark screen brighter.**
   The shared idle policy now lowers the selected panel only when it is above
   20%, keeps the original raw level across overlapping battery and AC
