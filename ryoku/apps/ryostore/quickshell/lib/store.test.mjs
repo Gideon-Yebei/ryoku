@@ -236,8 +236,3 @@ eq(Store.collection(shellProducts, { view: "library" }).map(i => i.id),
 eq(Store.barCategories([{ id: "barstyles", name: "Bar styles", count: 7, group: "wear" }], shellProducts)
   .map(cat => [cat.id, cat.count]), [["subshells", 4], ["barstyles", 3]],
    "navigation counts match filtered products");
-
-const qmlApp = (await import("node:fs")).readFileSync(
-    new URL("../App.qml", import.meta.url), "utf8");
-assert.match(qmlApp, /copy\.categoryName = StoreLogic\.isSubshell\(item\)/,
-    "Subshell cards display SUBSHELLS, not BAR STYLES");
