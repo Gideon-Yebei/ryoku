@@ -146,6 +146,16 @@ Scope {
         || root.wallpaperLive || root.hostsVisualizer
     readonly property real deckFrostBlur: (Performance.blurDisabled
         || root.deckFrostHasMotion) ? 0 : Math.min(1, root.deckFrost)
+    // Once the glass has shown, its layer stays while the glass is possible, so
+    // a workspace switch moves only `blur` instead of rebuilding a full-output
+    // FBO.
+    readonly property bool deckFrostGlassPossible: root.deckFrostEnabled
+        && !root.gokkoActive && !root.stageComposing && !root.stageEditing
+        && !Performance.blurDisabled && !root.deckFrostHasMotion
+    property bool deckFrostLayered: false
+    onDeckFrostBlurChanged: if (root.deckFrostBlur > 0.01) root.deckFrostLayered = true
+    onDeckFrostGlassPossibleChanged: if (!root.deckFrostGlassPossible) root.deckFrostLayered = false
+    Component.onCompleted: root.deckFrostLayered = root.deckFrostBlur > 0.01
     readonly property real deckFrostFloor: Math.max(0, Math.min(0.6,
         root.deckFrost - 1))
     readonly property rect deckFocusRect: {
@@ -724,11 +734,11 @@ Scope {
 
             // The frost's glass: the wallpaper and the widgets under the scrim
             // blur together while a window owns the workspace, scaled by the
-            // same depth. The layer only exists while the frost is up, so a
-            // bare desktop pays no texture or blur pass.
-            layer.enabled: root.deckFrostBlur > 0.01
+            // same depth. Until the glass first shows, a bare desktop pays no
+            // texture or blur pass.
+            layer.enabled: root.deckFrostLayered && root.deckFrostGlassPossible
             layer.effect: MultiEffect {
-                blurEnabled: root.deckFrostBlur > 0.01
+                blurEnabled: true
                 blur: root.deckFrostBlur
                 blurMax: 24
                 autoPaddingEnabled: false
@@ -782,7 +792,7 @@ Scope {
             wallpaperPath: root.wallpaperPath
             wallpaperFit: root.wallpaperFit
             spatialEnabled: root.stageSpatial
-            layered: root.deckFrostBlur > 0.01
+            layered: root.deckFrostLayered && root.deckFrostGlassPossible
             visible: root.stageOn
         }
 
