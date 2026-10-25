@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **Switching workspaces no longer probes the monitors.** Every switch ran
+  `ddcutil detect`, about half a second of i2c traffic that woke the GPU from
+  idle. The probe now runs only when a display is plugged in or removed, and
+  only while the brightness faders are open (`shell/quickshell/shell/services/Devices.qml`,
+  `shell/quickshell/shell/services/lib/displays.js`).
 - **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
   implementation into `shelly-flatpak-backend`, while Ryoku installed only the
   main package. Fresh installs carry both, and doctor adds the backend to
