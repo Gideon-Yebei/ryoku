@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **Shelly's Flatpak pages work on CachyOS.** CachyOS split the Flatpak
+  implementation into `shelly-flatpak-backend`, while Ryoku installed only the
+  main package. Fresh installs carry both, and doctor adds the backend to
+  existing Shelly installations (`cli/internal/doctor/reconcile_shelly.go`,
+  `../system/packages/cachyos.packages`).
 - **Super+Arrow focus leaves fullscreen windows for another screen.** From a
   fullscreen or maximized window, an arrow moves to the screen in that direction
   when one exists; without one, Hyprland still reaches the neighbouring window

@@ -264,7 +264,7 @@ repositories, CachyOS's branding script sets `/etc/os-release` during setup, and
 | `cachyos-rate-mirrors` | Ranks the Arch and CachyOS mirrors |
 | `cachyos-hooks`, `chwd` | CachyOS's pacman hooks and hardware tool |
 | `lsb-release` | Standard distribution identity reporting |
-| `shelly` | CachyOS's graphical package manager |
+| `shelly`, `shelly-flatpak-backend` | CachyOS's graphical package manager, including its separately packaged Flatpak support |
 | `cachyos-hello` | CachyOS Welcome in the launcher; its skel autostart is removed and blocked with `NoExtract`, so Ryoku Welcome remains the only first-login welcome |
 | `cachyos-kernel-manager`, `cachyos-packageinstaller`, `btrfs-assistant` | Kernel, package, and snapshot tools |
 | `yay` | The AUR helper, from `[cachyos]` in place of the AUR's `yay-bin` |

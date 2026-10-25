@@ -330,6 +330,7 @@ func reconcilers() []reconciler {
 		{i18n.T("Vesktop palette preservation"), reconcileVesktopPalette},
 		{i18n.T("Ryoku Discord theme"), reconcileDiscordTheme},
 		{i18n.T("flatpak app channel"), reconcileFlatpakRemote},
+		{i18n.T("Shelly Flatpak support"), reconcileShellyFlatpak},
 		{i18n.T("browser theme host"), reconcileBrowserTheme},
 		{i18n.T("zen browser policy"), reconcileZen},
 		{i18n.T("zen browser animations"), reconcileZenUserChrome},
