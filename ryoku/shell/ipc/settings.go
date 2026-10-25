@@ -86,7 +86,7 @@ var (
 	orientationValues     = []string{"Horizontal", "Vertical"}
 	locQueryTypeValues    = []string{"Coordinates", "City"}
 	controlSectionIDs     = []string{"vitals", "connections", "powerProfile", "media", "levels", "bottomControls"}
-	controlPositionValues = []string{"top-left", "top-right", "center"}
+	controlPositionValues = []string{"top-left", "top-center", "top-right", "center"}
 	controlElementIDs     = []string{
 		"identity", "cpu", "cpuTemperature", "liveGraph", "memory", "gpu", "network", "disk", "battery",
 		"wifi", "bluetooth", "ethernet", "vpn",

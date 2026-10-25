@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **Controls settings stay on-screen and add Top center.** The gear popup now
+  fits and scrolls within its window at every position, edge gap and display
+  scale, and the new upper-centred placement is saved and honoured by the shell
+  and Ryoku Settings (`quickshell/shell/modules/sidebar/{ControlsBar.qml,ControlsSettingsPopup.qml,Sidebar.qml}`,
+  `quickshell/shell/services/SidebarState.qml`, `ipc/{settings.go,settings_test.go}`,
+  `../hub/quickshell/schema/ControlsPage.js`).
 - **Source updates on Fedora build the Qt plugins.** `ryoku track` installed
   only part of the Qt toolchain, so the first `ryoku update` from source
   stopped at `Failed to find required Qt component "Multimedia"`. It now
