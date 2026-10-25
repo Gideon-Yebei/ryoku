@@ -1407,6 +1407,13 @@ func resetFailedUserUnits(units ...string) {
 	}
 }
 
+func resetUserUnitStartLimits(units ...string) {
+	if updateInitSystem() != host.Systemd || len(units) == 0 {
+		return
+	}
+	_ = service(append([]string{"--user", "reset-failed"}, units...)...)
+}
+
 // activatePowerPolicy starts both policy owners as session services only after
 // the new shell can serve its secure suspend transaction.
 func activatePowerPolicy() error {
@@ -2789,6 +2796,7 @@ func startShell() error {
 		return nil
 	}
 	_ = service("--user", "daemon-reload")
+	resetUserUnitStartLimits("ryoku-shell.service")
 	switch code := service("--user", "restart", "ryoku-shell"); code {
 	case host.ExitOK:
 		return nil
@@ -2976,8 +2984,11 @@ func restartWallpaper(forceStart bool) {
 	_ = service("--user", "daemon-reload")
 	verb := "try-restart"
 	if forceStart {
-		resetFailedUserUnits("ryogami.service")
+		resetUserUnitStartLimits("ryogami.service")
 		verb = "restart"
+	} else if updateInitSystem() == host.Systemd &&
+		service("--user", "is-active", "ryogami.service") == host.ExitOK {
+		resetUserUnitStartLimits("ryogami.service")
 	}
 	if service("--user", verb, "ryogami.service") == host.ExitOK {
 		return

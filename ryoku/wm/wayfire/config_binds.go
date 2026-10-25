@@ -312,6 +312,7 @@ func shippedBinds() map[string]wayfireBind {
 		"shell.visualizerPlace":   {key: "shell_visualizer_place", cmd: "ryoku-shell visualizer-place"},
 		"shell.voice":             {key: "shell_voice", cmd: "ryoku-shell voice"},
 		"shell.settings":          {key: "shell_settings", cmd: "ryoku-shell hub open"},
+		"shell.stageEditor":       {key: "shell_stage_editor", cmd: "ryoku-shell hub open widgets"},
 		"shell.screenshot":        {key: "shell_screenshot", cmd: wm.QmlEnv + " ryoku-cmd-ryoshot"},
 		"shell.screenshotPrint":   {key: "shell_screenshot_print", cmd: wm.QmlEnv + " ryoku-cmd-ryoshot"},
 		"shell.screenshotMonitor": {key: "shell_screenshot_monitor", cmd: wm.QmlEnv + " RYOSHOT_MODE=monitor ryoku-cmd-ryoshot"},

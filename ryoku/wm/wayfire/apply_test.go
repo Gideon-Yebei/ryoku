@@ -450,6 +450,8 @@ command_shell_voice = ryoku-shell voice
 binding_shell_voice = <super> KEY_GRAVE
 command_shell_settings = ryoku-shell hub open
 binding_shell_settings = <super> KEY_COMMA
+command_shell_stage_editor = ryoku-shell hub open widgets
+binding_shell_stage_editor = <super> <shift> KEY_D
 command_shell_screenshot = env QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml" QML2_IMPORT_PATH="$HOME/.local/lib/qt6/qml" ryoku-cmd-ryoshot
 binding_shell_screenshot = <super> <shift> KEY_S
 command_shell_screenshot_print = env QML_IMPORT_PATH="$HOME/.local/lib/qt6/qml" QML2_IMPORT_PATH="$HOME/.local/lib/qt6/qml" ryoku-cmd-ryoshot
