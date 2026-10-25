@@ -153,7 +153,8 @@ Scope {
         && !root.gokkoActive && !root.stageComposing && !root.stageEditing
         && !Performance.blurDisabled && !root.deckFrostHasMotion
     property bool deckFrostLayered: false
-    onDeckFrostBlurChanged: if (root.deckFrostBlur > 0.01) root.deckFrostLayered = true
+    onDeckFrostBlurChanged: if (root.deckFrostGlassPossible && root.deckFrostBlur > 0.01)
+        root.deckFrostLayered = true
     onDeckFrostGlassPossibleChanged: if (!root.deckFrostGlassPossible) root.deckFrostLayered = false
     Component.onCompleted: root.deckFrostLayered = root.deckFrostBlur > 0.01
     readonly property real deckFrostFloor: Math.max(0, Math.min(0.6,
