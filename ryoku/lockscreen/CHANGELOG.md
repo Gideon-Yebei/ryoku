@@ -20,6 +20,13 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **The stock lock screen leaves cursor frames to the compositor.** Its SDDM
+  fallback cursor also ran under the in-session lock, repainting the scene for
+  every pointer event while the compositor drew a second software cursor. The
+  fallback now stays on the login screen, and the two 60-item clock rings update
+  once per second instead of rebuilding the full surface 60 times a second
+  (`qylock/themes/clockwork/orbital/Main.qml`,
+  `tests/lock-date-rollover.qml`).
 - **The stock lock screen's date follows Language & Region.** Its day, month
   and 12-hour meridiem now use the selected regional-format locale. The
   in-session clock keeps following the desktop's shared 12/24-hour setting,
