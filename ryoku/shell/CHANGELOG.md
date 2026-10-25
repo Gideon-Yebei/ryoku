@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **Shima's notification panels show the notifications they count.** The
+  Today panel and the quick panel now read each app group from the live
+  notification service instead of indexing the group lookup function, so new
+  and dismissed notifications stay in step with the list
+  (`quickshell/inir/modules/iris/{sidebar/IrisSidebarSection,control/IrisQuickPanel}.qml`).
 - **Picking a Depth mode no longer starts the models.** Choosing Plain, Depth,
   Parallax or Spatial only records the mode; nothing is cut, filled or built
   until Generate is pressed, and a wallpaper change, a settings change or a
