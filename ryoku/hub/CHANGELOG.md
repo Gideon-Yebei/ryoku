@@ -6,6 +6,11 @@
 - **Dictation releases its local speech model while idle.** New Ryoku-managed
   Voxtype configs load models only for recordings, and existing managed configs
   gain the setting without overriding a manual choice (`backend/voxtype.go`).
+- **A disabled Phone integration no longer starts KDE Connect.** Device
+  discovery first asks D-Bus whether KDE Connect already owns its name, so
+  checking installed phone support cannot activate `kdeconnectd` while Phone
+  is off (`backend/phone.go`,
+  `../shell/quickshell/shell/modules/phone/KdeConnectService.qml`).
 - **The sidebar identifies a CachyOS install as RYOKU CACHYOS.** It reads the
   reported distribution before falling back to the package manager, so
   CachyOS no longer appears as RYOKU ARCH (`quickshell/Hub.qml`).

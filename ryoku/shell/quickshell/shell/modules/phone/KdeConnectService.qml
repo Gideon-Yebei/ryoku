@@ -383,7 +383,10 @@ Singleton {
         id: ensureDaemonProc
         running: false
         command: ["bash", "-c",
-            "busctl --user --timeout=2 call org.kde.kdeconnect /modules/kdeconnect org.freedesktop.DBus.Peer Ping >/dev/null 2>&1 "
+            "busctl --user --timeout=2 call org.freedesktop.DBus /org/freedesktop/DBus "
+            + "org.freedesktop.DBus NameHasOwner s org.kde.kdeconnect 2>/dev/null | grep -q true "
+            + "&& busctl --user --timeout=2 call org.kde.kdeconnect /modules/kdeconnect "
+            + "org.freedesktop.DBus.Peer Ping >/dev/null 2>&1 "
             + "|| { D=$(command -v kdeconnectd); [ -n \"$D\" ] || D=/usr/lib/kdeconnectd; "
             + "[ -x \"$D\" ] && \"$D\" >/dev/null 2>&1 & }"]
         onExited: if (root._enabled) root.startMonitor()
