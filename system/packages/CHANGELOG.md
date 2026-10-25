@@ -9,6 +9,10 @@
   tools. Ryoku suppresses CachyOS Welcome's autostart but keeps it in the
   launcher. Steam and `cachyos-gaming-meta` now follow the installer's
   default-off Gaming choice instead of landing on every CachyOS install.
+- `cachyos.packages`: **Shelly can manage Flatpak apps on a fresh CachyOS
+  install.** CachyOS split Flatpak support out of `shelly`; the companion
+  `shelly-flatpak-backend` now ships with it instead of leaving visible Flatpak
+  pages whose searches and installs always fail.
 
 ### Added
 - `base.packages`: **khal, vdirsyncer and translate-shell.** The dock's

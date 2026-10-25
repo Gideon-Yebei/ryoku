@@ -3,6 +3,48 @@
 ## Unreleased
 
 ### Fixed
+- **A shell restart no longer undoes an active idle dim.** The brightness
+  watcher still publishes the temporary level to the OSD, but does not persist
+  it or restore an older user level while `ryoku-idle` owns the panel. The
+  exact pre-idle level remains the reboot and resume value (`ipc/osd.go`,
+  `ipc/osd_test.go`, `quickshell/keys/commands/catalog/ryoku-tools.json`).
+- **Shima's notification panels list what they count, newest first.** The
+  notification bridge now offers the per-app groups the Today panel and the
+  quick panel were written for, so the bell no longer opens an empty list. It
+  keeps notifications in arrival order, so each app's newest message stays on
+  top after its popup closes, and stamps them in milliseconds, so a popup reads
+  its real age instead of hundreds of thousands of hours. Cards, buttons and
+  fields drawn on the highest surface tier are no longer ink on ink when
+  effects are off (`quickshell/inir/services/Notifications.qml`,
+  `quickshell/inir/modules/iris/style/IrisStyle.qml`).
+- **Large Ryogami libraries scroll without losing their cards.** Geometric
+  columns that first enter at zero scale now animate into view, newly visible
+  thumbnails are not rejected against the previous frame, and the bounded
+  thumbnail atlas is sized for up to 768 wallpapers when the picker opens
+  (`ryogami/picker/src/{layouts/hexlayout.cpp,render/,scene/cardfield.cpp}`).
+- **Picking a Depth mode no longer starts the models.** Choosing Plain, Depth,
+  Parallax or Spatial only records the mode; nothing is cut, filled or built
+  until Generate is pressed, and a wallpaper change, a settings change or a
+  failed run never starts or retries work on its own (`ipc/stage.go`,
+  `ipc/stage_job.go`).
+- **Parallax no longer stalls at 80%.** The backdrop fill runs at a working size
+  of at most 1280 px, so an 8K wallpaper fills in seconds instead of minutes,
+  and the old two-minute kill that restarted it forever is gone. Pixels away
+  from the subject keep the same look (`scripts/ryostage`).
+- **Stage buttons act on the wallpaper the editor shows.** With a different
+  wallpaper on each display, Depth changes, cuts and layers now apply to the
+  editor's own screen instead of the main wallpaper
+  (`ipc/daemon.go`, `quickshell/shell/modules/stage/Singletons/StageBackend.qml`).
+- **Cutting a layer from another picture works in the Stage Editor.** The
+  picture is picked in Ryoku's own picker inside the page rather than a separate
+  dialog window, shown with a thumbnail, and cut as a tracked job
+  (`quickshell/shell/modules/stage/StageLayersTab.qml`).
+- **The file picker's buttons wrap on narrow surfaces** instead of running off
+  the edge (`../ui/PickFile.qml`).
+- **Ryogami opens on the display you are using.** The picker reads the live
+  focused output on every open instead of a focus flag frozen at the last
+  monitor change, so it no longer sticks to one screen
+  (`ryogami/daemon/rpc.go`).
 - **Bar controls start with a complete compositor capability set.** Every
   capability is now false until the provider's first frame arrives, so QS Bar
   and the other styles hide unavailable controls cleanly instead of binding an
@@ -119,6 +161,18 @@
   (`quickshell/shell/modules/{desktop,stage}/`).
 
 ### Added
+- **Depth processing runs on request, with Cancel and Force stop.** The Depth
+  page's This wallpaper card lists each step the mode needs (cut, fill, depth
+  map), the model behind it and whether it is ready, missing, out of date or
+  made with other settings, and offers Generate, Update, Redo per step, Cancel
+  and Force stop. A run shows its step and elapsed time; stopping or a failure
+  keeps the previous result, and a failure says why. A model that is not
+  downloaded is offered for download first, and downloads can be cancelled
+  (`ipc/stage_job.go`, `quickshell/shell/modules/stage/StageSceneCard.qml`).
+- **Cut something from the wallpaper by drawing a box.** Layers has Cut from
+  this wallpaper: draw a box around one thing and it becomes its own layer, at
+  its place in the picture (`quickshell/shell/modules/stage/StageRegionPicker.qml`,
+  `scripts/ryostage`).
 - **Controls can open at the top left, top right, or centre of a display.**
   Its gear popup now saves the panel position and its gap from the screen edge
   in `shell.json`, while store designs that declare their own placement keep

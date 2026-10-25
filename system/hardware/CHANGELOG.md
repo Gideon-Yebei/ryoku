@@ -17,6 +17,12 @@
   headless one exits at once.
 
 ### Fixed
+- `power/ryoku-idle`: **idle dimming never makes a dark screen brighter.**
+  The shared idle policy now lowers the selected panel only when it is above
+  20%, keeps the original raw level across overlapping battery and AC
+  listeners, and restores it exactly once on input. Interrupted and repeated
+  idle cycles use the same runtime transaction on every compositor. Covered by
+  `tests/idle-policy.sh`.
 - `bluetooth/ryoku-bluetooth-tune`: **paired devices keep their bond after
   disconnecting.** BlueZ now keeps the adapter pairable independently of the
   session agent, so it stores link keys for later reconnects. The existing
