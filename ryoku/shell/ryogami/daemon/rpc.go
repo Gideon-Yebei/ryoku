@@ -87,6 +87,26 @@ func (d *daemon) dispatchRequest(req *request) response {
 		}
 		return ok(req.ID, map[string]interface{}{"applied": d.currentName()})
 
+	case "wall.preview":
+		path := strParam(p, "path", "")
+		if path == "" {
+			return errResp(req.ID, 1, "missing 'path' parameter")
+		}
+		outputs := strsParam(p, "outputs")
+		if screen := strParam(p, "screen", ""); screen != "" {
+			outputs = []string{screen}
+		}
+		if err := d.previewWallpaper(path, outputs); err != nil {
+			return errResp(req.ID, 4, err.Error())
+		}
+		return ok(req.ID, map[string]interface{}{"previewing": path})
+
+	case "wall.preview.clear":
+		if err := d.clearPreview(); err != nil {
+			return errResp(req.ID, 4, err.Error())
+		}
+		return ok(req.ID, map[string]interface{}{"ok": true})
+
 	case "wall.assign":
 		wall, err := d.assignWorkspace(p)
 		if err != nil {
