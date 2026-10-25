@@ -27,6 +27,12 @@
   once per second instead of rebuilding the full surface 60 times a second
   (`qylock/themes/clockwork/orbital/Main.qml`,
   `tests/lock-date-rollover.qml`).
+- **Sessions stop waiting once logind completes the DRM handoff.** SDDM's
+  wrapper starts the compositor as soon as the user session becomes foreground,
+  even if the retiring Weston process still exists. It keeps the bounded wait
+  while the greeter still owns the seat, preserving the hybrid-GPU protection
+  (`sddm/ryoku-wayland-session`,
+  `../../tests/wayland-session-settle.sh`).
 - **The stock lock screen's date follows Language & Region.** Its day, month
   and 12-hour meridiem now use the selected regional-format locale. The
   in-session clock keeps following the desktop's shared 12/24-hour setting,

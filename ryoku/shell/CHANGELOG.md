@@ -8,6 +8,13 @@
   it or restore an older user level while `ryoku-idle` owns the panel. The
   exact pre-idle level remains the reboot and resume value (`ipc/osd.go`,
   `ipc/osd_test.go`, `quickshell/keys/commands/catalog/ryoku-tools.json`).
+- **Compositor login uses one guarded startup path.** Wayfire now enters the
+  same neutral session owner as Hyprland and niri. The owner still imports the
+  graphical environment and maps the boot cover before services start, but no
+  longer asks the user manager to reload twice: the power cutover reloads it
+  synchronously before starting `ryoku-session.target`
+  (`../cli/internal/host/session.go`, `../wayfire/wayfire.ini`,
+  `../../system/hardware/power/ryoku-power-cutover`).
 - **Shima's notification panels list what they count, newest first.** The
   notification bridge now offers the per-app groups the Today panel and the
   quick panel were written for, so the bell no longer opens an empty list. It
