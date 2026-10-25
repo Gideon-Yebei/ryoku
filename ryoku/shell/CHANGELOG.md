@@ -8,6 +8,11 @@
   notification service instead of indexing the group lookup function, so new
   and dismissed notifications stay in step with the list
   (`quickshell/inir/modules/iris/{sidebar/IrisSidebarSection,control/IrisQuickPanel}.qml`).
+- **Large Ryogami libraries scroll without losing their cards.** Geometric
+  columns that first enter at zero scale now animate into view, newly visible
+  thumbnails are not rejected against the previous frame, and the bounded
+  thumbnail atlas is sized for up to 768 wallpapers when the picker opens
+  (`ryogami/picker/src/{layouts/hexlayout.cpp,render/,scene/cardfield.cpp}`).
 - **Picking a Depth mode no longer starts the models.** Choosing Plain, Depth,
   Parallax or Spatial only records the mode; nothing is cut, filled or built
   until Generate is pressed, and a wallpaper change, a settings change or a
