@@ -39,6 +39,11 @@ func (d *daemon) applyWallpaperReasonRecord(reason, wpType, path, mode string, o
 	if !wantedAll && len(outputs) == 0 {
 		return nil
 	}
+	if record {
+		// A commit supersedes any live preview: drop its state without
+		// repainting, since this apply paints the new wallpaper itself.
+		d.dropPreview()
+	}
 	if pickOnly {
 		if !record {
 			return nil

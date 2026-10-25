@@ -246,6 +246,18 @@
   (`quickshell/shell/modules/{desktop,stage}/`).
 
 ### Added
+- **The wallpaper picker previews the hovered still on the desktop.** With
+  Live preview on, dwelling on a card paints the still itself on the desktop
+  while its palette previews in the picker chrome, in both picker faces, and
+  moving off the card or closing the picker restores the committed wallpaper.
+  The daemon gained a `wall.preview` / `wall.preview.clear` pair behind it,
+  addressed by path or by catalog key: a preview is an unrecorded paint whose
+  frame entries are flagged as previews, so the palette bridge never mistakes
+  one for an apply, and a committed apply supersedes a live preview outright
+  (`ryogami/daemon/{preview.go,rpc.go,verbs.go,surface.go}`,
+  `ryogami/picker/qml/PickerState.qml`,
+  `quickshell/inir/services/Wallpapers.qml`,
+  `quickshell/shell/modules/wallpaper/WallpaperFrame.qml`).
 - **Depth processing runs on request, with Cancel and Force stop.** The Depth
   page's This wallpaper card lists each step the mode needs (cut, fill, depth
   map), the model behind it and whether it is ready, missing, out of date or

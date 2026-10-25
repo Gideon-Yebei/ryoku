@@ -52,6 +52,19 @@ restores its display fallback, then its active workspace assignment.
 Stage scenes remain keyed by wallpaper path. Assigning the same image to more
 than one workspace shares its Depth, Parallax, and layer scene.
 
+## Preview
+
+The picker previews a still through `wall.preview` before committing it. A
+preview paints on the target outputs without recording anything: no
+assignment changes, no apply count moves, no applied event fires, and the
+palette stays with the committed wallpaper. The frame entries a preview
+publishes carry a `preview` flag, so the shell and its readers can tell the
+paint apart from a commit. Previewing another still replaces the preview,
+and applying a wallpaper supersedes it. Closing the picker clears the
+preview (`wall.preview.clear`, or `ryogami wallpaper preview-clear`) and
+repaints each covered output's committed wallpaper. Only stills preview;
+videos and Wallpaper Engine scenes apply directly.
+
 ## Image optimisation
 
 New PNG, JPEG and GIF wallpapers are re-encoded to WebP when they land in the

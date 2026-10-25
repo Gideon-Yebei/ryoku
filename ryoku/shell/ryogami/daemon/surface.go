@@ -19,7 +19,11 @@ type frameEntry struct {
 	Video     bool   `json:"video,omitempty"`
 	VideoPath string `json:"videoPath,omitempty"`
 	// Paused freezes an in-shell clip in place without reloading the image.
-	Paused     bool        `json:"paused,omitempty"`
+	Paused bool `json:"paused,omitempty"`
+	// Preview marks a paint wall.preview published but the daemon has not
+	// committed: no assignment, count, or applied event backs it, so
+	// downstream readers must not treat the entry as the wallpaper.
+	Preview    bool        `json:"preview,omitempty"`
 	Mute       bool        `json:"mute"`
 	Volume     int         `json:"volume"`
 	Transition interface{} `json:"transition"`
@@ -122,6 +126,27 @@ func (w *wallSurface) showOutput(name, pic, fit string, tr interface{}, live, is
 	e.Mute = clip.mute
 	e.Volume = clip.volume
 	w.outputs[name] = e
+	w.publishLocked()
+}
+
+// markPreview flags the entries a preview paint just published and
+// republishes, so the frame itself carries that the paint is uncommitted.
+// It mirrors the paint's addressing: a broadcast preview flags the default
+// entry, a named one flags exactly those outputs. The next paint on an
+// entry replaces it with a fresh one, clearing the flag on its own.
+func (w *wallSurface) markPreview(outputs []string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if len(outputs) == 0 || contains(outputs, "*") {
+		w.def.Preview = true
+	} else {
+		for _, name := range outputs {
+			if e, ok := w.outputs[name]; ok {
+				e.Preview = true
+				w.outputs[name] = e
+			}
+		}
+	}
 	w.publishLocked()
 }
 
