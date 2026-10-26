@@ -62,6 +62,30 @@ func dispatch(args []string) error {
 	}
 }
 
+// snapshotPath is the instant-launch catalogue snapshot.
+func snapshotPath() string {
+	return filepath.Join(extrasCacheDir(), "catalog.json")
+}
+
+// encodeSnapshot renders a catalogue for the store: previews already in the
+// cache become local file:// paths (no downloads, so the catalogue stays
+// instant); the detached `warm` command fills the rest, so the next open renders
+// from disk with no network image loads to abort at close.
+func encodeSnapshot(cat Catalog) ([]byte, error) {
+	rewriteCachedAssets(cat.Items)
+	data, err := json.Marshal(cat)
+	if err != nil {
+		return nil, err
+	}
+	return append(data, '\n'), nil
+}
+
+// writeSnapshot stores an encoded catalogue as the launch snapshot. Best effort:
+// a failed write only costs the next launch its instant render.
+func writeSnapshot(data []byte) {
+	_ = atomicWrite(snapshotPath(), data, 0o644)
+}
+
 func runCatalog(w io.Writer, provs []Provider, args []string) error {
 	refresh := false
 	category := ""
@@ -99,7 +123,7 @@ func runCatalog(w io.Writer, provs []Provider, args []string) error {
 	}
 	// The full catalogue is snapshotted so a launch is instant and works offline;
 	// the store's refresh button (--refresh) rebuilds it live and rewrites it.
-	snapshot := filepath.Join(extrasCacheDir(), "catalog.json")
+	snapshot := snapshotPath()
 	if !refresh {
 		// A healthy snapshot answers instantly. One flagged offline came from a
 		// transient source failure; serving it again pins the store to "offline"
@@ -117,20 +141,14 @@ func runCatalog(w io.Writer, provs []Provider, args []string) error {
 	}
 	cat := BuildCatalog(ctx, provs, refresh)
 	cat.Revision = catalogRevision(cat)
-	// Rewrite items to any preview already in the cache (no downloads, so the
-	// catalogue stays instant); the detached `warm` command fills the rest, so
-	// the next open renders from disk with no network image loads to abort at
-	// close.
-	rewriteCachedAssets(cat.Items)
-	data, err := json.Marshal(cat)
+	data, err := encodeSnapshot(cat)
 	if err != nil {
 		return err
 	}
-	data = append(data, '\n')
 	// Only snapshot a catalogue that produced items, so a failed first fetch is
 	// retried live next launch instead of caching an empty store.
 	if len(cat.Items) > 0 {
-		_ = atomicWrite(snapshot, data, 0o644)
+		writeSnapshot(data)
 		// A freshly built catalogue is the baseline the user is now looking at,
 		// so acknowledge it: the refresh dot stays clear until upstream advances.
 		writeSeenRevision(cat.Revision)
@@ -281,7 +299,15 @@ func runWarm(_ []string) error {
 // (runCatalog) acknowledges it.
 func runCheck(w io.Writer, provs []Provider) error {
 	cat := BuildCatalog(context.Background(), provs, true)
-	revision := catalogRevision(cat)
+	cat.Revision = catalogRevision(cat)
+	// The probe already built the catalogue live, so keep that build as the
+	// launch snapshot. Installed state is local and never part of the revision,
+	// so a part installed outside the store (Settings, a terminal) would
+	// otherwise stay frozen as absent in the snapshot served on the next open.
+	if data, err := encodeSnapshot(cat); err == nil && len(cat.Items) > 0 {
+		writeSnapshot(data)
+	}
+	revision := cat.Revision
 	seen := readSeenRevision()
 	out := struct {
 		Revision        string `json:"revision"`
