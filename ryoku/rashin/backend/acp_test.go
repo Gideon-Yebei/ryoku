@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -269,6 +270,33 @@ func TestACPDeadChildEmitsDeadState(t *testing.T) {
 	ev := expectEvent(t, conn.Events(), "state")
 	if ev.State != "dead" {
 		t.Fatalf("state %q, want dead", ev.State)
+	}
+}
+
+// A prompt still running when the agent exits must not crash the daemon (#595).
+func TestACPEmitAfterAgentExitDoesNotPanic(t *testing.T) {
+	for range 100 {
+		cr, cw := io.Pipe()
+		ar, aw := io.Pipe()
+		go func() { _, _ = io.Copy(io.Discard, cr) }()
+		conn := newACPConn(cw, ar, cw)
+		var wg sync.WaitGroup
+		for range 4 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for range 100 {
+					conn.emit(AcpEvent{Type: "turn_end"})
+				}
+			}()
+		}
+		_ = aw.Close()
+		go func() {
+			for range conn.Events() {
+			}
+		}()
+		wg.Wait()
+		conn.Close()
 	}
 }
 
