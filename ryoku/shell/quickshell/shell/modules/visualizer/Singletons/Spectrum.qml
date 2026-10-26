@@ -25,7 +25,7 @@ Singleton {
         bars: root.bars
         framerate: root.fps
         method: "pipewire"
-        source: "auto"
+        source: Audio.musicSink || "auto"
         autosens: false
         sensitivity: 180
         noiseReduction: 45

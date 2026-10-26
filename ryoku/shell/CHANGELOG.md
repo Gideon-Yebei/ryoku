@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Music-reactive bars and visualizers hear music played through Easy Effects.** They
+  listen to the output the music actually plays into instead of only the default one
+  (`quickshell/shell/services/Audio.qml`).
 - **Music-reactive bars and visualizers always run in Performance mode.** They no
   longer pause when Ryoku misses the playing app's audio stream
   (`quickshell/shell/services/Perf.qml`).
