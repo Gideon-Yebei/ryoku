@@ -10,6 +10,8 @@
   and explicit requests still show them; microphone mute and speaker keys and
   knobs still show (`quickshell/shell/services/OsdFeed.qml`,
   `quickshell/{shell/modules,inir/}`).
+- **Controls can scroll to the bottom on shorter displays.** The overview stays
+  inside its panel while the header remains in place (`quickshell/shell/modules/sidebar/ControlsBoard.qml`).
 - **Music-reactive bars and visualizers hear music played through Easy Effects.** They
   listen to the output the music actually plays into instead of only the default one
   (`quickshell/shell/services/Audio.qml`).
