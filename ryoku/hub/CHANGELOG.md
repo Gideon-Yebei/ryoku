@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Fixed
+- **Updates and Add-ons show actions that work.** Update now remains available when
+  no Ryoku update is pending; Add-ons opens RyoStore, offers bundle installation,
+  and separates optional parts from required ones
+  (`quickshell/pages/UpdatesPage.qml`, `quickshell/pages/AddonsPage.qml`,
+  `quickshell/pages/AddonBundleCard.qml`, `quickshell/pages/AddonBundleSheet.qml`).
 - **Vial keyboards follow the desktop accent.** Boards identified by their Vial
   serial use the VialRGB raw HID interface, including the board's brightness
   range, instead of sending VIA lighting commands the firmware ignores

@@ -187,6 +187,9 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- `ryostore/`: **New bundles appear on the first Store visit.** When the
+  upstream catalogue has changed, the Store refreshes its cached view on open
+  instead of waiting for a manual refresh (`ryostore/quickshell/Singletons/Store.qml`).
 - `fish/`, `bash/`, `zsh/`, `terminal-shell/`: **Multiplexer panes started
   before the desktop can paste again.** A herdr, tmux or zellij server keeps the
   environment of the login that started it, so one started over SSH or from a

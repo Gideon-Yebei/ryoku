@@ -83,16 +83,23 @@ Item {
 
     Process { id: saveInterval }
 
-    // Update now also takes the distribution's packages (`ryoku update
-    // --system`). Off until the user switches it on, since it upgrades the
-    // base system and the kernel.
     property bool systemFull: false
+    property bool systemTouched: false
+    property bool systemSavePending: false
 
     function setSystemFull(on) {
         if (pg.systemFull === on)
             return;
+        pg.systemTouched = true;
         pg.systemFull = on;
-        saveSystem.command = ["ryoku-hub", "config", "set", "update_system", on ? "on" : "off"];
+        pg.persistSystemFull();
+    }
+    function persistSystemFull() {
+        if (saveSystem.running) {
+            pg.systemSavePending = true;
+            return;
+        }
+        saveSystem.command = ["ryoku-hub", "config", "set", "update_system", pg.systemFull ? "on" : "off"];
         saveSystem.running = true;
     }
 
@@ -100,11 +107,22 @@ Item {
         command: ["ryoku-hub", "config", "get", "update_system"]
         running: true
         stdout: StdioCollector {
-            onStreamFinished: pg.systemFull = (this.text.trim() === "on")
+            onStreamFinished: if (!pg.systemTouched)
+                pg.systemFull = (this.text.trim() === "on")
         }
     }
 
-    Process { id: saveSystem }
+    Process {
+        id: saveSystem
+        onExited: code => {
+            if (code !== 0)
+                pg.actionError = I18n.tr("Couldn't save the system update choice.");
+            if (pg.systemSavePending) {
+                pg.systemSavePending = false;
+                Qt.callLater(() => pg.persistSystemFull());
+            }
+        }
+    }
 
     // re-check on the configured cadence.
     readonly property int intervalMs: {
@@ -1226,7 +1244,7 @@ Item {
                 }
             }
             Item {
-                visible: pg.phase === "idle" && !pg.starting && Updates.available
+                visible: pg.phase === "idle" && !pg.starting
                 width: updateBtn.implicitWidth
                 height: updateBtn.implicitHeight
 

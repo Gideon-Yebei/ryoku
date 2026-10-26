@@ -39,6 +39,8 @@ Singleton {
     property string _remoteRunning: ""
     property string _remoteOutput: ""
     property string _remoteErrorText: ""
+    property string _checkRevision: ""
+    property bool _autoRefreshAttempted: false
     property string _op: "install"            // which flow installProc is running
     property string _failedOp: ""
 
@@ -145,6 +147,15 @@ Singleton {
         _catalogError = "";
         catalogProc.command = force ? ["ryostore", "catalog", "--refresh"] : ["ryostore", "catalog"];
         catalogProc.running = true;
+    }
+
+    function refreshIfStale() {
+        if (!root._autoRefreshAttempted && !catalogProc.running && !root.loading
+                && root.revision !== "" && root._checkRevision !== ""
+                && root.revision !== root._checkRevision) {
+            root._autoRefreshAttempted = true;
+            root.refresh(true);
+        }
     }
 
     // A lightweight upstream probe (registries only, no downloads): it lights the
@@ -304,6 +315,7 @@ Singleton {
                 root.revision = String(next.revision || "");
                 if (root._forced)
                     root.updateAvailable = false;
+                Qt.callLater(() => root.refreshIfStale());
                 // Fill the on-disk asset cache out of band so the next open (and
                 // this session's later scrolling) renders previews from disk.
                 Quickshell.execDetached(["ryostore", "warm"]);
@@ -395,6 +407,8 @@ Singleton {
             try {
                 const res = JSON.parse(root._checkOutput);
                 root.updateAvailable = res.updateAvailable === true;
+                root._checkRevision = res.offline === true ? "" : String(res.revision || "");
+                root.refreshIfStale();
             } catch (e) {
                 // A malformed probe never asserts an update.
             }
