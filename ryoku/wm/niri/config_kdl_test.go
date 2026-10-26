@@ -203,8 +203,7 @@ func TestLayoutExtrasEmitted(t *testing.T) {
 	}
 }
 
-// A whole-number proportion or opacity must still be written as a float literal:
-// niri rejects "proportion 1" as an integer and then refuses the whole config.
+// Niri rejects whole-number proportions and opacities written as integer KDL.
 func TestWholeFloatsEmittedAsFloats(t *testing.T) {
 	s := defaultStore()
 	s.Niri.DefaultColumnWidth = 1
@@ -229,6 +228,23 @@ func TestWholeFloatsEmittedAsFloats(t *testing.T) {
 			t.Errorf("integer literal %q emitted where niri needs a float\n%s", bad, out)
 		}
 	}
+	s.Niri.PresetWindowHeights = Proportions{0.5, 1}
+	s.Niri.LayerRules = []LayerRule{{Namespace: "probe", Opacity: 1, CornerRadius: -1}}
+	s.AppOverrides = []AppOverride{{Class: "kitty", Opacity: 1, Rounding: -1, BorderSize: -1}}
+	s.WindowRules = append(s.WindowRules, WindowRule{Class: "baz", Action: "scrollfactor", Value: "1"})
+	s.Input.Sensitivity = 1
+	s.Input.MouseScrollFactor = 2
+	s.Input.TouchScrollFactor = 2
+	s.Niri.OverviewZoom = 1
+	s.Niri.AnimationSlowdown = 2
+	dir := niriHome(t)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "settings.kdl"), genSettings(s), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	validateGen(t, dir, "settings.kdl")
 }
 
 func TestPreferNoCSD(t *testing.T) {
