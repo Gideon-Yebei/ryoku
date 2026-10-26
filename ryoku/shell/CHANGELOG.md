@@ -16,6 +16,10 @@
   paints with the wallpaper instead of relying on a separate layer, while
   the audio feed survives its surface being rebuilt
   (`quickshell/shell/{shell.qml,modules/desktop/Desktop.qml,modules/visualizer/}`).
+- **Shima's desktop visualizer stays inside its card.** Its bars now follow
+  either the Shima plate or the Ryoku host's curved edges, even at small sizes
+  and loud playback (`quickshell/inir/modules/background/widgets/visualizer/VisualizerWidget.qml`,
+  `quickshell/shell/modules/desktop/iris/IrisCanvasProvider.qml`).
 - **Music-reactive bars and visualizers hear music played through Easy Effects.** They
   listen to the output the music actually plays into instead of only the default one
   (`quickshell/shell/services/Audio.qml`).
