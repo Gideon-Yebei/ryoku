@@ -1,6 +1,9 @@
 # Changelog: system/
 
 ## Unreleased
+- **Locking no longer piles up lock screens for logged-out sessions.** Old sessions
+  stop retrying their locks, and a new attempt reuses the lock screen already
+  running (`hardware/power/ryoku-power-cutover`, `../ryoku/shell/ipc/`).
 - **QMK keyboard lighting names the package each edition can install.** Arch and
   CachyOS use the `qmk-hid` AUR package while Fedora and Void translate it to
   their shipped providers (`../fedora/packages/translations.tsv`,
