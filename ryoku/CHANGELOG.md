@@ -9,6 +9,13 @@
 - **Wallpaper previews tint the shell without changing application themes.**
   Cancelling restores the previous colours, while applying runs the normal
   theme update (`shell/ryogami/daemon/preview.go`, `shell/quickshell/`).
+- **Desktop apps and folders work under every bar style.** Desktop placement
+  reads the editor's settings again, app choices resolve installed entries,
+  and a new folder opens for renaming after the menu closes. Shima's desktop
+  menu and empty-notifications message read naturally in Spanish
+  (`shell/quickshell/stage/modules/ii/background/shortcuts/DesktopShortcuts.qml`,
+  `shell/quickshell/stage/services/AppSearch.qml`, `ui/Chips.qml`,
+  `shell/quickshell/shell/modules/desktop/DesktopContextMenu.qml`, `i18n/catalog/`).
 - **Bar Studio and RyoStore show every bar style again.** Subshells remain
   grouped on their own pages while also appearing in the complete bar-style
   galleries, with Python selecting its real shell instead of disappearing
