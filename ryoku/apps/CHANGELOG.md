@@ -3,6 +3,17 @@
 ## Unreleased
 
 ### Added
+- `ryostore/`: **Apps: install Flathub applications from the store.** A new
+  Apps category lists up to 300 of the most popular Flathub desktop
+  applications and the Flathub applications already installed. Install puts
+  the application in the user Flatpak installation (no privileged prompt)
+  and remove uninstalls it from whichever installation holds it, keeping its
+  data and, for the user installation, freeing the runtimes no app uses any
+  more. An installed application with an update waiting shows UPDATE, which
+  updates it in place. Searching from the Apps category also searches all of
+  Flathub, not only the popular few (`ryostore search`). Flathub is not
+  reviewed by Ryostore, and the category says so. Offline, the last ranking
+  is served flagged offline (`ryostore/backend/provider_flatpak.go`).
 - `ryostore/`: **Built-in bar styles carry a resource tier.** Orpheus and
   Kairos are `light`; QS Bar, Python, Nomarchy, Shima and Sumi are `heavy`,
   so the Hub can say which styles may cost more. A catalogue snapshot from an

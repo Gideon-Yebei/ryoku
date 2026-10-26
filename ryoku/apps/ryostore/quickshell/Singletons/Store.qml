@@ -31,6 +31,16 @@ Singleton {
     property string revision: ""
     property bool _forced: false
     property string _checkOutput: ""
+    // Results of a live search of a category's whole source (the flatpak
+    // category lists the popular few and searches every Flathub application).
+    // They stay apart from `items` so the catalogue snapshot is never altered.
+    property var remoteItems: []
+    property bool remoteSearching: false
+    property string remoteError: ""
+    property string _remoteWanted: ""       // "category\nquery" the UI still wants
+    property string _remoteRunning: ""      // "category\nquery" the process is answering
+    property string _remoteOutput: ""
+    property string _remoteErrorText: ""
     property string _op: "install"            // which flow installProc is running
     property string _failedOp: ""
 
@@ -95,6 +105,36 @@ Singleton {
             if (categories[i].id === id)
                 return categories[i];
         return null;
+    }
+
+    // Ask a category to search its whole source. One process runs at a time and
+    // only the newest wanted query is ever answered into `remoteItems`, so a slow
+    // reply to an older query cannot overwrite a newer one.
+    function searchRemote(category, query) {
+        const wanted = String(category) + "\n" + String(query);
+        if (wanted === _remoteWanted)
+            return;
+        _remoteWanted = wanted;
+        remoteError = "";
+        remoteSearching = true;
+        if (!remoteProc.running)
+            _startRemote();
+    }
+
+    function clearRemote() {
+        _remoteWanted = "";
+        remoteItems = [];
+        remoteError = "";
+        remoteSearching = false;
+    }
+
+    function _startRemote() {
+        const parts = _remoteWanted.split("\n");
+        _remoteRunning = _remoteWanted;
+        _remoteOutput = "";
+        _remoteErrorText = "";
+        remoteProc.command = ["ryostore", "search", parts[0], parts.slice(1).join("\n")];
+        remoteProc.running = true;
     }
 
     function refresh(force) {
@@ -308,6 +348,40 @@ Singleton {
             root.installStage = "VERIFYING";
             root._clearBusyAfterRefresh = true;
             root.refresh(true);
+        }
+    }
+
+    Process {
+        id: remoteProc
+        stdout: StdioCollector { onStreamFinished: root._remoteOutput = text }
+        stderr: StdioCollector { onStreamFinished: root._remoteErrorText = text }
+        onExited: code => {
+            const answered = root._remoteRunning;
+            root._remoteRunning = "";
+            if (root._remoteWanted === "") {
+                root.remoteSearching = false;
+                return;
+            }
+            if (root._remoteWanted !== answered) {
+                // The query moved on while this one ran: answer the newest.
+                root._startRemote();
+                return;
+            }
+            root.remoteSearching = false;
+            if (code !== 0) {
+                root.remoteItems = [];
+                root.remoteError = root._remoteErrorText.trim() || I18n.tr("Search failed");
+                return;
+            }
+            try {
+                const res = JSON.parse(root._remoteOutput);
+                if (!Array.isArray(res.items))
+                    throw new Error("search items are missing");
+                root.remoteItems = res.items.slice();
+            } catch (e) {
+                root.remoteItems = [];
+                root.remoteError = I18n.tr("Search failed");
+            }
         }
     }
 

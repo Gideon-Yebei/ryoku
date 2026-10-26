@@ -5,6 +5,7 @@
 //	ryostore catalog [--refresh] [--category <id>]   normalized catalogue, JSON
 //	ryostore install <category> <id> [--from <dir>]  install-only, no activation
 //	ryostore remove <category> <id>                  receipt-owned removal
+//	ryostore search <category> <query>               live search of a category's whole source
 //
 // A full catalog answers from a disk snapshot so every launch after the first is
 // instant; --refresh rebuilds it live. --category always probes live.
@@ -21,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -35,7 +37,7 @@ func main() {
 // the caller reports one useful line and exits nonzero.
 func dispatch(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("no command; expected catalog, install, remove, check, open, settings, or internal")
+		return fmt.Errorf("no command; expected catalog, install, remove, search, check, open, settings, or internal")
 	}
 	switch args[0] {
 	case "catalog":
@@ -44,6 +46,8 @@ func dispatch(args []string) error {
 		return runInstall(providers(), args[1:])
 	case "remove":
 		return runRemove(providers(), args[1:])
+	case "search":
+		return runSearch(os.Stdout, providers(), args[1:])
 	case "warm":
 		return runWarm(args[1:])
 	case "check":
@@ -55,7 +59,7 @@ func dispatch(args []string) error {
 	case "internal":
 		return runInternal(args[1:])
 	default:
-		return fmt.Errorf("unknown command %q; expected catalog, install, remove, check, warm, open, settings, or internal", args[0])
+		return fmt.Errorf("unknown command %q; expected catalog, install, remove, search, check, warm, open, settings, or internal", args[0])
 	}
 }
 
@@ -280,6 +284,46 @@ func runInstall(provs []Provider, args []string) error {
 		}
 	}
 	return finish(p.Install(ctx, id))
+}
+
+// searcher is a provider whose source is larger than its catalogue, so it can
+// search all of it on demand (the flatpak category lists the popular few and
+// searches every Flathub application).
+type searcher interface {
+	Search(ctx context.Context, query string) ([]Item, error)
+}
+
+// searchTimeout bounds one search so a dead source cannot hold the UI.
+const searchTimeout = 20 * time.Second
+
+// runSearch prints the items one category finds for a query. The query is one
+// argument, passed through whole, so it can never be read as a flag.
+func runSearch(w io.Writer, provs []Provider, args []string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("search needs <category> <query>")
+	}
+	p, ok := providerFor(provs, args[0])
+	if !ok {
+		return fmt.Errorf("unknown category %q", args[0])
+	}
+	s, ok := p.(searcher)
+	if !ok {
+		return fmt.Errorf("category %q does not support search", args[0])
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), searchTimeout)
+	defer cancel()
+	items, err := s.Search(ctx, args[1])
+	if err != nil {
+		return err
+	}
+	if items == nil {
+		items = []Item{}
+	}
+	return json.NewEncoder(w).Encode(struct {
+		Category string `json:"category"`
+		Query    string `json:"query"`
+		Items    []Item `json:"items"`
+	}{args[0], args[1], items})
 }
 
 // localInstaller is a provider that can install a product from a local
