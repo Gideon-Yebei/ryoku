@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Music-reactive bars and visualizers always run in Performance mode.** They no
+  longer pause when Ryoku misses the playing app's audio stream
+  (`quickshell/shell/services/Perf.qml`).
 - **Settings save again when notifications sit bottom right.** That position was
   refused, which blocked every other change; notifications now follow the chosen
   position (`ipc/settings.go`, `modules/notifications/NotificationPopups.qml`).
