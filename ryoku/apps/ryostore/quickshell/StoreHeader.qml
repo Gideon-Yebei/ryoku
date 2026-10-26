@@ -45,6 +45,7 @@ Item {
             "plugins": "部品",
             "omarchy-plugins": "部品",
             "bundles": "束",
+            "flatpak": "応",
             "decors": "飾",
             "launcher-images": "起動",
             "fastfetch-emblems": "徽"

@@ -246,6 +246,7 @@ The public command surface is deliberately small:
 ```text
 ryostore catalog [--refresh]
 ryostore install <category> <id>
+ryostore search <category> <query>
 ryostore open <discover|library|category>
 ryostore settings <category> [id]
 ```
@@ -287,6 +288,32 @@ and installation, not a second runtime copy.
   the category offers Popular, New, and Verified orderings and global search.
   Its thousands of preview and gallery URLs deliberately bypass eager asset
   warming; only visible delegates request their remote media.
+- **Apps (Flatpak):** list up to 300 of the most popular desktop applications
+  from the Flathub collection API, joined with `flatpak list`, so an installed
+  Flathub application outside that ranking is still listed and removable.
+  Flathub is a third-party source: it does not pass through the `ryostore`
+  registry or its screening, so each application carries Flathub's own verified
+  or unverified state in its item data (the detail page does not render it
+  yet) and a link to its Flathub page, and the category description says the
+  store does not review it. Install adds the user `flathub`
+  remote when missing and installs into the user installation, so no privileged
+  prompt is needed; remove targets whichever installation holds the application
+  and keeps its data; a removal from the user installation also uninstalls the
+  runtimes nothing uses any more, since an install pulls in gigabytes of them
+  (the system installation is never swept, it may hold runtimes kept on
+  purpose). An installed application with an update waiting (asked of each
+  installation that holds one, with `flatpak remote-ls --updates`, best effort
+  and bounded) shows UPDATE, which runs `flatpak update` in the installation
+  that holds it. The ranking is cached on disk and served flagged offline when
+  Flathub is unreachable. A search started from the Apps category also asks
+  Flathub's own search (`ryostore search flatpak <query>`, live, up to 30
+  results, queries of two characters or more, debounced in the UI), so an
+  application outside the ranking is still found; the catalogue's own copy of an
+  application wins over the live one because it carries the update state.
+  Flathub matches loosely (typos, keywords, descriptions), so a result need not
+  contain the query text. The icons load lazily like the Omarchy marketplace's
+  media. A host without the `flatpak` command lists the apps greyed out with the
+  reason.
 - **Bundles:** fetch the `ryostore` bundle registry and join it with
   `ryostore-install status`. Partial counts are first-class. Settings owns
   installed bundle status and removal.
