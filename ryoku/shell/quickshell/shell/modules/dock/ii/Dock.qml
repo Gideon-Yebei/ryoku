@@ -364,7 +364,8 @@ Scope {
 
             exclusiveZone: (dock.pinned && reveal) ? unmagnifiedThickness : 0
             WlrLayershell.namespace: "quickshell:dock"
-            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.layer: (GlobalStates.editMode || GlobalStates.editProgress > 0)
+                ? WlrLayer.Overlay : WlrLayer.Bottom
             color: "transparent"
             readonly property bool popupOnThisScreen: {
                 const popup = Stage.GlobalStates.iiDockPopup;

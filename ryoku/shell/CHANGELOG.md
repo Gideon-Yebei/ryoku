@@ -20,6 +20,9 @@
   either the Shima plate or the Ryoku host's curved edges, even at small sizes
   and loud playback (`quickshell/inir/modules/background/widgets/visualizer/VisualizerWidget.qml`,
   `quickshell/shell/modules/desktop/iris/IrisCanvasProvider.qml`).
+- **Pinned dock apps open again and the dock sits behind normal windows.** Running
+  marks update as soon as a window opens, and Stage still shows the dock while editing
+  (`quickshell/shell/modules/dock/`, `quickshell/shell/services/{AppLaunch,Dock}.qml`).
 - **Music-reactive bars and visualizers hear music played through Easy Effects.** They
   listen to the output the music actually plays into instead of only the default one
   (`quickshell/shell/services/Audio.qml`).

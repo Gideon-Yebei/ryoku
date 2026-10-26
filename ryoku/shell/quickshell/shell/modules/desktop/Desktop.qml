@@ -51,6 +51,7 @@ Scope {
 
     // the monitor this instance renders on, bound by the main shell per screen.
     property var screen
+    property bool surfaceReady: false
     // controller hook; the desktop layer defaults on.
     property bool active: true
     property bool widgetsEnabled: true
@@ -641,6 +642,11 @@ Scope {
         // obscured by whatever was in front; Done drops it back under them.
         WlrLayershell.layer: root.stageComposing ? WlrLayer.Top : WlrLayer.Bottom
         WlrLayershell.namespace: "ryoku-widgets"
+        Connections {
+            target: win.contentItem?.Window.window ?? null
+            enabled: !root.surfaceReady
+            function onFrameSwapped() { root.surfaceReady = true }
+        }
         // Text fields and icon dialogs keep their existing counter. The editor
         // borrows the grab only while no other surface or desktop control is
         // asking for keys, so opening a search or inspector never loses its caret.

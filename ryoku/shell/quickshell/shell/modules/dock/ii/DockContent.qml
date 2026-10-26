@@ -2203,7 +2203,7 @@ Item {
         const result = [];
         for (const app of allApps) {
             const toplevels = Array.from(app.toplevels ?? []).filter(toplevel => {
-                const name = windowOutputs.get(toplevel);
+                const name = windowOutputs.get(toplevel) ?? toplevel.output;
                 // Keep an unattributed window visible until Wm can join it.
                 return name === undefined || name === "" || name === targetName;
             });

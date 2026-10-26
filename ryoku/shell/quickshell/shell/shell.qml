@@ -63,6 +63,19 @@ ShellRoot {
     // its outer Store Scene exists; a nested load error must still fall back.
     readonly property bool gokkoRunning: Config.barStyle === "gokko"
         && BarProducts.gokkoReady
+    property var desktopLayersReady: ({})
+    function markDesktopLayerReady(name) {
+        const next = Object.assign({}, desktopLayersReady);
+        next[name] = true;
+        desktopLayersReady = next;
+    }
+    readonly property bool docksMayMount: {
+        const screens = ShellState.screens;
+        if (!screens.length) return false;
+        for (const screen of screens)
+            if (!desktopLayersReady[screen.name]) return false;
+        return true;
+    }
     // One deferred-build wave for the cheap event-driven surfaces (the OSDs and
     // the notification column), armed 1.5 s into boot so a keypress or an
     // arriving toast never waits on a component build. Everything heavier is
@@ -199,6 +212,7 @@ ShellRoot {
             Desktop {
                 id: desktop
                 screen: perScreen.modelData
+                onSurfaceReadyChanged: if (surfaceReady) root.markDesktopLayerReady(perScreen.modelData.name)
                 active: true
                 widgetsEnabled: Tokens.widgetsEnabledFor(perScreen.modelData.name)
                     && !root.gokkoRunning
@@ -309,7 +323,7 @@ ShellRoot {
             UniversalDockHost {
                 id: dockLoader
                 screen: perScreen.modelData
-                surfaceVisible: !root.gokkoRunning
+                surfaceVisible: !root.gokkoRunning && desktop.surfaceReady
             }
 
             // The dock's right-click context menu: a full-screen overlay on the
@@ -553,7 +567,7 @@ ShellRoot {
     // The ii host publishes actions and mounts its auxiliary surfaces only for
     // the selected, enabled design. Other docks do not instantiate the port.
     LazyLoader {
-        active: !root.gokkoRunning
+        active: !root.gokkoRunning && root.docksMayMount
             && Dock.design === "ii" && Dock.cfg("enabled", false)
         LazyLoader {
             activeAsync: true
