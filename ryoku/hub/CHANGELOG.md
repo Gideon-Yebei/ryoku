@@ -28,6 +28,12 @@
   `../shell/matugen/config.toml`).
 
 ### Added
+- **Update now can include the system packages.** Updates has an INCLUDE SYSTEM
+  switch, off by default, saved as `update_system` in the Hub config. When it is
+  on, Update now runs `ryoku update --gui --system`, so the distribution
+  upgrade, kernel included, rides along with the Ryoku packages
+  (`backend/config.go`, `quickshell/pages/UpdatesPage.qml`,
+  `quickshell/schema/UpdatesPage.js`).
 - **General manages people on this computer.** The Users tab lists local
   accounts, sign-in state, roles, permissions and home storage, and lets an
   administrator add or remove people, reset passwords and set storage limits
