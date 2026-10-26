@@ -1,9 +1,3 @@
-// The flatpak provider lists the most popular Flathub applications beside
-// whatever Flathub applications are already installed, and installs or removes
-// them in the user's own Flatpak installation. Flathub is a third-party source:
-// nothing here passes through the ryostore registry, so the catalogue marks each
-// application with Flathub's own verification state and never claims the
-// screening the registry products get.
 package main
 
 import (
@@ -14,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,31 +21,23 @@ import (
 )
 
 const (
-	flatpakCategory = "flatpak"
-	flatpakRemote   = "flathub"
-	// flathubRepoFile is the same remote file `ryoku doctor` adds system-wide.
-	flathubRepoFile = "https://flathub.org/repo/flathub.flatpakrepo"
-	flathubAPI      = "https://flathub.org/api/v2"
-	flathubPageSize = 300
-	// A search sends at most flathubSearchHits results and refuses a query
-	// shorter than flathubQueryMin, which would match nearly everything.
-	flathubSearchHits = 30
-	flathubQueryMin   = 2
-	flathubQueryMax   = 100
-	flathubCache      = "flathub-popular.json"
-	flatpakTimeout    = 30 * time.Minute
-	// flatpakUpdateProbe bounds the update check of one installation, so an
-	// unreachable remote cannot hold the catalogue.
+	flatpakCategory    = "flatpak"
+	flatpakRemote      = "flathub"
+	flathubRepoURL     = "https://dl.flathub.org/repo/"
+	flathubAPI         = "https://flathub.org/api/v2"
+	flathubPageSize    = 300
+	flathubSearchHits  = 30
+	flathubQueryMin    = 2
+	flathubQueryMax    = 100
+	flathubCache       = "flathub-popular.json"
+	flatpakTimeout     = 30 * time.Minute
 	flatpakUpdateProbe = 20 * time.Second
 )
 
-// flatpakIDPattern is the reverse-DNS application id Flatpak itself accepts.
-// Every id reaches an argv, so one that could parse as a flag is refused here.
-var flatpakIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+){2,}$`)
+var flatpakIDPattern = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]*(\.[A-Za-z0-9_-]+){2,}$`)
 
 func validFlatpakID(id string) bool { return len(id) <= 255 && flatpakIDPattern.MatchString(id) }
 
-// flathubHit is the part of a Flathub collection entry the store renders.
 type flathubHit struct {
 	AppID             string   `json:"app_id"`
 	Name              string   `json:"name"`
@@ -72,7 +59,6 @@ type flathubCollection struct {
 	Hits []flathubHit `json:"hits"`
 }
 
-// installedFlatpak is one installed application as `flatpak list` reports it.
 type installedFlatpak struct {
 	ID           string
 	Name         string
@@ -82,17 +68,11 @@ type installedFlatpak struct {
 }
 
 type flatpakProvider struct {
-	// api is the Flathub API base; tests point it at a local server.
-	api string
-	// present reports whether the flatpak command exists on this host.
-	present func() bool
-	// installed lists the applications installed in any installation.
+	api       string
+	present   func() bool
 	installed func(ctx context.Context) ([]installedFlatpak, error)
-	// updates returns the ids that have an update waiting in the named
-	// installations. It is best effort: a failure reads as no updates.
-	updates func(ctx context.Context, installations []string) map[string]bool
-	// run executes flatpak with the given arguments and returns its output.
-	run func(ctx context.Context, args ...string) ([]byte, error)
+	updates   func(ctx context.Context, installations []string) map[string]bool
+	run       func(ctx context.Context, args ...string) ([]byte, error)
 }
 
 func newFlatpakProvider() flatpakProvider {
@@ -100,7 +80,7 @@ func newFlatpakProvider() flatpakProvider {
 	p.present = func() bool { _, err := exec.LookPath("flatpak"); return err == nil }
 	p.run = runFlatpak
 	p.installed = func(ctx context.Context) ([]installedFlatpak, error) {
-		out, err := runFlatpak(ctx, "list", "--app", "--columns=application,name,version,installation,origin")
+		out, err := runFlatpak(ctx, "list", "--app", "--columns=application:full,name:full,version:full,installation:full,origin:full")
 		if err != nil {
 			return nil, err
 		}
@@ -112,28 +92,27 @@ func newFlatpakProvider() flatpakProvider {
 	return p
 }
 
-// pendingFlatpakUpdates asks each installation what it could update. remote-ls
-// reads one installation at a time (the system one by default), so the user one
-// has to be named; a failing installation is skipped rather than failing Load.
 func pendingFlatpakUpdates(ctx context.Context, run func(context.Context, ...string) ([]byte, error), installations []string) map[string]bool {
 	pending := map[string]bool{}
 	for _, installation := range installations {
 		ctx, cancel := context.WithTimeout(ctx, flatpakUpdateProbe)
-		out, err := run(ctx, "remote-ls", "--updates", "--app", "--columns=application", installationFlag(installation))
+		out, err := run(ctx, "remote-ls", "--updates", "--app", "--columns=application:full,origin:full", installationFlag(installation))
 		cancel()
 		if err != nil {
 			continue
 		}
 		for _, line := range strings.Split(string(out), "\n") {
-			if id := strings.TrimSpace(line); validFlatpakID(id) {
-				pending[id] = true
+			fields := strings.Split(line, "\t")
+			if len(fields) == 2 && strings.TrimSpace(fields[1]) == flatpakRemote {
+				if id := strings.TrimSpace(fields[0]); validFlatpakID(id) {
+					pending[installation+"\x00"+id] = true
+				}
 			}
 		}
 	}
 	return pending
 }
 
-// installationFlag names the installation a flatpak command works in.
 func installationFlag(installation string) string {
 	switch installation {
 	case "user":
@@ -163,7 +142,6 @@ func runFlatpak(ctx context.Context, args ...string) ([]byte, error) {
 	return out.Bytes(), err
 }
 
-// parseFlatpakList reads the tab separated rows of `flatpak list --columns=...`.
 func parseFlatpakList(out []byte) []installedFlatpak {
 	var apps []installedFlatpak
 	for _, line := range strings.Split(string(out), "\n") {
@@ -188,19 +166,21 @@ func (p flatpakProvider) Load(ctx context.Context, refresh bool) ([]Item, Source
 	if p.present() && p.installed != nil {
 		installed, _ = p.installed(ctx)
 	}
-	// With no network and no archive the store still shows what is installed, so
-	// Remove keeps working; only a host with neither source reports the error.
 	if err != nil && len(installed) == 0 {
 		return nil, state, err
 	}
 
-	owned := ownedFlathub(installed)
-	usable := p.present()
+	remoteReasons := p.remoteReasons(ctx, installed)
+	owned := ownedFlathub(installed, remoteReasons)
+	_, unavailable := newFlatpakInstallation(remoteReasons)
+	if !p.present() {
+		unavailable = "Flatpak is not installed on this system."
+	}
 	updatable := map[string]bool{}
-	if usable && p.updates != nil && len(owned) > 0 {
+	if p.present() && p.updates != nil && len(owned) > 0 {
 		updatable = p.updates(ctx, installationsOf(owned))
 	}
-	items := flatpakItems(hits, owned, usable, updatable)
+	items := flatpakItems(hits, owned, unavailable, updatable)
 	seen := map[string]bool{}
 	for _, item := range items {
 		seen[item.ID] = true
@@ -214,27 +194,100 @@ func (p flatpakProvider) Load(ctx context.Context, refresh bool) ([]Item, Source
 	sort.Strings(ids)
 	for _, id := range ids {
 		item := flatpakInstalledItem(owned[id])
-		item.UpdateAvailable = updatable[id]
+		item.UpdateAvailable = updatable[owned[id].Installation+"\x00"+id]
 		items = append(items, item)
 	}
 	return items, state, nil
 }
 
-// ownedFlathub indexes the installed applications that came from Flathub.
-func ownedFlathub(installed []installedFlatpak) map[string]installedFlatpak {
+// When an ID exists in both installations, keep the user's existing copy.
+func ownedFlathub(installed []installedFlatpak, remoteReasons map[string]string) map[string]installedFlatpak {
 	owned := map[string]installedFlatpak{}
 	for _, app := range installed {
-		if app.Origin == flatpakRemote {
+		if app.Origin == flatpakRemote && remoteReasons[app.Installation] == "" &&
+			(owned[app.ID].ID == "" || app.Installation == "user") {
 			owned[app.ID] = app
 		}
 	}
 	return owned
 }
 
-// flatpakItems turns Flathub hits into items, dropping what this host cannot
-// or should not list: ids that could be flags, repeats, anything that is not a
-// desktop application, and builds for another architecture.
-func flatpakItems(hits []flathubHit, owned map[string]installedFlatpak, usable bool, updatable map[string]bool) []Item {
+func (p flatpakProvider) remoteReasons(ctx context.Context, installed []installedFlatpak) map[string]string {
+	reasons := map[string]string{}
+	if !p.present() {
+		return reasons
+	}
+	reasons["system"] = p.flathubRemoteReason(ctx, "system")
+	if reasons["system"] != "" {
+		reasons["user"] = p.flathubRemoteReason(ctx, "user")
+	}
+	for _, app := range installed {
+		if app.Origin == flatpakRemote {
+			if _, checked := reasons[app.Installation]; !checked {
+				reasons[app.Installation] = p.flathubRemoteReason(ctx, app.Installation)
+			}
+		}
+	}
+	return reasons
+}
+
+func (p flatpakProvider) holdingFlathub(ctx context.Context, apps []installedFlatpak, id string) (installedFlatpak, string, bool) {
+	var selected installedFlatpak
+	for _, app := range apps {
+		if app.ID == id && app.Origin == flatpakRemote && (selected.ID == "" || app.Installation == "user") {
+			selected = app
+		}
+	}
+	if selected.ID == "" {
+		return installedFlatpak{}, "", false
+	}
+	reason := p.flathubRemoteReason(ctx, selected.Installation)
+	if reason == "" {
+		return selected, "", true
+	}
+	for _, app := range apps {
+		if app.ID == id && app.Origin == flatpakRemote && app.Installation != selected.Installation &&
+			p.flathubRemoteReason(ctx, app.Installation) == "" {
+			return app, "", true
+		}
+	}
+	return installedFlatpak{}, reason, true
+}
+
+func newFlatpakInstallation(reasons map[string]string) (string, string) {
+	if reasons["system"] == "" {
+		return "system", ""
+	}
+	if reason, checked := reasons["user"]; checked && reason == "" {
+		return "user", ""
+	}
+	return "", reasons["system"]
+}
+
+func (p flatpakProvider) flathubRemoteReason(ctx context.Context, installation string) string {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	out, err := p.run(ctx, "remotes", "--columns=name,url", installationFlag(installation))
+	if err != nil {
+		return "Could not check the " + installation + " Flathub remote."
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Split(line, "\t")
+		if len(fields) != 2 || strings.TrimSpace(fields[0]) != flatpakRemote {
+			continue
+		}
+		if remoteURL := strings.TrimSpace(fields[1]); remoteURL == flathubRepoURL || remoteURL == strings.TrimSuffix(flathubRepoURL, "/") {
+			return ""
+		}
+		return "The " + installation + " flathub remote does not point to the official Flathub repository."
+	}
+	if installation == "system" {
+		return "The system Flathub remote is missing. Run ryoku doctor to set it up."
+	}
+	return "The " + installation + " Flathub remote is missing."
+}
+
+func flatpakItems(hits []flathubHit, owned map[string]installedFlatpak, unavailable string, updatable map[string]bool) []Item {
 	arch := flathubArch()
 	items := make([]Item, 0, len(hits))
 	seen := map[string]bool{}
@@ -243,8 +296,8 @@ func flatpakItems(hits []flathubHit, owned map[string]installedFlatpak, usable b
 			continue
 		}
 		seen[hit.AppID] = true
-		item := flatpakItem(hit, owned[hit.AppID], usable)
-		item.UpdateAvailable = item.Installed && updatable[hit.AppID]
+		item := flatpakItem(hit, owned[hit.AppID], unavailable)
+		item.UpdateAvailable = item.Installed && updatable[owned[hit.AppID].Installation+"\x00"+hit.AppID]
 		items = append(items, item)
 	}
 	return items
@@ -282,8 +335,6 @@ func hasArch(arches []string, arch string) bool {
 	return false
 }
 
-// popular fetches the top of Flathub's popularity ranking. A failed fetch serves
-// the last copy on disk, flagged offline, like every registry source.
 func (p flatpakProvider) popular(ctx context.Context, refresh bool) ([]flathubHit, SourceState, error) {
 	file := filepath.Join(extrasCacheDir(), flathubCache)
 	if !refresh {
@@ -315,7 +366,15 @@ func (p flatpakProvider) popular(ctx context.Context, refresh bool) ([]flathubHi
 }
 
 func mustRead(path string) []byte {
-	b, _ := os.ReadFile(path)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	b, err := io.ReadAll(io.LimitReader(f, maxBody+1))
+	if err != nil || len(b) > maxBody {
+		return nil
+	}
 	return b
 }
 
@@ -334,10 +393,12 @@ func (p flatpakProvider) fetchPopular(ctx context.Context) ([]byte, error) {
 	return p.flathub(ctx, http.MethodGet, fmt.Sprintf("/collection/popular?page=1&per_page=%d", flathubPageSize), nil)
 }
 
-// flathub performs one bounded request against the Flathub API. payload, when
-// set, is sent as the JSON body.
 func (p flatpakProvider) flathub(ctx context.Context, method, path string, payload any) ([]byte, error) {
-	url := strings.TrimRight(p.api, "/") + path
+	base, err := url.Parse(p.api)
+	if err != nil {
+		return nil, err
+	}
+	endpoint := strings.TrimRight(p.api, "/") + path
 	ctx, cancel := context.WithTimeout(ctx, cacheTimeout)
 	defer cancel()
 	var body io.Reader
@@ -348,32 +409,46 @@ func (p flatpakProvider) flathub(ctx context.Context, method, path string, paylo
 		}
 		body = bytes.NewReader(encoded)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, body)
 	if err != nil {
 		return nil, err
 	}
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	resp, err := http.DefaultClient.Do(req)
+	client := http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 || req.URL.Scheme != base.Scheme || req.URL.Host != base.Host {
+			return errors.New("Flathub redirected outside its API origin")
+		}
+		return nil
+	}}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
+		return nil, fmt.Errorf("%s: %s", endpoint, resp.Status)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBody+1))
 	if err != nil {
 		return nil, err
 	}
 	if len(data) > maxBody {
-		return nil, fmt.Errorf("%s: response over %d bytes", url, maxBody)
+		return nil, fmt.Errorf("%s: response over %d bytes", endpoint, maxBody)
 	}
 	return data, nil
 }
 
-func flatpakItem(hit flathubHit, owned installedFlatpak, usable bool) Item {
+func flathubIcon(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host != "dl.flathub.org" || u.User != nil {
+		return ""
+	}
+	return raw
+}
+
+func flatpakItem(hit flathubHit, owned installedFlatpak, unavailable string) Item {
 	verification := "unverified"
 	if hit.Verified {
 		verification = "verified"
@@ -384,7 +459,7 @@ func flatpakItem(hit flathubHit, owned installedFlatpak, usable bool) Item {
 		Name:               firstNonEmpty(hit.Name, owned.Name, hit.AppID),
 		Summary:            strings.TrimSpace(hit.Summary),
 		Description:        strings.Join(strings.Fields(hit.Description), " "),
-		Art:                hit.Icon,
+		Art:                flathubIcon(hit.Icon),
 		Author:             hit.Developer,
 		Upstream:           "https://flathub.org/apps/" + hit.AppID,
 		License:            hit.License,
@@ -404,12 +479,12 @@ func flatpakItem(hit flathubHit, owned installedFlatpak, usable bool) Item {
 	if owned.Installation != "" {
 		item.Metadata["installation"] = owned.Installation
 	}
-	markFlatpakUsable(&item, usable)
+	if owned.ID == "" {
+		markFlatpakUsable(&item, unavailable)
+	}
 	return item
 }
 
-// flatpakInstalledItem lists an installed application that is outside the top of
-// the ranking, so it can still be found in the Library and removed.
 func flatpakInstalledItem(app installedFlatpak) Item {
 	item := Item{
 		ID:                 app.ID,
@@ -417,7 +492,7 @@ func flatpakInstalledItem(app installedFlatpak) Item {
 		Name:               firstNonEmpty(app.Name, app.ID),
 		Upstream:           "https://flathub.org/apps/" + app.ID,
 		Kind:               "flatpak",
-		VerificationStatus: "unverified",
+		VerificationStatus: "unknown",
 		Installed:          true,
 		InstalledVersion:   app.Version,
 		Metadata:           map[string]any{"provider": "Flathub", "installation": app.Installation},
@@ -425,13 +500,13 @@ func flatpakInstalledItem(app installedFlatpak) Item {
 	return item
 }
 
-func markFlatpakUsable(item *Item, usable bool) {
-	if usable {
+func markFlatpakUsable(item *Item, reason string) {
+	if reason == "" {
 		return
 	}
 	item.Unavailable = true
 	item.UnavailableEdition = true
-	item.UnavailableReason = "Flatpak is not installed on this system."
+	item.UnavailableReason = reason
 }
 
 func flathubTags(hit flathubHit) []string {
@@ -464,10 +539,6 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// Install puts the application in the user installation, so no privileged
-// prompt is needed; the user remote is added when missing. An application that
-// is already installed is updated in the installation that holds it instead,
-// because that is what the store's UPDATE button runs.
 func (p flatpakProvider) Install(ctx context.Context, id string) error {
 	if !validFlatpakID(id) {
 		return fmt.Errorf("invalid flatpak id %q", id)
@@ -478,28 +549,29 @@ func (p flatpakProvider) Install(ctx context.Context, id string) error {
 	ctx, cancel := context.WithTimeout(ctx, flatpakTimeout)
 	defer cancel()
 	reportProgressNow(ctx, "apply", 0, 0)
-	if apps, err := p.installed(ctx); err == nil {
-		for _, app := range apps {
-			if app.ID == id && app.Origin == flatpakRemote {
-				if out, err := p.run(ctx, "update", "--noninteractive", "--assumeyes", installationFlag(app.Installation), id); err != nil {
-					return flatpakError("update "+id, out, err)
-				}
-				return nil
-			}
+	apps, err := p.installed(ctx)
+	if err != nil {
+		return flatpakError("list installed applications", nil, err)
+	}
+	if app, reason, found := p.holdingFlathub(ctx, apps, id); found {
+		if reason != "" {
+			return errors.New(reason)
 		}
+		if out, err := p.run(ctx, "update", "--noninteractive", "--assumeyes", installationFlag(app.Installation), id); err != nil {
+			return flatpakError("update "+id, out, err)
+		}
+		return nil
 	}
-	if out, err := p.run(ctx, "remote-add", "--user", "--if-not-exists", flatpakRemote, flathubRepoFile); err != nil {
-		return flatpakError("add the Flathub remote", out, err)
+	installation, reason := newFlatpakInstallation(p.remoteReasons(ctx, nil))
+	if reason != "" {
+		return errors.New(reason)
 	}
-	if out, err := p.run(ctx, "install", "--user", "--noninteractive", "--assumeyes", flatpakRemote, id); err != nil {
+	if out, err := p.run(ctx, "install", installationFlag(installation), "--noninteractive", "--assumeyes", flatpakRemote, id); err != nil {
 		return flatpakError("install "+id, out, err)
 	}
 	return nil
 }
 
-// Remove uninstalls the application from whichever installation holds it.
-// Its user data stays, as it does for a native package. A removal from the
-// user installation also frees the runtimes nothing uses any more.
 func (p flatpakProvider) Remove(ctx context.Context, id string) error {
 	if !validFlatpakID(id) {
 		return fmt.Errorf("invalid flatpak id %q", id)
@@ -513,30 +585,15 @@ func (p flatpakProvider) Remove(ctx context.Context, id string) error {
 	if err != nil {
 		return flatpakError("list installed applications", nil, err)
 	}
-	args := []string{"uninstall", "--noninteractive", "--assumeyes"}
-	found := false
-	scope := ""
-	for _, app := range apps {
-		if app.ID == id {
-			found = true
-			scope = app.Installation
-			args = append(args, installationFlag(app.Installation))
-			break
-		}
-	}
+	app, reason, found := p.holdingFlathub(ctx, apps, id)
 	if !found {
-		return fmt.Errorf("%s is not installed", id)
+		return fmt.Errorf("%s is not installed from Flathub", id)
 	}
-	if out, err := p.run(ctx, append(args, id)...); err != nil {
+	if reason != "" {
+		return errors.New(reason)
+	}
+	if out, err := p.run(ctx, "uninstall", "--noninteractive", "--assumeyes", installationFlag(app.Installation), id); err != nil {
 		return flatpakError("remove "+id, out, err)
-	}
-	if scope == "user" {
-		// The runtimes an install pulled in are gigabytes and nothing else
-		// frees them. Only the user installation is swept: the store is what
-		// fills it, whereas the system one may hold runtimes the user
-		// installed on purpose. The app is already gone, so a failure here
-		// is not a failed removal.
-		_, _ = p.run(ctx, "uninstall", "--unused", "--noninteractive", "--assumeyes", "--user")
 	}
 	return nil
 }
@@ -554,9 +611,6 @@ func lastLine(out []byte) string {
 	return strings.TrimSpace(lines[len(lines)-1])
 }
 
-// Search asks Flathub's own search, so an application outside the popular
-// ranking can still be found. The result is live, never cached, and carries the
-// installed state of this host.
 func (p flatpakProvider) Search(ctx context.Context, query string) ([]Item, error) {
 	query = strings.Join(strings.Fields(query), " ")
 	if r := []rune(query); len(r) > flathubQueryMax {
@@ -575,10 +629,15 @@ func (p flatpakProvider) Search(ctx context.Context, query string) ([]Item, erro
 	if err := json.Unmarshal(raw, &found); err != nil {
 		return nil, fmt.Errorf("flathub search: %w", err)
 	}
-	usable := p.present()
+	unavailable := ""
 	var installed []installedFlatpak
-	if usable && p.installed != nil {
+	if p.present() && p.installed != nil {
 		installed, _ = p.installed(ctx)
 	}
-	return flatpakItems(found.Hits, ownedFlathub(installed), usable, nil), nil
+	reasons := p.remoteReasons(ctx, installed)
+	_, unavailable = newFlatpakInstallation(reasons)
+	if !p.present() {
+		unavailable = "Flatpak is not installed on this system."
+	}
+	return flatpakItems(found.Hits, ownedFlathub(installed, reasons), unavailable, nil), nil
 }

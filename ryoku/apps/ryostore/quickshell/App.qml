@@ -48,14 +48,18 @@ Rectangle {
     property string pendingRoute: ""
     onNavigationCategoriesChanged: if (app.pendingRoute !== "" && app.validRoute(app.pendingRoute)) app.openRoute(app.pendingRoute)
 
-    // A search started from the Apps category also asks Flathub, so an
-    // application outside the popular few is found. The live results are marked
-    // so the text filter keeps them, and the catalogue's own copy wins when an
-    // application is in both (it carries the update state).
     readonly property bool remoteScope: searchOpen && searchContext !== null
             && String(searchContext.categoryID || "") === "flatpak"
     readonly property string remoteQuery: remoteScope ? query.trim() : ""
+    readonly property var remoteMatches: {
+        const matches = {};
+        if (remoteScope && Store.remoteResultQuery === remoteQuery)
+            Store.remoteItems.forEach(item => matches[StoreLogic.itemKey(item)] = true);
+        return matches;
+    }
     readonly property var remoteExtras: {
+        if (!remoteScope || Store.remoteResultQuery !== remoteQuery)
+            return [];
         const known = {};
         Store.items.forEach(item => known[StoreLogic.itemKey(item)] = true);
         return Store.remoteItems
@@ -68,12 +72,11 @@ Rectangle {
                 });
     }
     onRemoteQueryChanged: {
-        if (remoteQuery.length < 2) {
+        Store.clearRemote();
+        if (remoteQuery.length < 2)
             remoteDebounce.stop();
-            Store.clearRemote();
-        } else {
+        else
             remoteDebounce.restart();
-        }
     }
     Timer {
         id: remoteDebounce
@@ -86,6 +89,8 @@ Rectangle {
             .map(item => {
                 const copy = {};
                 Object.keys(item).forEach(key => copy[key] = item[key]);
+                if (app.remoteMatches[StoreLogic.itemKey(item)] === true)
+                    copy.remoteMatch = true;
                 const category = Store.category(item.category);
                 copy.categoryName = StoreLogic.categoryName(item, category);
                 copy.searchIndex = StoreLogic.searchText(copy);

@@ -5,7 +5,6 @@
 //	ryostore catalog [--refresh] [--category <id>]   normalized catalogue, JSON
 //	ryostore install <category> <id> [--from <dir>]  install-only, no activation
 //	ryostore remove <category> <id>                  receipt-owned removal
-//	ryostore search <category> <query>               live search of a category's whole source
 //
 // A full catalog answers from a disk snapshot so every launch after the first is
 // instant; --refresh rebuilds it live. --category always probes live.
@@ -111,7 +110,7 @@ func runCatalog(w io.Writer, provs []Provider, args []string) error {
 		// which products run here, and after a compositor switch that answer is
 		// the old one. One whose built-in styles read differently predates this
 		// binary.
-		if data, err := os.ReadFile(snapshot); err == nil && len(data) > 0 && !snapshotOffline(data) && !snapshotForeignWindowManager(data) && !snapshotStaleBuiltins(data) {
+		if data, err := os.ReadFile(snapshot); err == nil && len(data) > 0 && !snapshotOffline(data) && !snapshotForeignWindowManager(data) && !snapshotStaleBuiltins(data) && !snapshotProviderMismatch(data, provs) && !snapshotFlatpakRemoteMismatch(data, provs) {
 			_, err := w.Write(data)
 			return err
 		}
@@ -138,6 +137,81 @@ func runCatalog(w io.Writer, provs []Provider, args []string) error {
 	}
 	_, err = w.Write(data)
 	return err
+}
+
+func snapshotProviderMismatch(data []byte, provs []Provider) bool {
+	var s struct {
+		Categories []struct {
+			ID string `json:"id"`
+		} `json:"categories"`
+	}
+	if json.Unmarshal(data, &s) != nil || len(s.Categories) != len(provs) {
+		return true
+	}
+	for i, p := range provs {
+		if s.Categories[i].ID != p.Category().ID {
+			return true
+		}
+	}
+	return false
+}
+
+func snapshotFlatpakRemoteMismatch(data []byte, provs []Provider) bool {
+	var p flatpakProvider
+	found := false
+	for _, provider := range provs {
+		if flatpak, ok := provider.(flatpakProvider); ok {
+			p, found = flatpak, true
+			break
+		}
+	}
+	if !found {
+		return false
+	}
+	var snapshot struct {
+		Items []struct {
+			Category          string         `json:"category"`
+			Installed         bool           `json:"installed"`
+			UnavailableReason string         `json:"unavailableReason"`
+			Metadata          map[string]any `json:"metadata"`
+		} `json:"items"`
+	}
+	if json.Unmarshal(data, &snapshot) != nil {
+		return true
+	}
+	present := p.present()
+	systemReason := "Flatpak is not installed on this system."
+	checked := map[string]string{}
+	if present {
+		checked = p.remoteReasons(context.Background(), nil)
+		_, systemReason = newFlatpakInstallation(checked)
+	}
+	for _, item := range snapshot.Items {
+		if item.Category != flatpakCategory {
+			continue
+		}
+		if !item.Installed {
+			if item.UnavailableReason != systemReason {
+				return true
+			}
+			continue
+		}
+		installation, ok := item.Metadata["installation"].(string)
+		if !ok || !present {
+			return true
+		}
+		if reason, ok := checked[installation]; ok {
+			if reason != "" {
+				return true
+			}
+		} else {
+			checked[installation] = p.flathubRemoteReason(context.Background(), installation)
+			if checked[installation] != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // snapshotOffline reports whether a cached catalogue was written while a source
@@ -286,18 +360,12 @@ func runInstall(provs []Provider, args []string) error {
 	return finish(p.Install(ctx, id))
 }
 
-// searcher is a provider whose source is larger than its catalogue, so it can
-// search all of it on demand (the flatpak category lists the popular few and
-// searches every Flathub application).
 type searcher interface {
 	Search(ctx context.Context, query string) ([]Item, error)
 }
 
-// searchTimeout bounds one search so a dead source cannot hold the UI.
 const searchTimeout = 20 * time.Second
 
-// runSearch prints the items one category finds for a query. The query is one
-// argument, passed through whole, so it can never be read as a flag.
 func runSearch(w io.Writer, provs []Provider, args []string) error {
 	if len(args) != 2 {
 		return fmt.Errorf("search needs <category> <query>")

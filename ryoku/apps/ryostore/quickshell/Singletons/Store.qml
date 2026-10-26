@@ -31,14 +31,12 @@ Singleton {
     property string revision: ""
     property bool _forced: false
     property string _checkOutput: ""
-    // Results of a live search of a category's whole source (the flatpak
-    // category lists the popular few and searches every Flathub application).
-    // They stay apart from `items` so the catalogue snapshot is never altered.
     property var remoteItems: []
+    property string remoteResultQuery: ""
     property bool remoteSearching: false
     property string remoteError: ""
-    property string _remoteWanted: ""       // "category\nquery" the UI still wants
-    property string _remoteRunning: ""      // "category\nquery" the process is answering
+    property string _remoteWanted: ""
+    property string _remoteRunning: ""
     property string _remoteOutput: ""
     property string _remoteErrorText: ""
     property string _op: "install"            // which flow installProc is running
@@ -107,14 +105,13 @@ Singleton {
         return null;
     }
 
-    // Ask a category to search its whole source. One process runs at a time and
-    // only the newest wanted query is ever answered into `remoteItems`, so a slow
-    // reply to an older query cannot overwrite a newer one.
     function searchRemote(category, query) {
         const wanted = String(category) + "\n" + String(query);
         if (wanted === _remoteWanted)
             return;
         _remoteWanted = wanted;
+        remoteResultQuery = "";
+        remoteItems = [];
         remoteError = "";
         remoteSearching = true;
         if (!remoteProc.running)
@@ -123,6 +120,7 @@ Singleton {
 
     function clearRemote() {
         _remoteWanted = "";
+        remoteResultQuery = "";
         remoteItems = [];
         remoteError = "";
         remoteSearching = false;
@@ -165,6 +163,8 @@ Singleton {
         catalogProc.running = false;
         installProc.running = false;
         checkProc.running = false;
+        clearRemote();
+        remoteProc.running = false;
     }
 
     function install(item, dither, components) {
@@ -363,7 +363,6 @@ Singleton {
                 return;
             }
             if (root._remoteWanted !== answered) {
-                // The query moved on while this one ran: answer the newest.
                 root._startRemote();
                 return;
             }
@@ -377,6 +376,7 @@ Singleton {
                 const res = JSON.parse(root._remoteOutput);
                 if (!Array.isArray(res.items))
                     throw new Error("search items are missing");
+                root.remoteResultQuery = answered.split("\n").slice(1).join("\n");
                 root.remoteItems = res.items.slice();
             } catch (e) {
                 root.remoteItems = [];
