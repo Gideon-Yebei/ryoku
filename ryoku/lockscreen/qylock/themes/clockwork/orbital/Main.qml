@@ -239,7 +239,7 @@ Rectangle {
             readonly property real secR: 480 * s 
 
             Rectangle {
-                id: indicatorPill; z: 1; x: clockContainer.cx + 230 * s; anchors.verticalCenter: parent.verticalCenter
+                id: indicatorPill; objectName: "indicatorPill"; z: 1; x: clockContainer.cx + 230 * s; anchors.verticalCenter: parent.verticalCenter
                 width: 330 * s; height: 90 * s; radius: 45 * s; color: root.pillColor; border.color: root.pillBorder; border.width: 1 * s
                 Rectangle { x: 170 * s; anchors.verticalCenter: parent.verticalCenter; width: 1 * s; height: 35 * s; color: root.pillInnerLine }
             }
@@ -258,6 +258,7 @@ Rectangle {
 
             Item {
                 id: minuteRing
+                objectName: "minuteRing"; z: 10
                 x: clockContainer.cx - clockContainer.minR
                 y: clockContainer.cy - clockContainer.minR
                 width: clockContainer.minR * 2
@@ -306,6 +307,7 @@ Rectangle {
 
             Item {
                 id: secondRing
+                objectName: "secondRing"; z: 10
                 x: clockContainer.cx - clockContainer.secR
                 y: clockContainer.cy - clockContainer.secR
                 width: clockContainer.secR * 2
