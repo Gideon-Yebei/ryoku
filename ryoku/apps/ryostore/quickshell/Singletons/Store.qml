@@ -409,6 +409,7 @@ Singleton {
         onExited: code => {
             if (code !== 0)
                 return;
+            const reloading = catalogProc.running;
             try {
                 const res = JSON.parse(root._checkOutput);
                 root.updateAvailable = res.updateAvailable === true;
@@ -420,10 +421,11 @@ Singleton {
             // The probe rebuilt the catalogue live and refreshed the launch
             // snapshot. Installed state is local and not part of the revision,
             // so a part installed outside the store (Settings, a terminal) would
-            // otherwise stay missing until a manual refresh.
-            if (catalogProc.running)
+            // otherwise stay missing until a manual refresh. A stale rebuild
+            // started just above is already live, so it needs no second read.
+            if (reloading)
                 root._reloadAfterCheck = true;
-            else
+            else if (!catalogProc.running)
                 root.refresh(false);
         }
     }
