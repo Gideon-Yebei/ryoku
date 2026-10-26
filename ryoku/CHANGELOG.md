@@ -15,6 +15,9 @@
 - **Shima's workspace card shows the apps on every workspace.** Opaque
   workspace and window IDs now pass through the neutral window-manager frames
   without numeric coercion (`shell/quickshell/inir/modules/iris/components/IrisColumnStrip.qml`).
+- **Shima lists floating windows in its workspace card.** File managers, Ryoku
+  Hub, and other real application windows now appear whether tiled or floating
+  (`shell/quickshell/inir/modules/iris/components/IrisColumnStrip.qml`).
 - **Super+Space closes when the desktop around it is clicked.** Hero, OkShell,
   and Kairos now keep search focus and click-away dismissal in one surface,
   matching the other launchers without disturbing Escape, dragging, or answer
