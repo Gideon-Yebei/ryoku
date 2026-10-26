@@ -1,11 +1,24 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Settings save again when notifications sit bottom right.** That position was
+  refused, which blocked every other change; notifications now follow the chosen
+  position (`ipc/settings.go`, `modules/notifications/NotificationPopups.qml`).
+- **The Hero launcher loads and opens again.** The full-screen click-away surface
+  now follows every lifecycle phase, and result drawer teardown no longer drives
+  a nested animation directly
+  (`quickshell/shell/modules/launcher/variants/hero/`).
 
 ### Added
 - Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
 
 ### Fixed
+- **Every spectrum visualizer reacts at ordinary playback levels.** The shared
+  native feed's silence state now wakes desktop looks instead of an unreachable
+  average-energy threshold (`quickshell/shell/modules/visualizer/{Motion,AuraMotion}.qml`).
+- **Switching to or from a live wallpaper no longer stutters.** Previews keep the
+  running player, and new clips start at once while a background encode prepares
+  a lighter copy for later (`ryogami/daemon/`).
 - **Desktop power actions are one right-click away.** The desktop menu now keeps
   Log out, Restart and Power off together in a compact trailing group, with the
   shell's usual confirmation before an action runs

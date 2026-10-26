@@ -69,7 +69,7 @@ const (
 // generic desktop concepts only.
 var (
 	positionValues        = []string{"Left", "Right", "Top", "TopLeft", "TopRight", "Bottom", "BottomLeft", "BottomRight"}
-	notificationPosValues = []string{"Left", "Right", "Center"}
+	notificationPosValues = []string{"Left", "Right", "Center", "BottomRight"}
 	menuExpansionValues   = []string{"AlwaysExpanded", "ExpandBothWays", "ExpandUp", "ExpandDown"}
 	tempUnitValues        = []string{"Metric", "Imperial"}
 	contentFitValues      = []string{"Contain", "Cover", "Fill", "ScaleDown", "Center", "Tile"}

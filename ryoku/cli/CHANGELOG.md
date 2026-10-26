@@ -1,6 +1,9 @@
 # Ryoku CLI Changelog
 
 ## Unreleased
+- **Doctor stops reporting user service activation after it is fixed.** The user
+  service record is now saved even when nothing needs enabling
+  (`internal/host/service_manifest.go`).
 
 ### Added
 - **Doctor reports memory pressure without changing the system.** Its shareable

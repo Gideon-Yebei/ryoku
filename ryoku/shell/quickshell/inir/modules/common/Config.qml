@@ -102,7 +102,7 @@ Singleton {
         let optionsDirty = false
         for (const path of Object.keys(patches)) {
             if (path === "time.format")
-                RyokuUi.TimeFormat.set24h(!/a/i.test(String(patches[path])));
+                root.pending["general.clock_format_24_h"] = RyokuUi.TimeFormat.is24HourPattern(patches[path])
             if (root.sharedKeys.includes(path)) {
                 root.pending[path] = patches[path]
                 continue

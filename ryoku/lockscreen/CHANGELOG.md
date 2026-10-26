@@ -20,6 +20,14 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **Orbital follows every clock-format control and keeps its pointer aligned.**
+  Shima, Python and the clock app now update the same preference as the Hub,
+  while the highlighted marker follows the rendered rings instead of jumping
+  ahead (`qylock/themes/clockwork/orbital/Main.qml`,
+  `../shell/quickshell/inir/modules/common/Config.qml`,
+  `../shell/quickshell/stage/modules/common/Config.qml`,
+  `../ui/Singletons/TimeFormat.qml`, `tests/lock-time-format.qml`,
+  `tests/lock-date-rollover.qml`).
 - **Orbital's clock pointer moves smoothly and stays complete.** The minute and
   second rings now interpolate only their transforms between one-second clock
   samples instead of rebuilding every tick on every frame

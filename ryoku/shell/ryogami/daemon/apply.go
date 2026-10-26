@@ -61,18 +61,17 @@ func (d *daemon) applyWallpaperReasonRecord(reason, wpType, path, mode string, o
 	}
 	fit := contentFit()
 	isVideo := wpType == "video"
+	preview := reason == "preview"
 	paint := path
 	prefs := wallPrefs()
-	// Stop any Wallpaper Engine scene on these outputs so the two renderers do not overdraw.
-	if d.paper != nil {
-		_ = d.paper.stop(stopTargets(outputs))
-	}
-	// A switch away from a live clip must drop any transcode still in flight
-	// even when no process is tracked yet; otherwise the clip the user moved
-	// past maps its full-screen surface over the new wallpaper when its encode
-	// finally finishes. The ryogami engine's Play stops the player itself.
-	if !isVideo || prefs.Engine == "in_shell" {
-		d.video.StopOutputs(stopTargets(outputs))
+	// Preview paints over a live renderer without restarting it.
+	if !preview {
+		if d.paper != nil {
+			_ = d.paper.stop(stopTargets(outputs))
+		}
+		if !isVideo || prefs.Engine == "in_shell" {
+			d.video.StopOutputs(stopTargets(outputs))
+		}
 	}
 	if isVideo {
 		if still := liveStill(path, d.config().videoFrame()); still != "" {
@@ -148,7 +147,10 @@ func (d *daemon) applyWallpaperReasonRecord(reason, wpType, path, mode string, o
 			tr = picked
 		}
 	}
-	token := d.beginPaint(outputs, path)
+	var token paintToken
+	if !preview {
+		token = d.beginPaint(outputs, path)
+	}
 	if len(outputs) == 0 || contains(outputs, "*") {
 		if reason == "preview" {
 			d.surface.showPreview(paint, fit, tr, frameLive, live, videoClip{})

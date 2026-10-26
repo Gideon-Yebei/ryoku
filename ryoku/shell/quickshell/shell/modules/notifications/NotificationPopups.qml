@@ -35,11 +35,8 @@ PanelWindow {
     // These are multiplied by `us` above (1.0 = the base), the only scale term;
     // the column does not otherwise grow with monitor or accessibility font scale.
 
-    // Popup anchoring (contract 07 sec 7): Left -> top+left, Right (default) ->
-    // top+right, Center -> top only (horizontally centred). The live setting is
-    // notifications.notification_position (contract 14, owned by the settings
-    // slice); it defaults to Right, the reference default, until that key lands.
-    property string position: "Right"
+    property string position: Config.notifications && Config.notifications.notification_position
+        ? Config.notifications.notification_position : "Right"
     // popup_window_margins (contract 07 sec 8), default 0.
     property real margin: 0
 
@@ -69,12 +66,14 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     WlrLayershell.namespace: "ryoku-notifications"
 
-    anchors.top: true
+    anchors.top: position !== "BottomRight"
+    anchors.bottom: position === "BottomRight"
     anchors.left: position === "Left"
-    anchors.right: position === "Right"
+    anchors.right: position === "Right" || position === "BottomRight"
     margins.top: inset + margin
     margins.left: inset + margin
     margins.right: inset + margin
+    margins.bottom: inset + margin
 
     implicitWidth: 400 * win.us
     // The surface is as tall as its cards, but never shorter than a card that is
@@ -175,6 +174,7 @@ PanelWindow {
         spacing: 14 * win.us
         interactive: false
         model: cards
+        verticalLayoutDirection: win.position === "BottomRight" ? ListView.BottomToTop : ListView.TopToBottom
 
         // Physical dismiss and arrival (contract 12 sec 5, eye-candy pass): a
         // toast is flicked off the edge it lives on rather than fading in place,
@@ -236,7 +236,8 @@ PanelWindow {
                 : shippedLoader.item ? shippedLoader.item.implicitHeight : 0
             height: implicitHeight
             transformOrigin: win.position === "Left" ? Item.TopLeft
-                : win.position === "Center" ? Item.Top : Item.TopRight
+                : win.position === "Center" ? Item.Top
+                : win.position === "BottomRight" ? Item.BottomRight : Item.TopRight
 
             Loader {
                 id: shippedLoader

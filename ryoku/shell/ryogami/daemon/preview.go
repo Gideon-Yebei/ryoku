@@ -17,9 +17,10 @@ import (
 // given; empty means every output), the still it paints, and the wallpaper
 // name that was current when the preview began, which the clear restores.
 type previewState struct {
-	outputs  []string
-	path     string
-	prevName string
+	outputs   []string
+	path      string
+	prevName  string
+	committed wallFrame
 }
 
 func mergePreviewOutputs(current, next []string, fresh bool) []string {
@@ -61,14 +62,16 @@ func (d *daemon) previewWallpaper(path string, outputs []string) error {
 	defer d.previewMu.Unlock()
 	fresh := d.preview == nil
 	prevName := ""
+	var committed wallFrame
 	if fresh {
 		prevName = d.currentName()
+		committed = d.surface.snapshot()
 	}
 	if err := d.paintWallpaperReason("preview", "static", path, "set", outputs, nil, nil); err != nil {
 		return err
 	}
 	if fresh {
-		d.preview = &previewState{prevName: prevName}
+		d.preview = &previewState{prevName: prevName, committed: committed}
 	}
 	d.preview.outputs = mergePreviewOutputs(d.preview.outputs, outputs, fresh)
 	d.preview.path = path
@@ -102,7 +105,7 @@ func (d *daemon) clearPreview() error {
 		return nil
 	}
 	d.preview = nil
-	d.repaintCommitted(st.outputs)
+	d.surface.restorePreview(st.committed, st.outputs)
 	if st.prevName != "" {
 		d.setCurrent(st.prevName)
 	}
