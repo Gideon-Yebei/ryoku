@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -217,10 +218,58 @@ func TestApplySupersedesPreview(t *testing.T) {
 	}
 }
 
+func TestApplyMatchingPreviewDoesNotRestartReveal(t *testing.T) {
+	d := previewTestDaemon(t)
+	preview := previewTestStill(t, d, "preview.png")
+	if err := d.previewWallpaper(preview, nil); err != nil {
+		t.Fatal(err)
+	}
+	before := d.surface.snapshot().Default.Revision
+	if err := d.applyWallpaper("static", preview, "set", nil, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	frame := d.surface.snapshot().Default
+	if frame.Revision != before {
+		t.Fatalf("matching apply revision=%d, want preview revision %d", frame.Revision, before)
+	}
+	if frame.Preview {
+		t.Fatal("matching apply left the frame flagged as a preview")
+	}
+}
+
 func TestClearPreviewWithoutPreviewIsNoOp(t *testing.T) {
 	d := previewTestDaemon(t)
 	if err := d.clearPreview(); err != nil {
 		t.Fatalf("clear with no live preview: %v", err)
+	}
+}
+
+func TestPreviewOverLiveKeepsRenderer(t *testing.T) {
+	d := previewTestDaemon(t)
+	poster := previewTestStill(t, d, "poster.png")
+	preview := previewTestStill(t, d, "preview.png")
+	player := &liveProc{cmd: &exec.Cmd{}, output: ""}
+	d.video.procs[""] = player
+	d.video.slotGen[""] = 1
+	d.video.path = "clip.mp4"
+	d.video.outputs = []string{"*"}
+	d.surface.show(poster, "Cover", nil, true, true, videoClip{})
+
+	if err := d.previewWallpaper(preview, nil); err != nil {
+		t.Fatal(err)
+	}
+	if d.video.procs[""] != player {
+		t.Fatal("preview stopped the live renderer")
+	}
+	if err := d.clearPreview(); err != nil {
+		t.Fatal(err)
+	}
+	if d.video.procs[""] != player {
+		t.Fatal("clear restarted the live renderer")
+	}
+	frame := d.surface.snapshot().Default
+	if frame.Path != poster || !frame.Live || frame.Preview {
+		t.Fatalf("restored frame=(%q, live=%v, preview=%v)", frame.Path, frame.Live, frame.Preview)
 	}
 }
 

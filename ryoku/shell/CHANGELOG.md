@@ -16,6 +16,9 @@
 - **Every spectrum visualizer reacts at ordinary playback levels.** The shared
   native feed's silence state now wakes desktop looks instead of an unreachable
   average-energy threshold (`quickshell/shell/modules/visualizer/{Motion,AuraMotion}.qml`).
+- **Switching to or from a live wallpaper no longer stutters.** Previews keep the
+  running player, and new clips start at once while a background encode prepares
+  a lighter copy for later (`ryogami/daemon/`).
 - **Desktop power actions are one right-click away.** The desktop menu now keeps
   Log out, Restart and Power off together in a compact trailing group, with the
   shell's usual confirmation before an action runs
