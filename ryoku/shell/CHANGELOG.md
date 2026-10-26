@@ -6,6 +6,10 @@
   of the connected one reported the link as down; a second Wi-Fi adapter had
   the same problem. It now reports the connected device, and with nothing up
   reaches a usable adapter first (`ipc/network.go`).
+- **Microphone level popups no longer follow app gain changes.** Shell controls
+  and explicit requests still show them; microphone mute and speaker keys and
+  knobs still show (`quickshell/shell/services/OsdFeed.qml`,
+  `quickshell/{shell/modules,inir/}`).
 - **Music-reactive bars and visualizers hear music played through Easy Effects.** They
   listen to the output the music actually plays into instead of only the default one
   (`quickshell/shell/services/Audio.qml`).
