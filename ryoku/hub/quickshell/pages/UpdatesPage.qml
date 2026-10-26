@@ -83,6 +83,29 @@ Item {
 
     Process { id: saveInterval }
 
+    // Update now also takes the distribution's packages (`ryoku update
+    // --system`). Off until the user switches it on, since it upgrades the
+    // base system and the kernel.
+    property bool systemFull: false
+
+    function setSystemFull(on) {
+        if (pg.systemFull === on)
+            return;
+        pg.systemFull = on;
+        saveSystem.command = ["ryoku-hub", "config", "set", "update_system", on ? "on" : "off"];
+        saveSystem.running = true;
+    }
+
+    Process {
+        command: ["ryoku-hub", "config", "get", "update_system"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: pg.systemFull = (this.text.trim() === "on")
+        }
+    }
+
+    Process { id: saveSystem }
+
     // re-check on the configured cadence.
     readonly property int intervalMs: {
         switch (pg.interval) {
@@ -422,7 +445,7 @@ Item {
 
     Process {
         id: guiProc
-        command: ["ryoku", "update", "--gui"]
+        command: pg.systemFull ? ["ryoku", "update", "--gui", "--system"] : ["ryoku", "update", "--gui"]
         environment: Spawn.env
         stderr: StdioCollector { id: guiErr }
         onExited: (code) => {
@@ -1185,6 +1208,22 @@ Item {
                 visible: pg.phase === "idle" && !pg.starting
                 text: I18n.tr("CHECK AGAIN")
                 onAct: Updates.check()
+            }
+            Row {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: pg.phase === "idle" && !pg.starting
+                spacing: Tokens.s2
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: I18n.tr("INCLUDE SYSTEM")
+                    color: Tokens.inkDim; font.family: Tokens.ui; font.pixelSize: Tokens.fMicro
+                    font.letterSpacing: Tokens.trackMark
+                }
+                Sw {
+                    anchors.verticalCenter: parent.verticalCenter
+                    on: pg.systemFull
+                    onToggled: (v) => pg.setSystemFull(v)
+                }
             }
             Item {
                 visible: pg.phase === "idle" && !pg.starting && Updates.available
