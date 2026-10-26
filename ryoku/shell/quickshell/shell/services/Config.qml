@@ -346,6 +346,7 @@ Singleton {
                 "edge": "auto",
                 "edgeGap": 0,
                 "autohide": false,
+                "revealOnEmpty": true,
                 "size": 44,
                 "pinned": [],
                 "magnify": true,

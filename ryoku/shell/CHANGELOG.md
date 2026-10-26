@@ -1,6 +1,10 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **The Ryoku dock can stay visible on empty workspaces.** Set this in Stage
+  Editor to keep an auto-hiding dock up on its own empty workspace, even when
+  another display has a focused window (`quickshell/shell/modules/dock/DockSurface.qml`,
+  `quickshell/stage/modules/ii/editMode/EditDockAppearancePage.qml`).
 - **The bar shows ethernet on machines with two network ports.** The daemon
   read only the first device of each type, so an unplugged port listed ahead
   of the connected one reported the link as down; a second Wi-Fi adapter had

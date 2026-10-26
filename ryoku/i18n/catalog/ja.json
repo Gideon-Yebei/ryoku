@@ -5015,6 +5015,7 @@
   "Status changes, connections, tunnels, and remote actions recorded in this session.": "Status changes, connections, tunnels, and remote actions recorded in this session.",
   "Status is %1": "Status is %1",
   "Stay Awake": "Stay Awake",
+  "Stay visible on empty workspaces": "空のワークスペースでも表示する",
   "Steam API key": "Steam API キー",
   "Steam Workshop": "Steam Workshop",
   "Steam Workshop browser": "Steam ワークショップブラウザ",
