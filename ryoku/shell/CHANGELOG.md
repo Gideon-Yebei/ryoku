@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Game Mode reports a failed compositor strip instead of showing On.** It
+  persists the request before the strip, and a failed restore no longer skips
+  the power, tune or Wi-Fi cleanup (`scripts/ryoku-cmd-game-mode`).
 - **The Ryoku dock can stay visible on empty workspaces.** Set this in Stage
   Editor to keep an auto-hiding dock up on its own empty workspace, even when
   another display has a focused window (`quickshell/shell/modules/dock/DockSurface.qml`,

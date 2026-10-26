@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Fixed
+- **Game Mode's live strip comes from the shipped Hyprland config.** Turning it on
+  loads the same module that config reloads keep applying while it stays on
+  (`wm/hyprland/act.go`).
 - **Whole column widths and opacities no longer break niri settings.** The
   provider writes these values as float literals so niri can load the generated
   config (`wm/niri/config_layout.go`, `wm/niri/config_rules.go`).
