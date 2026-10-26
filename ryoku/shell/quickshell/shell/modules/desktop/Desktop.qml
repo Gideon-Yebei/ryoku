@@ -81,7 +81,7 @@ Scope {
         && StageCfg.StageBackend.spatialFor(root.wallpaperPath)
     function widgetZ(id) {
         if (!root.stageOn)
-            return 0;
+            return root.hostsVisualizer ? 2 : 0;
         return (StageCfg.Config.isFront(root.stageMode, id) ? 5 : 3)
             + root.widgetDepth(id) * 0.01;
     }
@@ -89,14 +89,9 @@ Scope {
         return Config.widgetDepth(id, root.monitorName);
     }
     readonly property var stageState: Services.ShellState.forScreen(root.screen)
-    // The visualiser paints inside this surface (docs/stage.md) while the
-    // stage cuts this wall, or while the Stage Editor frames the monitor: the
-    // desktop lifts to Top then, so the inline look still clears open windows
-    // and the placement grip shares its surface. In overlay mode outside the
-    // editor it keeps its own raised surface.
+    // Plain visualizers share the wallpaper surface so a re-created layer cannot hide behind it.
     readonly property bool hostsVisualizer: VizCfg.Config.enabled
-        && (root.stageComposing
-            || (root.stageOn && !(root.stageState && root.stageState.visualizerOverlay)))
+        && (root.stageComposing || !(root.stageState && root.stageState.visualizerOverlay))
     readonly property string monitorName: root.screen ? root.screen.name : ""
     // Edit widgets lifts this desktop above open windows. Per-widget locks stay
     // authoritative and can be toggled from the canvas.
@@ -797,8 +792,6 @@ Scope {
             visible: root.stageOn
         }
 
-        // While the stage is on (or the Stage Editor frames this monitor), the
-        // visualizer shares this surface so Stage cut-outs can layer around it.
         Item {
             id: vizHost
             z: root.stageCut

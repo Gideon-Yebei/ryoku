@@ -229,30 +229,16 @@ ShellRoot {
                 }
             }
 
-            // Stage now renders entirely inside the desktop surface (one stack:
-            // backdrop, layers, widgets), so there is no separate Background
-            // surface here (docs/stage.md). A silent visualizer is unloaded on
-            // every output when the performance policy asks for it; live audio
-            // re-creates the surfaces immediately. Placement runs in the Stage
-            // Editor now: the desktop hosts the look while the mode frames this
-            // monitor, so this surface exists for the plain and overlay cases only.
+            // The plain look shares the wallpaper surface; only the overlay needs a window.
             LazyLoader {
                 id: vizLoader
                 activeAsync: VizCfg.Config.enabled && Perf.visualizerResident
+                    && !desktop.hostsVisualizer
                 Visualizer {
                     id: perScreenViz
                     screen: perScreen.modelData
-                    mode: !VizCfg.Config.enabled ? "off"
-                        : (perScreen.st && perScreen.st.visualizerOverlay ? "overlay" : "desktop")
-                    // The desktop hosts the visualizer behind the cut-outs while the
-                    // stage is on, and inside the lifted desktop while the Stage
-                    // Editor frames this monitor; this surface steps aside (cava
-                    // keeps running). A rebuilt monitor stack (DPMS off/on, a lid
-                    // close/open) starts with no wallpaper frame, so
-                    // hostsVisualizer briefly reads false even for a stage wallpaper:
-                    // stay suppressed until the frame lands, or the surface maps
-                    // full-screen and pulses for a few seconds on every resume.
-                    suppressed: desktop.hostsVisualizer || !wallpaper.reloadReady
+                    mode: "overlay"
+                    suppressed: !wallpaper.reloadReady
                 }
             }
 

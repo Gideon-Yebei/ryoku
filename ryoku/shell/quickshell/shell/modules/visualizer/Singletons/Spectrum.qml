@@ -3,13 +3,14 @@ import QtQuick
 import Quickshell
 import Ryoku.Blobs
 import shell.services
+import "." as VizCfg
 
 Singleton {
     id: root
 
-    property bool active: false
-    property int bars: 64
-    property int fps: 60
+    readonly property bool active: VizCfg.Config.enabled && Perf.visualizerResident
+    readonly property int bars: VizCfg.Config.maxBars
+    readonly property int fps: VizCfg.Config.fps
     property int placementHolds: 0
 
     readonly property bool analysing: root.active
