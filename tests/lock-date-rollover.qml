@@ -7,6 +7,10 @@ ShellRoot {
     property var sddm: ({hostName: "sandbox", fingerprintHint: true})
     property int phase: 0
     readonly property date yesterday: new Date(Date.now() - 86400000)
+    property real secStart: 0
+    property real secTarget: 0
+    property real minStart: 0
+    property real minTarget: 0
     Loader {
         id: theme
         source: "qylock/themes/clockwork/orbital/Main.qml"
@@ -28,6 +32,12 @@ ShellRoot {
                 if (theme.item.softwareCursorEnabled === undefined || theme.item.softwareCursorEnabled) {
                     console.error("FAIL: in-session lock enabled the greeter software cursor"); Qt.quit(); return;
                 }
+                root.secStart = theme.item.smoothSecAngle;
+                root.secTarget = root.secStart - 30;
+                root.minStart = theme.item.smoothMinAngle;
+                root.minTarget = root.minStart - 15;
+                theme.item.secRingTarget = root.secTarget;
+                theme.item.minRingTarget = root.minTarget;
                 theme.item.curDate = root.yesterday;
                 if (!root.hasText(theme.item, root.day(root.yesterday))) {
                     console.error("FAIL: date label does not follow curDate"); Qt.quit(); return;
@@ -37,6 +47,12 @@ ShellRoot {
                 if (!root.hasText(theme.item, root.day(root.yesterday))) {
                     console.error("FAIL: date changed before the next clock sample"); Qt.quit(); return;
                 }
+                if (!(theme.item.smoothSecAngle < root.secStart - 0.5
+                        && theme.item.smoothSecAngle > root.secTarget + 0.5)
+                        || !(theme.item.smoothMinAngle < root.minStart - 0.5
+                        && theme.item.smoothMinAngle > root.minTarget + 0.5)) {
+                    console.error("FAIL: pointer highlight does not follow the rendered rings"); Qt.quit(); return;
+                }
                 root.phase++;
             } else if (root.phase < 4) {
                 root.phase++;
@@ -44,7 +60,7 @@ ShellRoot {
                 if (!root.hasText(theme.item, root.day(new Date())) || root.hasText(theme.item, root.day(root.yesterday))) {
                     console.error("FAIL: date label stayed on " + root.day(root.yesterday)); Qt.quit(); return;
                 }
-                console.log("PASS: lockscreen samples the date once per second and rolls it over"); Qt.quit();
+                console.log("PASS: lockscreen pointer follows its rings and the date rolls over"); Qt.quit();
             }
         }
     }

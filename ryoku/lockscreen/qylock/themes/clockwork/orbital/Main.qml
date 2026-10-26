@@ -184,8 +184,8 @@ Rectangle {
         NumberAnimation { target: root; property: "boomOpacity"; to: 1.0; duration: 130; easing.type: Easing.InQuad }
     }
 
-    readonly property real smoothSecAngle: secRingTarget - windupOffset * 10.0
-    readonly property real smoothMinAngle: minRingTarget - windupOffset * 5.0
+    readonly property real smoothSecAngle: secondRing.rotation - windupOffset * 10.0
+    readonly property real smoothMinAngle: minuteRing.rotation - windupOffset * 5.0
 
     // Font Loading
     FolderListModel { id: fontFolder; folder: Qt.resolvedUrl("font"); nameFilters: ["*.ttf", "*.otf"] }
