@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Fixed
+- **Phone installation shows the package manager's error.** The Phone card
+  displays the failure line instead of only reporting that installation failed
+  (`quickshell/pages/PhoneConnectionTab.qml`).
 - **Updates and Add-ons show actions that work.** Update now remains available when
   no Ryoku update is pending; Add-ons opens RyoStore, offers bundle installation,
   and separates optional parts from required ones
