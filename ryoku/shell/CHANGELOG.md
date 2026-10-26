@@ -1,6 +1,11 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **The bar shows ethernet on machines with two network ports.** The daemon
+  read only the first device of each type, so an unplugged port listed ahead
+  of the connected one reported the link as down; a second Wi-Fi adapter had
+  the same problem. It now reports the connected device, and with nothing up
+  reaches a usable adapter first (`ipc/network.go`).
 - **Music-reactive bars and visualizers hear music played through Easy Effects.** They
   listen to the output the music actually plays into instead of only the default one
   (`quickshell/shell/services/Audio.qml`).
