@@ -1,6 +1,10 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Desktop widgets can be added on a second display from the Stage Editor.**
+  Switching displays keeps the editor connected to that display's widgets,
+  without changing the first display (`quickshell/stage/GlobalStates.qml`,
+  `quickshell/shell/modules/stage/StageEditorHost.qml`).
 - **Desktop frost blurs the wallpaper and widgets with a visualizer on.**
   The plain visualizer stays sharp above the glass in the same desktop surface
   (`quickshell/shell/modules/desktop/Desktop.qml`).
