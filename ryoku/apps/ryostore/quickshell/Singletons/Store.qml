@@ -31,6 +31,7 @@ Singleton {
     property string revision: ""
     property bool _forced: false
     property string _checkOutput: ""
+    property bool _reloadAfterCheck: false
     property var remoteItems: []
     property string remoteResultQuery: ""
     property bool remoteSearching: false
@@ -332,6 +333,10 @@ Singleton {
                 }
             }
             root._pumpQueue();
+            if (root._reloadAfterCheck) {
+                root._reloadAfterCheck = false;
+                root.refresh(false);
+            }
         }
     }
 
@@ -412,6 +417,14 @@ Singleton {
             } catch (e) {
                 // A malformed probe never asserts an update.
             }
+            // The probe rebuilt the catalogue live and refreshed the launch
+            // snapshot. Installed state is local and not part of the revision,
+            // so a part installed outside the store (Settings, a terminal) would
+            // otherwise stay missing until a manual refresh.
+            if (catalogProc.running)
+                root._reloadAfterCheck = true;
+            else
+                root.refresh(false);
         }
     }
 }

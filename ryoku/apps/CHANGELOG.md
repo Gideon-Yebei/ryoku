@@ -187,6 +187,15 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- `ryostore/`: **A bundle install refreshes the store when it finishes.** The
+  launcher waited only for the terminal to exist, so the catalogue reloaded
+  milliseconds later and kept listing the bundle as not installed until a
+  manual refresh. It now waits for the terminal to close, the startup probe
+  keeps its live build as the launch snapshot so a part installed outside the
+  store is not frozen as absent, and an install-all queue installs one bundle
+  at a time instead of opening a terminal per item
+  (`ryostore/backend/provider_bundles.go`, `ryostore/backend/main.go`,
+  `ryostore/quickshell/Singletons/Store.qml`).
 - `ryostore/`: **New bundles appear on the first Store visit.** When the
   upstream catalogue has changed, the Store refreshes its cached view on open
   instead of waiting for a manual refresh (`ryostore/quickshell/Singletons/Store.qml`).
