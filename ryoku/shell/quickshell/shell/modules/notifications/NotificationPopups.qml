@@ -35,12 +35,6 @@ PanelWindow {
     // These are multiplied by `us` above (1.0 = the base), the only scale term;
     // the column does not otherwise grow with monitor or accessibility font scale.
 
-    // Popup anchoring (contract 07 sec 7): Left -> top+left, Right (default) ->
-    // top+right, Center -> top only (horizontally centred), BottomRight ->
-    // bottom+right (the stack rises from the corner, newest at the corner).
-    // The live setting is notifications.notification_position (contract 14,
-    // owned by the settings slice); it defaults to Right, the reference
-    // default, until that key lands.
     property string position: Config.notifications && Config.notifications.notification_position
         ? Config.notifications.notification_position : "Right"
     // popup_window_margins (contract 07 sec 8), default 0.
@@ -180,8 +174,6 @@ PanelWindow {
         spacing: 14 * win.us
         interactive: false
         model: cards
-        // BottomRight: newest rests at the corner and the stack rises
-        // above it as more arrive.
         verticalLayoutDirection: win.position === "BottomRight" ? ListView.BottomToTop : ListView.TopToBottom
 
         // Physical dismiss and arrival (contract 12 sec 5, eye-candy pass): a

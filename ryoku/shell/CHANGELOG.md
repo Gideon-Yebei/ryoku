@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Settings save again when notifications sit bottom right.** That position was
+  refused, which blocked every other change; notifications now follow the chosen
+  position (`ipc/settings.go`, `modules/notifications/NotificationPopups.qml`).
 - **The Hero launcher loads and opens again.** The full-screen click-away surface
   now follows every lifecycle phase, and result drawer teardown no longer drives
   a nested animation directly
