@@ -1,9 +1,10 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
-- **The Hero launcher loads again.** Two changes in 1.0.4 each set the same
-  handler, so Super+Space fell back to the plain list
-  (`quickshell/shell/modules/launcher/variants/hero/Launcher.qml`).
+- **The Hero launcher loads and opens again.** The full-screen click-away surface
+  now follows every lifecycle phase, and result drawer teardown no longer drives
+  a nested animation directly
+  (`quickshell/shell/modules/launcher/variants/hero/`).
 
 ### Added
 - Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
