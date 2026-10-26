@@ -10,6 +10,9 @@
 - Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
 
 ### Fixed
+- **Every spectrum visualizer reacts at ordinary playback levels.** The shared
+  native feed's silence state now wakes desktop looks instead of an unreachable
+  average-energy threshold (`quickshell/shell/modules/visualizer/{Motion,AuraMotion}.qml`).
 - **Desktop power actions are one right-click away.** The desktop menu now keeps
   Log out, Restart and Power off together in a compact trailing group, with the
   shell's usual confirmation before an action runs
