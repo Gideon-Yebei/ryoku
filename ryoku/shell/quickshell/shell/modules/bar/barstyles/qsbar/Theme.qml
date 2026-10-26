@@ -16,6 +16,7 @@ Item {
     property bool omarchyCurrentRootResolved: false
     readonly property string themeNamePath: omarchyCurrentRoot + "/theme.name"
     readonly property string colorsPath: (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/ryoku/colors.json"
+    readonly property string previewColorsPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/dev/null") + "/ryoku-wall-preview.json"
     readonly property string shellConfigPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/shell.json"
     readonly property string themeJsonPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/theme.json"
     // Palette resolution state (the desktop Scheme's chain): the live wallpaper
@@ -23,6 +24,7 @@ Item {
     // compiled base captured before the daemon's first write so turning the
     // wallpaper off reverts to the shipped look.
     property var _wallColors: ({})
+    property var _previewColors: ({})
     property var _namedPalette: null
     property bool _followWallpaper: true
     property var _basePalette: null
@@ -3385,7 +3387,10 @@ Item {
 
     function _applyPalette() {
         theme._captureBase();
-        Palette.applyResolved(theme, theme._basePalette, theme._namedPalette, theme._wallColors, theme._followWallpaper);
+        Palette.applyResolved(theme, theme._basePalette,
+            Object.keys(theme._previewColors).length ? null : theme._namedPalette,
+            Object.keys(theme._previewColors).length ? theme._previewColors : theme._wallColors,
+            Object.keys(theme._previewColors).length ? true : theme._followWallpaper);
     }
 
     Process {
@@ -3407,6 +3412,19 @@ Item {
         watchChanges: true
         printErrors: false
         onFileChanged: { paletteWatcher.reload(); theme.reloadCurrentThemeFiles() }
+    }
+
+    FileView {
+        id: previewWatcher
+        path: theme.previewColorsPath
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            theme._previewColors = Palette.parseAll(text()) || {};
+            theme._applyPalette();
+        }
     }
 
     // A fixed named theme publishes its palette here; retint when it changes.

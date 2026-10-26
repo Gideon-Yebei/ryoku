@@ -140,6 +140,7 @@ func runDaemon() error {
 		return err
 	}
 	fmt.Fprintf(os.Stderr, "ryogami: listening on %s\n", sock)
+	writeWallPreviewPalette(nil)
 
 	d := &daemon{
 		cfg:            cfg,

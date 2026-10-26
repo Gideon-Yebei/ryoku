@@ -6,6 +6,9 @@
 - **Whole column widths and opacities no longer break niri settings.** The
   provider writes these values as float literals so niri can load the generated
   config (`wm/niri/config_layout.go`, `wm/niri/config_rules.go`).
+- **Wallpaper previews tint the shell without changing application themes.**
+  Cancelling restores the previous colours, while applying runs the normal
+  theme update (`shell/ryogami/daemon/preview.go`, `shell/quickshell/`).
 - **Bar Studio and RyoStore show every bar style again.** Subshells remain
   grouped on their own pages while also appearing in the complete bar-style
   galleries, with Python selecting its real shell instead of disappearing

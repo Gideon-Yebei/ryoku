@@ -42,6 +42,8 @@ Singleton {
     // Resolve one colour role through the layer chain: a selected named scheme
     // wins, then the live wallpaper palette, then the compiled Solitude base.
     function role(key, base) {
+        if (Scheme.previewRoles[key] !== undefined)
+            return Scheme.previewRoles[key];
         if (namedScheme && namedScheme[key] !== undefined)
             return namedScheme[key];
         if (matchWallpaper)
