@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Desktop frost blurs the wallpaper and widgets with a visualizer on.**
+  The plain visualizer stays sharp above the glass in the same desktop surface
+  (`quickshell/shell/modules/desktop/Desktop.qml`).
 - **Game Mode reports a failed compositor strip instead of showing On.** It
   persists the request before the strip, and a failed restore no longer skips
   the power, tune or Wi-Fi cleanup (`scripts/ryoku-cmd-game-mode`).

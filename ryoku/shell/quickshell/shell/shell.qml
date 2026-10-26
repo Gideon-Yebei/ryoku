@@ -243,11 +243,11 @@ ShellRoot {
                 }
             }
 
-            // The plain look shares the wallpaper surface; only the overlay needs a window.
+            // Only Above windows needs a separate surface; the plain look stays on the desktop.
             LazyLoader {
                 id: vizLoader
                 activeAsync: VizCfg.Config.enabled && Perf.visualizerResident
-                    && !desktop.hostsVisualizer
+                    && !desktop.hostsVisualizer && !desktop.plainVisualizer
                 Visualizer {
                     id: perScreenViz
                     screen: perScreen.modelData

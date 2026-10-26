@@ -82,7 +82,7 @@ Scope {
         && StageCfg.StageBackend.spatialFor(root.wallpaperPath)
     function widgetZ(id) {
         if (!root.stageOn)
-            return root.hostsVisualizer ? 2 : 0;
+            return 0;
         return (StageCfg.Config.isFront(root.stageMode, id) ? 5 : 3)
             + root.widgetDepth(id) * 0.01;
     }
@@ -90,9 +90,13 @@ Scope {
         return Config.widgetDepth(id, root.monitorName);
     }
     readonly property var stageState: Services.ShellState.forScreen(root.screen)
-    // Plain visualizers share the wallpaper surface so a re-created layer cannot hide behind it.
+    // Cut layers and Stage composing keep the visualizer inside the frosted content.
     readonly property bool hostsVisualizer: VizCfg.Config.enabled
-        && (root.stageComposing || !(root.stageState && root.stageState.visualizerOverlay))
+        && (root.stageComposing
+            || (root.stageOn && !(root.stageState && root.stageState.visualizerOverlay)))
+    readonly property bool plainVisualizer: VizCfg.Config.enabled
+        && !root.hostsVisualizer
+        && !(root.stageState && root.stageState.visualizerOverlay)
     readonly property string monitorName: root.screen ? root.screen.name : ""
     // Edit widgets lifts this desktop above open windows. Per-widget locks stay
     // authoritative and can be toggled from the canvas.
@@ -104,8 +108,8 @@ Scope {
     // monitor, the desktop is drawn as the card the toolbar frames (a scale +
     // translate about the usable area's centre), on the mode's one animated
     // scalar, so the desktop and the chrome shrink as one rectangle across two
-    // scene graphs. Off the edited screen it stays the identity. desktopContent
-    // carries the matrix.
+    // scene graphs. Off the edited screen it stays the identity. Both the
+    // frosted content and its plain visualizer use this matrix.
     readonly property bool stageEditing: Stage.GlobalStates.editModeMonitor === root.monitorName
         && (Stage.GlobalStates.editMode || Stage.GlobalStates.editProgress > 0)
     readonly property bool stageFramingHere: root.stageEditing
@@ -134,9 +138,8 @@ Scope {
             easing.type: Easing.OutCubic
         }
     }
-    // Capturing a live desktop into a full-output blur layer forces every video
-    // or visualizer frame through another FBO pass. Keep the haze but flatten
-    // the glass while content below it is moving.
+    // Blur stays flat while video or a visualizer inside the frosted content
+    // would force every moving frame through another full-output FBO pass.
     readonly property bool deckFrostHasMotion:
         (root.videoUrl !== "" && !root.videoPaused)
         || root.wallpaperLive || root.hostsVisualizer
@@ -725,10 +728,8 @@ Scope {
             guides.flash(v, h);
         }
 
-        // The Stage Editor's card: every visible layer of the desktop (wallpaper,
-        // stage, widgets, editor frames) in one container that carries the mode's
-        // shrink matrix, so the desktop becomes the object the chrome frames and
-        // the widgets under the cursor scale together. Identity when not editing.
+        // The Stage Editor's card: wallpaper, stage, widgets and editor frames
+        // carry the same matrix as the plain visualizer above the frost.
         Item {
             id: desktopContent
             anchors.fill: parent
@@ -805,7 +806,11 @@ Scope {
             anchors.fill: parent
             visible: root.hostsVisualizer
             opacity: 1 - 0.75 * root.stageFramingDim
-            Viz.InlineVisualizer { anchors.fill: parent }
+            Loader {
+                anchors.fill: parent
+                active: root.hostsVisualizer
+                sourceComponent: Viz.InlineVisualizer { anchors.fill: parent }
+            }
         }
 
         // One grip and one frame per rendered instance. Selecting either makes
@@ -1961,6 +1966,19 @@ Scope {
             focusRect: root.deckFocusRect
             floorAlpha: root.deckFrostFloor
             strength: root.deckFrost
+        }
+
+        // The plain look shares the desktop surface but stays outside its blur.
+        Item {
+            anchors.fill: parent
+            transform: Matrix4x4 { matrix: root.stageMatrix }
+            visible: root.plainVisualizer
+            opacity: 1 - 0.75 * root.stageFramingDim
+            Loader {
+                anchors.fill: parent
+                active: root.plainVisualizer
+                sourceComponent: Viz.InlineVisualizer { anchors.fill: parent }
+            }
         }
 
         // The Stage Editor's card: the reference's EditModeCard (the live
