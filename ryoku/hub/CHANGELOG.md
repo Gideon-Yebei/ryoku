@@ -3,6 +3,9 @@
 ## Unreleased
 
 ### Fixed
+- **Bluetooth can recover when rfkill hides the adapter.** Connections shows
+  the software-blocked state and keeps its power switch available so the shared
+  helper can bring the controller back (`quickshell/pages/ConnectionsPage.qml`).
 - **Phone installation shows the package manager's error.** The Phone card
   displays the failure line instead of only reporting that installation failed
   (`quickshell/pages/PhoneConnectionTab.qml`).

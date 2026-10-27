@@ -1,6 +1,10 @@
 # Changelog: system/
 
 ## Unreleased
+- **Bluetooth can turn back on after a legacy rfkill block.** Power-off now
+  records the user's choice through BlueZ without soft-blocking platform radio
+  switches, while power-on clears old blocks and waits for the controller to
+  reappear (`hardware/bluetooth/ryoku-bluetooth-power`).
 - **Locking no longer piles up lock screens for logged-out sessions.** Old sessions
   stop retrying their locks, and a new attempt reuses the lock screen already
   running (`hardware/power/ryoku-power-cutover`, `../ryoku/shell/ipc/`).
