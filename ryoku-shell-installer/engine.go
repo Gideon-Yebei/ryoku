@@ -151,6 +151,13 @@ func setRyokuServer(conf, server string) (string, string) {
 var ryokuPkgs = []string{"ryoku-keyring", "ryoku-desktop"}
 
 var fedoraRyokuPkgs = []string{"ryoku", "ryoku-keyring", "ryoku-desktop", "ryoku-desktop-hyprland", "ryoku-desktop-niri"}
+var comparePackageVersions = func(available, installed string) (int, error) {
+	out, err := exec.Command("vercmp", available, installed).Output()
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(strings.TrimSpace(string(out)))
+}
 
 func newerRyokuRepoTargets(d *distro, installed, served map[string]string) ([]string, error) {
 	if d.id != "arch" {
@@ -168,13 +175,9 @@ func newerRyokuRepoTargets(d *distro, installed, served map[string]string) ([]st
 		if !ok {
 			continue
 		}
-		out, err := exec.Command("vercmp", served[name], installedVersion).Output()
+		comparison, err := comparePackageVersions(served[name], installedVersion)
 		if err != nil {
 			return nil, fmt.Errorf("compare package version for %s: %w", name, err)
-		}
-		comparison, err := strconv.Atoi(strings.TrimSpace(string(out)))
-		if err != nil {
-			return nil, fmt.Errorf("parse package version comparison for %s: %w", name, err)
 		}
 		if comparison > 0 {
 			targets = append(targets, "ryoku/"+name)

@@ -33,6 +33,12 @@ func TestDetectDistro(t *testing.T) {
 }
 
 func TestNewerRyokuRepoTargets(t *testing.T) {
+	previousCompare := comparePackageVersions
+	comparePackageVersions = func(available, installed string) (int, error) {
+		return strings.Compare(available, installed), nil
+	}
+	t.Cleanup(func() { comparePackageVersions = previousCompare })
+
 	installed := map[string]string{
 		"upgrade":    "1.0-1",
 		"equal":      "2.0-1",

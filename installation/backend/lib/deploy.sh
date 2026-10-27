@@ -123,8 +123,8 @@ ryoku_repo_keyring() {
 ryoku_newer_repo_targets() {
   local installed_out served_out repo name version comparison
   local -A installed=()
-  installed_out=$(arch-chroot /mnt pacman -Q) || return
-  served_out=$(arch-chroot /mnt pacman -Sl ryoku) || return
+  installed_out=$(arch-chroot /mnt pacman -Q --noconfirm) || return
+  served_out=$(arch-chroot /mnt pacman -Sl --noconfirm ryoku) || return
   while read -r name version _; do
     [[ -n $name && -n $version ]] && installed["$name"]=$version
   done <<<"$installed_out"
