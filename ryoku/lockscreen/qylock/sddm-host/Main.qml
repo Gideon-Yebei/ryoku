@@ -6,12 +6,25 @@ Item {
     width: Screen.width
     height: Screen.height
 
+    readonly property bool clock24h: {
+        const value = typeof config !== "undefined" ? config.clock24h : undefined
+        if (value === undefined || value === null || String(value).length === 0)
+            return true
+        return value === true || String(value).toLowerCase() === "true"
+    }
+
     Loader {
         id: theme
         anchors.fill: parent
         focus: true
         source: "theme/Main.qml"
-        onLoaded: Qt.callLater(() => forceActiveFocus(Qt.OtherFocusReason))
+        onLoaded: {
+            if (item.clock24h !== undefined)
+                item.clock24h = host.clock24h
+            if (item.clockLocale !== undefined)
+                item.clockLocale = Qt.locale()
+            Qt.callLater(() => forceActiveFocus(Qt.OtherFocusReason))
+        }
     }
 
     // Weston does not advertise the cursor-shape protocol used by Qt on the

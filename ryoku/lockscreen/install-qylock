@@ -361,8 +361,14 @@ install_greeter() {
   # The host keeps the pointer independent of the selected skin and Weston's
   # hardware-cursor path.
   echo "  greeter theme -> /usr/share/sddm/themes/ryoku"
+  local greeter_clock24h=false
+  if [[ -r $TARGET_HOME/.config/ryoku/shell.json ]] &&
+    grep -Eq '"clock_format_24_h"[[:space:]]*:[[:space:]]*true' \
+      "$TARGET_HOME/.config/ryoku/shell.json"; then
+    greeter_clock24h=true
+  fi
   priv "$BUNDLE/sddm-host/install-greeter-theme" \
-    "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/ryoku
+    "$BUNDLE/themes/clockwork/orbital" /usr/share/sddm/themes/ryoku "$greeter_clock24h"
 
   # --- 2. point SDDM at it (system) --------------------------------------------
   echo "  greeter selection -> /etc/sddm.conf.d/99-ryoku.conf"

@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -77,6 +79,30 @@ func lockscreenStale(bundle string) bool {
 		treeDiffers(filepath.Join(bundle, "themes", defaultLockSkin), filepath.Join(home, ".local", "share", "qylock", "themes", defaultLockSkin))
 }
 
+func greeterClock24h() bool {
+	b, err := os.ReadFile(filepath.Join(sys.ConfigHome(), "ryoku", "shell.json"))
+	if err != nil {
+		return false
+	}
+	var settings struct {
+		General struct {
+			ClockFormat24H bool `json:"clock_format_24_h"`
+		} `json:"general"`
+	}
+	return json.Unmarshal(b, &settings) == nil && settings.General.ClockFormat24H
+}
+
+func installedGreeterClock24h(path string) (bool, bool) {
+	for _, line := range strings.Split(readFileSafe(path), "\n") {
+		key, value, ok := strings.Cut(line, "=")
+		if ok && strings.TrimSpace(key) == "clock24h" {
+			clock24h, err := strconv.ParseBool(strings.TrimSpace(value))
+			return clock24h, err == nil
+		}
+	}
+	return false, false
+}
+
 // greeterStale checks the shared SDDM host for every skin. A selected optional
 // skin remains untouched beneath theme/; only the host is compared. The shipped
 // default is also compared with the bundle so package fixes reach it.
@@ -86,8 +112,10 @@ func greeterStale(bundle string) bool {
 		return false
 	}
 	host := filepath.Join(bundle, "sddm-host")
+	installedClock24h, hasClockFormat := installedGreeterClock24h(filepath.Join(greeterThemeDir, "theme.conf"))
 	if fileDiffers(filepath.Join(host, "Main.qml"), filepath.Join(greeterThemeDir, "Main.qml")) ||
-		fileDiffers(filepath.Join(host, "metadata.desktop"), filepath.Join(greeterThemeDir, "metadata.desktop")) {
+		fileDiffers(filepath.Join(host, "metadata.desktop"), filepath.Join(greeterThemeDir, "metadata.desktop")) ||
+		!hasClockFormat || installedClock24h != greeterClock24h() {
 		return true
 	}
 	if pref != "" && pref != defaultLockSkin {
@@ -111,7 +139,7 @@ func refreshGreeter(bundle string) error {
 		}
 	}
 	installer := filepath.Join(bundle, "sddm-host", "install-greeter-theme")
-	return sys.Run("sudo", installer, src, greeterThemeDir)
+	return sys.Run("sudo", installer, src, greeterThemeDir, strconv.FormatBool(greeterClock24h()))
 }
 
 // greeterScriptSource is the shipped greeter compositor script. On a package box

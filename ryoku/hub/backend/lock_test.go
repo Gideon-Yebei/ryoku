@@ -133,7 +133,7 @@ func TestInstallGreeter(t *testing.T) {
 	themes := t.TempDir()
 	conf := filepath.Join(t.TempDir(), "sddm.conf.d", "99-ryoku.conf")
 
-	if err := installGreeter(src, themes, conf, "material-you"); err != nil {
+	if err := installGreeter(src, themes, conf, "material-you", false); err != nil {
 		t.Fatalf("install greeter: %v", err)
 	}
 	if !fileExists(filepath.Join(themes, greeterTheme, "Main.qml")) {
@@ -141,6 +141,13 @@ func TestInstallGreeter(t *testing.T) {
 	}
 	if !fileExists(filepath.Join(themes, greeterTheme, "theme", "Main.qml")) {
 		t.Fatalf("selected skin not installed beneath the greeter host")
+	}
+	themeConfig, err := os.ReadFile(filepath.Join(themes, greeterTheme, "theme.conf"))
+	if err != nil {
+		t.Fatalf("read greeter theme config: %v", err)
+	}
+	if !strings.Contains(string(themeConfig), "clock24h=false") {
+		t.Fatalf("greeter theme config did not receive 12-hour preference: %q", themeConfig)
 	}
 	b, err := os.ReadFile(conf)
 	if err != nil {
@@ -152,15 +159,22 @@ func TestInstallGreeter(t *testing.T) {
 
 	// second skin overwrites the same fixed greeter dir; nothing orphans.
 	mkSkin(t, src, "clockwork/orbital", false)
-	if err := installGreeter(src, themes, conf, "clockwork/orbital"); err != nil {
+	if err := installGreeter(src, themes, conf, "clockwork/orbital", true); err != nil {
 		t.Fatalf("reinstall greeter: %v", err)
 	}
 	if !fileExists(filepath.Join(themes, greeterTheme, "Main.qml")) {
 		t.Fatalf("greeter theme missing after switch")
 	}
+	themeConfig, err = os.ReadFile(filepath.Join(themes, greeterTheme, "theme.conf"))
+	if err != nil {
+		t.Fatalf("read reinstalled greeter theme config: %v", err)
+	}
+	if !strings.Contains(string(themeConfig), "clock24h=true") {
+		t.Fatalf("greeter theme config did not receive 24-hour preference: %q", themeConfig)
+	}
 
 	// unknown skin -> error before touching anything privileged.
-	if err := installGreeter(src, themes, conf, "ghost/none"); err == nil {
+	if err := installGreeter(src, themes, conf, "ghost/none", false); err == nil {
 		t.Fatalf("installing an unknown skin should error")
 	}
 }
@@ -197,7 +211,7 @@ func TestInstallGreeterMakesThemeWorldReadable(t *testing.T) {
 	themes := t.TempDir()
 	conf := filepath.Join(t.TempDir(), "sddm.conf.d", "99-ryoku.conf")
 
-	if err := installGreeter(src, themes, conf, "video/tape"); err != nil {
+	if err := installGreeter(src, themes, conf, "video/tape", false); err != nil {
 		t.Fatalf("install greeter: %v", err)
 	}
 

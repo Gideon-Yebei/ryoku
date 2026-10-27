@@ -34,7 +34,14 @@ ShellRoot {
     // Themes bind to sddm.login(), sddm.loginSucceeded, sddm.loginFailed,
     // sddm.hostName, sddm.fingerprintHint, etc.
     readonly property var sddm: sddmShim.sddm
-    readonly property var config: sddmShim.config
+    readonly property var config: {
+        const merged = {}
+        const themeConfig = sddmShim.config || {}
+        for (const key in themeConfig)
+            merged[key] = themeConfig[key]
+        merged.clock24h = TimeFormat.is24h ? "true" : "false"
+        return merged
+    }
     readonly property var userModel: sddmShim.userModel
     readonly property var sessionModel: sddmShim.sessionModel
     readonly property var keyboard: sddmShim.keyboard

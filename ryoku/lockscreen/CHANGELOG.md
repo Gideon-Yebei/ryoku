@@ -20,6 +20,13 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **The login clock follows the global 12/24-hour preference.** The shared SDDM
+  host passes the preference from its installed theme config to every skin that
+  exposes a clock-format property, while keeping the greeter locale for
+  translated day and month names. The sign-in screen picks up a new choice the
+  next time its skin is applied or Ryoku updates
+  (`qylock/quickshell-lockscreen/lock_shell.qml`, `qylock/sddm-host`,
+  `../hub/backend/lock.go`).
 - **Every selected sign-in skin has a visible pointer on hybrid graphics.**
   SDDM now loads the chosen skin beneath a shared greeter host that draws the
   pointer as normal scene content, avoiding Weston's missing cursor-shape
