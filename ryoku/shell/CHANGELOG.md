@@ -8,6 +8,9 @@
   Ending dictation now kills and reaps its Voxtype status stream, consecutive
   sessions cannot overlap, and holding the niri shortcut does not repeat the
   toggle (`ipc/{daemon,voicewatch}.go`, `wm/niri/config_binds.go`).
+- **The wallpaper picker no longer misses Super+W behind a busy event queue.**
+  Picker controls displace an older progress event when a slow subscriber has
+  filled its buffer (`ryogami/daemon/topics.go`, `daemon.go`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
