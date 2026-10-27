@@ -91,13 +91,13 @@ Item {
     property real surfaceScale: 1
     readonly property real counterScale: 1 / Math.max(0.2, Math.min(5, root.surfaceScale))
     // ── Click-to-open ──────────────────────────────────────────────────────
-    // Windows/KDE semantics: the first click SELECTS and arms, the second
-    // click of the pair opens. One timer for the whole layer (never one per
-    // icon), keyed by the armed id — clicking a different icon just
-    // re-arms. Qt.styleHints is absent in this runtime, so the window is
-    // the conventional 400 ms.
+    // Single-click mode opens immediately. Double-click mode selects and arms
+    // on the first click, then opens a second click on that icon. One timer for
+    // the whole layer keeps the pair keyed to one id; Qt.styleHints is absent
+    // in this runtime, so the window is the conventional 400 ms.
     property string armedId: ""
     readonly property bool iconsLocked: Config.options.background.desktopIconsLocked ?? false
+    readonly property bool singleClickOpen: root.options.openOn === "single"
     Timer {
         id: clickTimer
         interval: 400
@@ -1063,9 +1063,12 @@ Item {
                             root.clearSelection();
                         const p = root.mapFromItem(gesture, mouse.x, mouse.y);
                         root.openContext(tile.entry.id, p.x, p.y);
+                    } else if (root.singleClickOpen) {
+                        root.selectedIds = [tile.entry.id];
+                        root.armedId = "";
+                        clickTimer.stop();
+                        root.openEntry(tile.entry);
                     } else if (root.armedId !== tile.entry.id) {
-                        // A single click selects. The second click within the
-                        // desktop double-click interval opens the item.
                         root.selectedIds = [tile.entry.id];
                         root.armedId = tile.entry.id;
                         clickTimer.restart();

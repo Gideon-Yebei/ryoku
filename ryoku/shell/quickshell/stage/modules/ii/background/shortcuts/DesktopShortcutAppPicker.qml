@@ -15,8 +15,12 @@ ColumnLayout {
     required property string screenName
     required property string folderId
     property var refreshKey: null
+    property real targetX: NaN
+    property real targetY: NaN
+    readonly property bool desktopMode: folderId === ""
     property string query: ""
     signal done()
+    signal applicationAdded(string appId)
 
     readonly property bool writable: Persistent.ready && !Persistent.blockWrites
     // The list depends on the search only; each row reads its own placement,
@@ -43,15 +47,21 @@ ColumnLayout {
     function toggle(appId) {
         if (!root.writable)
             return;
+        const app = DesktopShortcuts.application(appId);
+        if (!app)
+            return;
+        if (root.desktopMode) {
+            if (DesktopShortcuts.add(root.screenName, [app], root.targetX, root.targetY))
+                root.applicationAdded(appId);
+            return;
+        }
         const location = root.placement(appId);
         if (location.where === "folder" && location.folderId === root.folderId) {
             if (DesktopShortcuts.canTakeOut(root.screenName, root.folderId))
                 DesktopShortcuts.takeOut(root.screenName, root.folderId, appId);
             return;
         }
-        const app = DesktopShortcuts.application(appId);
-        if (app)
-            DesktopShortcuts.addToFolder(root.screenName, root.folderId, [app]);
+        DesktopShortcuts.addToFolder(root.screenName, root.folderId, [app]);
     }
 
     spacing: Tokens.s2

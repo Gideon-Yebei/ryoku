@@ -36,6 +36,10 @@
 - **Updates no longer make open Ryoku surfaces reload a half-laid QML tree.**
   Packaged shell tools stay on their loaded generation until their normal restart,
   while checkout configs still hot-reload source edits (`quickshell/*/shell.qml`).
+- **Desktop application shortcuts can be added from the right-click menu.**
+  The existing installed-app picker places them on the clicked display, icon
+  settings choose single- or double-click opening, and Stage menus follow the
+  shared Ryoku language (`quickshell/{shell/modules/desktop,stage/}`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
