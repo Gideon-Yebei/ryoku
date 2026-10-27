@@ -17,6 +17,10 @@
 - **Super+Escape controls reopen without rebuilding the whole sidebar.** The
   hidden panel stays warm between ordinary toggles while its probes and surfaces
   remain inactive (`quickshell/shell/shell.qml`).
+- **The ii dock paints immediately and auto-hide works above open windows.**
+  Island backgrounds no longer wait for an app-list refresh after shell startup,
+  and the edge reveal strip stays reachable over tiled, floating and maximised
+  windows (`quickshell/shell/modules/dock/ii/`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,

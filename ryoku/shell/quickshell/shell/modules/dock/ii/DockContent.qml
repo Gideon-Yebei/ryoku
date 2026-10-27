@@ -516,6 +516,11 @@ Item {
         return lookup;
     }
 
+    // Repeater.count can settle before itemAt() exposes the delegates. Island
+    // surfaces read this revision so their endpoint bindings retry as each
+    // wrapper becomes available instead of waiting for an app-list change.
+    property int _itemDelegateRevision: 0
+
     function _islandKind(item) {
         if (!item)
             return "single";
@@ -1370,6 +1375,7 @@ Item {
         return root.isVertical ? columnItemRepeater : itemRepeater;
     }
     function getItemWrapper(index) {
+        void root._itemDelegateRevision;
         var repeater = _getActiveRepeater();
         return repeater ? repeater.itemAt(index) : null;
     }
@@ -3118,6 +3124,8 @@ Item {
                 // each dock item (and its nested Loader tree) exists once.
                 model: root.isVertical ? null : dockItemModel
                 delegate: unifiedItemDelegate
+                onItemAdded: root._itemDelegateRevision++
+                onItemRemoved: root._itemDelegateRevision++
             }
         }
 
@@ -3137,6 +3145,8 @@ Item {
                 // same active repeater.
                 model: root.isVertical ? dockItemModel : null
                 delegate: unifiedItemDelegate
+                onItemAdded: root._itemDelegateRevision++
+                onItemRemoved: root._itemDelegateRevision++
             }
         }
     }
