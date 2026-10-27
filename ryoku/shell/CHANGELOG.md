@@ -48,6 +48,12 @@
   The existing installed-app picker places them on the clicked display, icon
   settings choose single- or double-click opening, and Stage menus follow the
   shared Ryoku language (`quickshell/{shell/modules/desktop,stage/}`).
+- **Creating desktop folders and application shortcuts returns input to the
+  desktop.** A selected icon now holds keyboard focus only while the pointer
+  remains over a shortcut and releases it before another app is clicked; folder
+  naming keeps its field focused, and the application search releases focus
+  when its picker closes
+  (`quickshell/{shell/modules/desktop,stage/modules/ii/background/shortcuts/}`).
 - **Japanese glosses can be hidden across the desktop.** The shared setting now
   updates shell cards, menus, bar and launcher marks, wallpaper typography and
   Ryogami live, while the default remains the existing Japanese treatment

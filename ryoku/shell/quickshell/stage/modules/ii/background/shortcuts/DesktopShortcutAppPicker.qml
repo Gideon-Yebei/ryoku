@@ -72,7 +72,7 @@ ColumnLayout {
         toolbar: true
         placeholder: Translation.tr("Search applications")
         onEdited: root.query = text
-        Component.onCompleted: Qt.callLater(() => grabFocus())
+        Component.onCompleted: if (root.visible) Qt.callLater(() => grabFocus())
     }
 
     Item {

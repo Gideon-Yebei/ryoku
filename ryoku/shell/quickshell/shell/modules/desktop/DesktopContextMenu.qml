@@ -70,8 +70,13 @@ Item {
         menu.pendingApplicationPoint = Qt.point(shell.px, shell.py);
         menu.page = "application";
     }
+    function leaveApplicationPage() {
+        menu.page = "";
+        shell.forceActiveFocus();
+    }
     function finishNewApplication() {
         menu.pendingApplicationPoint = null;
+        menu.leaveApplicationPage();
         menu.close();
     }
     function changeWallpaper() {
@@ -184,7 +189,7 @@ Item {
             targetX: menu.pendingApplicationPoint ? menu.pendingApplicationPoint.x : NaN
             targetY: menu.pendingApplicationPoint ? menu.pendingApplicationPoint.y : NaN
             onApplicationAdded: menu.finishNewApplication()
-            onDone: menu.page = ""
+            onDone: menu.leaveApplicationPage()
         }
     }
 }

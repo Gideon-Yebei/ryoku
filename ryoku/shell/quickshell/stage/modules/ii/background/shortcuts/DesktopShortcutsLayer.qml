@@ -30,6 +30,14 @@ Item {
     opacity: root.iconsHidden ? 0 : 1
     visible: root.opacity > 0.01
     enabled: !root.iconsHidden
+    readonly property bool pointerOverShortcut: {
+        for (let i = 0; i < iconRepeater.count; ++i) {
+            const tile = iconRepeater.itemAt(i);
+            if (tile && tile.hovered)
+                return true;
+        }
+        return false;
+    }
     Behavior on opacity {
         NumberAnimation { duration: Tokens.swap; easing.type: Tokens.ease }
     }
@@ -180,10 +188,10 @@ Item {
         }
     }
 
-    // The keys ride the window's OnDemand keyboard (the host holds it while
-    // hasSelection is true). When the band picked widgets as well, the canvas
-    // holds the focus and Delete stays the widgets' — the context menu's
-    // Remove still takes the whole icon selection either way.
+    // The host holds the keyboard while a selection exists and the pointer is
+    // over a shortcut; moving away releases it before another surface is
+    // clicked. When a marquee picked widgets too, the canvas owns Delete — the
+    // context menu's Remove still takes the whole icon selection.
     focus: root.hasSelection
     onHasSelectionChanged: {
         if (root.hasSelection)
@@ -384,10 +392,12 @@ Item {
     }
     function openEntry(entry) {
         const tile = root.tileFor(entry.id);
-        if (entry.type === "group" && tile)
+        if (entry.type === "group" && tile) {
             root.openPopup(entry.id, tile.x, tile.y, tile.width, tile.height);
-        else
+        } else {
+            root.clearSelection();
             DesktopShortcuts.launch(entry);
+        }
     }
     function tileFor(id) {
         for (let i = 0; i < iconRepeater.count; ++i) {

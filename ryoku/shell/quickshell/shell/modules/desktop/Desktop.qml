@@ -639,23 +639,31 @@ Scope {
         visible: root.active
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
-        // Editing lifts the desktop above open windows so the stage is never
-        // obscured by whatever was in front; Done drops it back under them.
-        WlrLayershell.layer: root.stageComposing ? WlrLayer.Top : WlrLayer.Bottom
+        // Editing and desktop text entry lift above ordinary windows. A
+        // compositor may ignore an exclusive keyboard request on a bottom
+        // surface, so the lift lasts exactly as long as a hosted field needs it.
+        WlrLayershell.layer: (root.stageComposing || win.kbWanted > 0)
+            ? WlrLayer.Top : WlrLayer.Bottom
         WlrLayershell.namespace: "ryoku-widgets"
         Connections {
             target: win.contentItem?.Window.window ?? null
             enabled: !root.surfaceReady
             function onFrameSwapped() { root.surfaceReady = true }
         }
-        // Text fields and icon dialogs keep their existing counter. The editor
-        // borrows the grab only while no other surface or desktop control is
-        // asking for keys, so opening a search or inspector never loses its caret.
-        // Where a grab would also take every click, the editor asks on demand
-        // instead: the compositor hands it the keyboard as the pointer crosses
-        // the desktop, and the toolbar and catalogue on their own surface stay
-        // clickable (keyboardGrabSharesPointer in docs/compositors.md).
+        // Text fields and icon dialogs keep their existing exclusive counter.
+        // A selected shortcut takes keys only while the pointer remains over
+        // the icon grid. Moving toward another app releases the grab before
+        // that app is clicked; moving back restores shortcut key navigation.
         property int kbWanted: 0
+        readonly property bool shortcutKeyboardWanted: !!desktopIcons.item
+            && desktopIcons.item.hasSelection && desktopIcons.item.pointerOverShortcut
+            && !desktopIcons.item.dialogOpen && !root.stageComposing
+        onShortcutKeyboardWantedChanged: if (shortcutKeyboardWanted) {
+            Qt.callLater(() => {
+                if (shortcutKeyboardWanted && desktopIcons.item)
+                    desktopIcons.item.forceActiveFocus();
+            });
+        }
         readonly property bool hostedWidgetTyping: {
             const owner = String(Stage.GlobalStates.widgetTypingOwner || "");
             return root.monitorName !== "" && owner.indexOf(root.monitorName + "|") === 0;
@@ -670,9 +678,11 @@ Scope {
         onKbWantedChanged: if (kbWanted === 0 && !stageKeyboardWanted) root.kbRestore()
         onStageKeyboardWantedChanged: if (!stageKeyboardWanted && kbWanted === 0) root.kbRestore()
         WlrLayershell.keyboardFocus: kbWanted > 0 ? WlrKeyboardFocus.Exclusive
-            : !stageKeyboardWanted ? WlrKeyboardFocus.None
-            : Wm.caps.keyboardGrabSharesPointer === true ? WlrKeyboardFocus.Exclusive
-            : WlrKeyboardFocus.OnDemand
+            : stageKeyboardWanted
+                ? (Wm.caps.keyboardGrabSharesPointer === true
+                    ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand)
+            : shortcutKeyboardWanted ? WlrKeyboardFocus.Exclusive
+            : WlrKeyboardFocus.None
 
         anchors { top: true; left: true; right: true; bottom: true }
 
@@ -1788,12 +1798,8 @@ Scope {
             z: root.stageOn ? 2.5 : -1
             opacity: 1 - 0.75 * root.stageFramingDim
             enabled: !root.stageFramingHere
-            readonly property bool keyboardNeeded: !!item && (item.hasSelection || item.dialogOpen)
-            onKeyboardNeededChanged: {
-                win.kbWanted += keyboardNeeded ? 1 : -1;
-                if (keyboardNeeded && item)
-                    item.forceActiveFocus();
-            }
+            readonly property bool keyboardNeeded: !!item && item.dialogOpen
+            onKeyboardNeededChanged: win.kbWanted += keyboardNeeded ? 1 : -1
             Component.onDestruction: if (keyboardNeeded) win.kbWanted -= 1
             sourceComponent: StageShortcuts.DesktopShortcutsLayer {
                 anchors.fill: parent
