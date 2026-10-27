@@ -20,43 +20,6 @@ Rectangle {
 
     property bool isQuickshell: typeof sddm === "undefined" || sddm.hostName === undefined
     readonly property bool isSessionLock: (typeof sddm !== "undefined") && sddm.fingerprintHint === true
-    readonly property bool softwareCursorEnabled: !isQuickshell && !isSessionLock
-
-    // --- Software cursor for the SDDM login screen --------------------------
-    // hostName exists in the lock shim too, so fingerprintHint distinguishes it from SDDM.
-    HoverHandler {
-        id: swPointer
-        enabled: root.softwareCursorEnabled
-    }
-    Canvas {
-        id: swCursor
-        width: 26 * root.s
-        height: 26 * root.s
-        z: 2000000
-        visible: root.softwareCursorEnabled && swPointer.hovered
-        x: swPointer.point.position.x
-        y: swPointer.point.position.y
-        antialiasing: true
-        onPaint: {
-            var ctx = getContext("2d");
-            ctx.reset();
-            ctx.scale(root.s, root.s);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0, 16);
-            ctx.lineTo(4, 12.5);
-            ctx.lineTo(6.5, 19);
-            ctx.lineTo(9, 18);
-            ctx.lineTo(6.5, 11.5);
-            ctx.lineTo(11, 11.5);
-            ctx.closePath();
-            ctx.fillStyle = "#ffffff";
-            ctx.fill();
-            ctx.lineWidth = 1.2;
-            ctx.strokeStyle = "#000000";
-            ctx.stroke();
-        }
-    }
 
     // Ring transforms interpolate between one-second wall-clock samples.
     readonly property bool clockAwake: root.isSessionLock || Window.active

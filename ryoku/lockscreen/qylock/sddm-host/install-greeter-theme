@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 2 ]]; then
+  echo "usage: install-greeter-theme <skin-dir> <destination>" >&2
+  exit 2
+fi
+
+src=${1%/}
+dst=${2%/}
+host=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+for file in "$src/Main.qml" "$host/Main.qml" "$host/metadata.desktop"; do
+  [[ -f $file && ! -L $file ]] || {
+    echo "install-greeter-theme: missing regular file: $file" >&2
+    exit 1
+  }
+done
+
+parent=$(dirname "$dst")
+tmp="$dst.new.$$"
+cleanup() { rm -rf "$tmp"; }
+trap cleanup EXIT
+
+mkdir -p "$parent"
+rm -rf "$tmp"
+mkdir -p "$tmp"
+cp -a "$src" "$tmp/theme"
+install -m644 "$host/Main.qml" "$tmp/Main.qml"
+install -m644 "$host/metadata.desktop" "$tmp/metadata.desktop"
+if [[ -f $src/theme.conf && ! -L $src/theme.conf ]]; then
+  install -m644 "$src/theme.conf" "$tmp/theme.conf"
+else
+  : >"$tmp/theme.conf"
+fi
+chmod -R a+rX "$tmp"
+if (( EUID == 0 )); then
+  chown -R root:root "$tmp"
+fi
+rm -rf "$dst"
+mv "$tmp" "$dst"
+trap - EXIT

@@ -370,6 +370,13 @@ func setLockSkinIn(dir, pref, slug string) error {
 
 const greeterTheme = "ryoku"
 
+func greeterThemeInstaller() string {
+	if v := os.Getenv("RYOKU_GREETER_THEME_INSTALLER"); v != "" {
+		return v
+	}
+	return "/usr/share/ryoku/lockscreen/qylock/sddm-host/install-greeter-theme"
+}
+
 func sddmThemesDir() string {
 	if v := os.Getenv("RYOKU_SDDM_THEMES_DIR"); v != "" {
 		return v
@@ -437,9 +444,9 @@ func invokingUserThemes() string {
 	return qylockThemesDir()
 }
 
-// installGreeter copies srcThemes/slug into themesDir under a fixed name and
-// points the greeter config at it, so the login screen wears the same skin as
-// the in-session lock. privileged; broken out for tests.
+// installGreeter installs srcThemes/slug beneath the shared SDDM host and
+// points the greeter config at it. The host owns cursor fallback and focus, so
+// optional skins receive the same login-screen behavior as the built-in skin.
 func installGreeter(srcThemes, themesDir, confPath, slug string) error {
 	if err := validSlug(slug); err != nil {
 		return err
@@ -452,21 +459,8 @@ func installGreeter(srcThemes, themesDir, confPath, slug string) error {
 	if err := os.MkdirAll(themesDir, 0o755); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(dst); err != nil {
-		return err
-	}
-	if out, err := exec.Command("cp", "-a", src, dst).CombinedOutput(); err != nil {
+	if out, err := exec.Command(greeterThemeInstaller(), src, dst).CombinedOutput(); err != nil {
 		return fmt.Errorf("install greeter theme: %v: %s", err, out)
-	}
-	// The greeter runs as the unprivileged `sddm` user, so it must be able to
-	// read the theme no matter how the source was owned or masked. Catalog skins
-	// download into an os.MkdirTemp dir (always 0700) and `cp -a` preserves that,
-	// leaving the greeter dir unreadable to sddm -> SDDM silently falls back to
-	// its embedded theme on every boot. Normalize: root-owned (best effort, since
-	// this half runs as root under pkexec) and world-readable.
-	_ = exec.Command("chown", "-R", "root:root", dst).Run()
-	if out, err := exec.Command("chmod", "-R", "a+rX", dst).CombinedOutput(); err != nil {
-		return fmt.Errorf("make greeter theme readable: %v: %s", err, out)
 	}
 	if err := os.MkdirAll(filepath.Dir(confPath), 0o755); err != nil {
 		return err

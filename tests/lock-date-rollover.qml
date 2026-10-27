@@ -37,8 +37,8 @@ ShellRoot {
                 if (theme.item.curDate === undefined) {
                     console.error("FAIL: theme has no reactive curDate property"); Qt.quit(); return;
                 }
-                if (theme.item.softwareCursorEnabled === undefined || theme.item.softwareCursorEnabled) {
-                    console.error("FAIL: in-session lock enabled the greeter software cursor"); Qt.quit(); return;
+                if (theme.item.softwareCursorEnabled !== undefined) {
+                    console.error("FAIL: theme still owns the greeter host cursor"); Qt.quit(); return;
                 }
                 var pill = root.findNamed(theme.item, "indicatorPill");
                 var minuteRing = root.findNamed(theme.item, "minuteRing");

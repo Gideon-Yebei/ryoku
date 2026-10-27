@@ -24,6 +24,15 @@ func mkSkin(t *testing.T, dir, slug string, withPreview bool) {
 	}
 }
 
+func useGreeterThemeInstaller(t *testing.T) {
+	t.Helper()
+	path, err := filepath.Abs(filepath.Join("..", "..", "lockscreen", "qylock", "sddm-host", "install-greeter-theme"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RYOKU_GREETER_THEME_INSTALLER", path)
+}
+
 func findSkin(skins []LockSkin, slug string) *LockSkin {
 	for i := range skins {
 		if skins[i].Slug == slug {
@@ -118,6 +127,7 @@ func TestSetLockSkinIn(t *testing.T) {
 }
 
 func TestInstallGreeter(t *testing.T) {
+	useGreeterThemeInstaller(t)
 	src := t.TempDir()
 	mkSkin(t, src, "material-you", false)
 	themes := t.TempDir()
@@ -128,6 +138,9 @@ func TestInstallGreeter(t *testing.T) {
 	}
 	if !fileExists(filepath.Join(themes, greeterTheme, "Main.qml")) {
 		t.Fatalf("greeter theme %q not installed under %s", greeterTheme, themes)
+	}
+	if !fileExists(filepath.Join(themes, greeterTheme, "theme", "Main.qml")) {
+		t.Fatalf("selected skin not installed beneath the greeter host")
 	}
 	b, err := os.ReadFile(conf)
 	if err != nil {
@@ -170,6 +183,7 @@ func TestValidSlug(t *testing.T) {
 // copy to world-readable, else SDDM can't read the theme and silently falls back
 // to its embedded one on every boot.
 func TestInstallGreeterMakesThemeWorldReadable(t *testing.T) {
+	useGreeterThemeInstaller(t)
 	src := t.TempDir()
 	mkSkin(t, src, "video/tape", false)
 	// mimic a catalogue download: owner-only perms on the skin tree.

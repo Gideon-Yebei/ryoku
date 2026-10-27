@@ -20,6 +20,17 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **Every selected sign-in skin has a visible pointer on hybrid graphics.**
+  SDDM now loads the chosen skin beneath a shared greeter host that draws the
+  pointer as normal scene content, avoiding Weston's missing cursor-shape
+  protocol and unreliable legacy cursor surface without changing the session
+  cursor (`qylock/sddm-host`, `install-qylock`, `../hub/backend/lock.go`,
+  `../cli/internal/doctor/reconcile_lockscreen.go`).
+- **Every in-session lock opens with its password field ready to type.** The
+  lock host now focuses each mapped session-lock surface through the theme's
+  focus scope, so optional skins no longer need a delayed per-theme timer or a
+  pointer click before the first key reaches their password field
+  (`qylock/quickshell-lockscreen/lock_shell.qml`).
 - **Orbital's rings cross the password pill again.** The moving marks and
   numbers stay in front of the pill as in 1.0.3 without losing smooth motion
   or alignment (`qylock/themes/clockwork/orbital/Main.qml`,
