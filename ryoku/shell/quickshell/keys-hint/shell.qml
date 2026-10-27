@@ -131,7 +131,7 @@ ShellRoot {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "\u529b"; color: Tokens.ink
+                            text: UiPreferences.brandMark("\u529b"); color: Tokens.ink
                             font.family: Tokens.jp; font.pixelSize: Tokens.fBody
                         }
                         Text {

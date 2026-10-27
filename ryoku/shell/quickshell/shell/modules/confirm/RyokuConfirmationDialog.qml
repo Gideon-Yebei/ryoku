@@ -91,6 +91,7 @@ PanelWindow {
                     width: parent.width
                     spacing: Tokens.s2
                     Text {
+                        visible: UiPreferences.showJapaneseGloss
                         text: "卓上"
                         color: Tokens.inkFaint
                         font.family: Tokens.jp

@@ -113,13 +113,12 @@ Rectangle {
     property bool advanced: false
     onAdvancedChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "advanced", hub.advanced ? "1" : "0"])
 
-    // Toggle decorative Japanese (kanji/kana) glosses shown beside English labels.
-    // Env: RYOKU_SHOW_JAPANESE_GLOSS=0 disables. Default on (preserves current look).
-    property bool showJapaneseGloss: {
-        var v = (typeof Settings !== "undefined" && Settings.get) ? Settings.get("showJapaneseGloss") : undefined;
-        if (v === undefined) v = Quickshell.env("RYOKU_SHOW_JAPANESE_GLOSS");
-        return v === undefined ? true : (v === true || v === "1" || v === 1);
-    }
+    // The daemon owns this preference; the shared file reader covers startup
+    // before the first settings frame arrives.
+    readonly property bool showJapaneseGloss: Settings.ready
+        ? Settings.get("showJapaneseGloss") !== false
+        : UiPreferences.showJapaneseGloss
+    readonly property string brandMark: showJapaneseGloss ? "力" : "R"
 
     // The full catalogue. `wired` marks the pages whose content and
     // persistence are ported; the rest render an honest porting plate rather
@@ -1116,7 +1115,7 @@ Rectangle {
                 Row {
                     anchors { left: parent.left; verticalCenter: parent.verticalCenter; leftMargin: Tokens.s4 }
                     spacing: Tokens.s3
-                    Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 22 }
+                    Text { text: hub.brandMark; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 22 }
                     Column {
                         spacing: 1
                         anchors.verticalCenter: parent.verticalCenter
@@ -1510,7 +1509,7 @@ Rectangle {
             Row {
                 spacing: Tokens.s2
                 Rectangle { width: 16; height: 1; color: Tokens.ink; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "力"; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: hub.brandMark; color: Tokens.ink; font.family: Tokens.jp; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     text: I18n.tr(hub.groupFor(hub.section)); color: Tokens.inkMuted
                     font.family: Tokens.ui; font.pixelSize: 9; font.weight: Font.Medium

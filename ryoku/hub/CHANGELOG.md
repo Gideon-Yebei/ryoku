@@ -9,6 +9,10 @@
 - **Ryoku Settings stays loadable while an update lays its QML files.** The
   packaged window waits for the updater's clean reopen instead of watching each
   copied file; checkout runs still hot-reload (`quickshell/shell.qml`).
+- **Japanese glosses can be switched off.** Global > Japanese glosses hides the
+  kana beside labels, the page watermarks and the 力 mark across Settings, and
+  Fastfetch drops it from its greeting without rewriting the user's config
+  (`quickshell/`, `backend/fastfetch.go`). Started by Harsh Singh in #619.
 - **Phone installation shows the package manager's error.** The Phone card
   displays the failure line instead of only reporting that installation failed
   (`quickshell/pages/PhoneConnectionTab.qml`).

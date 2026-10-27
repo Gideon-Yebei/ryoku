@@ -195,6 +195,9 @@
   Quickshell apps keep their loaded generation while materialize replaces their
   QML tree, then pick up the new one on their next launch; source runs still
   hot-reload (`quickshell/shell.qml`).
+- `ryostore/`, `ryovm/`: **The Japanese gloss preference reaches app chrome.**
+  Decorative seals and Ryoku marks change to hidden or Latin forms with the
+  desktop setting (`*/quickshell/`).
 - `ryostore/`: **A bundle install refreshes the store when it finishes.** The
   launcher waited only for the terminal to exist, so the catalogue reloaded
   milliseconds later and kept listing the bundle as not installed until a

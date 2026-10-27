@@ -67,7 +67,7 @@ var rows = [
         "group": "INTERFACE",
         "key": "showJapaneseGloss",
         "label": "Japanese glosses",
-        "desc": "Show the kanji/kana glosses beside English labels in Ryoku Hub. Off keeps English only; CJK fonts and web support are unaffected.",
+        "desc": "Show Ryoku's Japanese glosses, decorative text and mark across the desktop. Off keeps English and Latin marks; CJK fonts, language support and your content are unaffected.",
         "ctl": "sw",
         "src": "shell"
     }, {

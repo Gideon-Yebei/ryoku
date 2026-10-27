@@ -531,7 +531,7 @@ Rectangle {
             spacing: Tokens.s1
 
             Text {
-                text: "力  " + app.pageGroup
+                text: UiPreferences.brandMark("力") + "  " + app.pageGroup
                 color: Tokens.inkDim
                 font.family: Tokens.mono
                 font.pixelSize: Tokens.fMicro

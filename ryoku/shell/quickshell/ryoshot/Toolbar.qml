@@ -51,7 +51,7 @@ Item {
     // the desktop brand seal, user-overridable via ~/.config/ryoku/brand.json
     // (Ryoku Settings -> Shell -> Global). the beautify button follows markText;
     // empty/absent falls back to the 力 default, so this never seeds.
-    readonly property string mark: brandAdapter.markText.length > 0 ? brandAdapter.markText : "\u529b"
+    readonly property string mark: UiPreferences.brandMark(brandAdapter.markText)
     FileView {
         id: brandFile
         path: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ryoku/brand.json"

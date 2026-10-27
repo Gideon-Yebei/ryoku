@@ -2798,11 +2798,13 @@ Item {
     // omarchy's U+E900 needs a font Ryoku doesn't ship, so it's absent here and
     // any stale "omarchy" icon id falls back to ryoku via the validators below.
     function launcherLogoIconGlyph(id) {
+        if (id === "ryoku")
+            return UiPreferences.brandMark("力")
         var c = launcherLogoIconCodes[id]
-        return String.fromCodePoint(c !== undefined ? c : launcherLogoIconCodes["ryoku"])
+        return c !== undefined ? String.fromCodePoint(c) : UiPreferences.brandMark("力")
     }
     function launcherLogoIconFont(id) {
-        return id === "ryoku" ? "Noto Sans CJK JP" : mono
+        return id === "ryoku" && UiPreferences.showJapaneseGloss ? "Noto Sans CJK JP" : mono
     }
     function launcherLogoIconSize(id) {
         if (id === "arch") return 17

@@ -40,6 +40,10 @@
   The existing installed-app picker places them on the clicked display, icon
   settings choose single- or double-click opening, and Stage menus follow the
   shared Ryoku language (`quickshell/{shell/modules/desktop,stage/}`).
+- **Japanese glosses can be hidden across the desktop.** The shared setting now
+  updates shell cards, menus, bar and launcher marks, wallpaper typography and
+  Ryogami live, while the default remains the existing Japanese treatment
+  (`quickshell/`, `ryogami/picker/qml/`, `../ui/`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,

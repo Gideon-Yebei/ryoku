@@ -1,6 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Ryoku.Ui.Singletons as Ui
 
 /**
  * Shell-wide style tokens: 30 Material colour roles plus shadow/scrim, sizing,
@@ -218,7 +219,7 @@ Singleton {
 
     // brand mark, user-overridable via ~/.config/ryoku/brand.json (Shell ->
     // Global). BrandMark renders `mark`, or `markSource` (an image) when set.
-    readonly property string mark: Config.markText.length > 0 ? Config.markText : "\u529b"
+    readonly property string mark: Ui.UiPreferences.brandMark(Config.markText)
     readonly property string markSource: Config.markImage
     readonly property bool markTint: Config.markTint
 
