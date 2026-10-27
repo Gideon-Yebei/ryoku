@@ -8,6 +8,7 @@ Rectangle {
     property bool dim: false
     property string tooltip: ""
     property real iconSize: 18
+    property color customTint: "transparent"
 
     signal clicked()
 
@@ -22,7 +23,7 @@ Rectangle {
         anchors.centerIn: parent
         name: btn.icon
         size: btn.iconSize
-        tint: btn.active ? Theme.accentInk : (btn.dim ? Theme.inkFaint : Theme.inkDim)
+        tint: btn.customTint.a > 0 ? btn.customTint : (btn.active ? Theme.accentInk : (btn.dim ? Theme.inkFaint : Theme.inkDim))
     }
 
     MouseArea {
