@@ -721,6 +721,8 @@ ShellRoot {
     // device restore + ddc prewarm and re-arming the persisted Keep-Awake /
     // Game Mode external inhibitors.
     Component.onCompleted: {
+        Quickshell.watchFiles = !Quickshell.shellDir.startsWith(
+            (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/");
         Devices.restore();
         root.syncCaffeine(Flags.keepAwake ? "start" : "stop");
         if (Flags.gameMode)

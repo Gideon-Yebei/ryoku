@@ -14,7 +14,6 @@ import "lib/constrain.js" as Constrain
 
 ShellRoot {
     id: root
-
     property var globalSel: null
     property var pressPoint: null
     property bool capturing: false
@@ -268,7 +267,12 @@ ShellRoot {
         beautifySrc = path;
         phase = "beautify";
     }
-    Component.onCompleted: if (openPath.length > 0) openForBeautify(openPath);
+    Component.onCompleted: {
+        Quickshell.watchFiles = !Quickshell.shellDir.startsWith(
+            (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/");
+        if (openPath.length > 0)
+            openForBeautify(openPath);
+    }
 
     function beginSelection(gx, gy) {
         frontPressed = true;

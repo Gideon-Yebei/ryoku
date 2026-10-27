@@ -6,6 +6,9 @@
 - **Bluetooth can recover when rfkill hides the adapter.** Connections shows
   the software-blocked state and keeps its power switch available so the shared
   helper can bring the controller back (`quickshell/pages/ConnectionsPage.qml`).
+- **Ryoku Settings stays loadable while an update lays its QML files.** The
+  packaged window waits for the updater's clean reopen instead of watching each
+  copied file; checkout runs still hot-reload (`quickshell/shell.qml`).
 - **Phone installation shows the package manager's error.** The Phone card
   displays the failure line instead of only reporting that installation failed
   (`quickshell/pages/PhoneConnectionTab.qml`).

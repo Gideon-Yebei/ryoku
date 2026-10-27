@@ -10,6 +10,8 @@ import Ryoku.Ui.Singletons
 // out; dismissing it quits the process and releases the launch flock.
 ShellRoot {
     id: app
+    Component.onCompleted: Quickshell.watchFiles = !Quickshell.shellDir.startsWith(
+        (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/")
 
     property bool closing: false
     function dismiss() {

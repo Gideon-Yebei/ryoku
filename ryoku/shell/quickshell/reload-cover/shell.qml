@@ -6,6 +6,8 @@ import Quickshell.Io
 
 ShellRoot {
     id: root
+    Component.onCompleted: Quickshell.watchFiles = !Quickshell.shellDir.startsWith(
+        (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/quickshell/")
 
     readonly property string token: Quickshell.env("RYOKU_RELOAD_COVER_TOKEN")
     readonly property string mode: Quickshell.env("RYOKU_RELOAD_COVER_MODE")

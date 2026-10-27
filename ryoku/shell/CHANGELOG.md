@@ -33,6 +33,9 @@
   transfer uses private temporary files, reports failures, and cleans each file
   after KDE Connect has accepted it. Contributed by Ronin-CK
   (`quickshell/ryoshot/`).
+- **Updates no longer make open Ryoku surfaces reload a half-laid QML tree.**
+  Packaged shell tools stay on their loaded generation until their normal restart,
+  while checkout configs still hot-reload source edits (`quickshell/*/shell.qml`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
