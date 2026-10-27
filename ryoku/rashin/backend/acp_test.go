@@ -413,6 +413,27 @@ func TestACPV2ImagesModelsSessions(t *testing.T) {
 	expectEvent(t, conn.Events(), "replay_end")
 }
 
+func TestMergeHermesSessionsUsesStoredWorkspace(t *testing.T) {
+	agent := []SessionMeta{
+		{ID: "agent", Title: "Agent", Cwd: ".", UpdatedAt: "old"},
+		{ID: "live", Title: "Live", Cwd: "/tmp/live"},
+	}
+	stored := []SessionMeta{
+		{ID: "agent", Title: "Agent", Cwd: "/tmp/rashin", UpdatedAt: "new"},
+		{ID: "chat", Title: "Chat", Cwd: "/tmp/rashin-chat"},
+	}
+	got := mergeHermesSessions(agent, stored)
+	if len(got) != 3 {
+		t.Fatalf("merged sessions = %+v", got)
+	}
+	if got[0].ID != "agent" || got[0].Cwd != "/tmp/rashin" || got[0].UpdatedAt != "new" {
+		t.Fatalf("stored workspace did not replace ACP placeholder: %+v", got[0])
+	}
+	if got[1].ID != "chat" || got[2].ID != "live" {
+		t.Fatalf("stored and live-only sessions were not retained: %+v", got)
+	}
+}
+
 func stubChatProwlProfileSets(t *testing.T, lookup func(context.Context) (string, []string, error)) {
 	t.Helper()
 	previous := chatProwlProfileSets

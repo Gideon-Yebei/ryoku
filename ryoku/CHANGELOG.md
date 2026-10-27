@@ -7,6 +7,9 @@
   grab.** Controls and the shortcut-inhibit toggle now bypass the inhibitor,
   matching the recovery bindings on Hyprland and Wayfire
   (`wm/niri/config_binds.go`).
+- **Rashin history finds conversations in both chat lanes again.** It reads
+  Hermes's current workspace column when ACP omits that metadata, so saved
+  Agent and Chat sessions remain visible and reopenable (`rashin/backend/`).
 - **Game Mode's live strip comes from the shipped Hyprland config.** Turning it on
   loads the same module that config reloads keep applying while it stays on
   (`wm/hyprland/act.go`).
