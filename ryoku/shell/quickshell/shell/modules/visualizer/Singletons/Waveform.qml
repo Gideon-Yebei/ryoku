@@ -16,6 +16,7 @@ Singleton {
 
     WaveCapture {
         id: capture
+        source: Audio.musicSink
         active: root.active
     }
 }

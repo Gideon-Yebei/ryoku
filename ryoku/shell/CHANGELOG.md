@@ -21,6 +21,10 @@
   Island backgrounds no longer wait for an app-list refresh after shell startup,
   and the edge reveal strip stays reachable over tiled, floating and maximised
   windows (`quickshell/shell/modules/dock/ii/`).
+- **Music visualizers follow routed playback and react at normal volume.** The
+  shared feeds now capture the routed sink's monitor, adapt to quiet playback,
+  and apply gain consistently to every look (`plugin/cavafeed.cpp`,
+  `quickshell/shell/{services/AudioBars.qml,modules/visualizer/}`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,

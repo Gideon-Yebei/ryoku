@@ -197,7 +197,7 @@ Item {
         transientStrength: root.cfg.auraTransient
         beatGlow: root.cfg.auraBeatGlow
         compression: root.cfg.auraCompression
-        sensitivity: root.cfg.auraSensitivity * root.cfg.gain
+        sensitivity: root.cfg.auraSensitivity
         idleMotion: root.cfg.auraIdleMotion
         pulseStrength: 0.9
         primaryColor: root.auraTriad[0]
