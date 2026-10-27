@@ -173,7 +173,7 @@ func shippedBinds() map[string]niriBind {
 		"shell.visualizer":        {action: spawnArgs("ryoku-shell", "visualizer")},
 		"shell.visualizerOverlay": {action: spawnArgs("ryoku-shell", "visualizer-overlay")},
 		"shell.visualizerPlace":   {action: spawnArgs("ryoku-shell", "visualizer-place")},
-		"shell.voice":             {action: spawnArgs("ryoku-shell", "voice")},
+		"shell.voice":             {action: spawnArgs("ryoku-shell", "voice"), noRepeat: true},
 		"shell.settings":          {action: spawnArgs("ryoku-shell", "hub", "open")},
 		"shell.stageEditor":       {action: spawnArgs("ryoku-shell", "hub", "open", "widgets")},
 		"shell.screenshot":        {action: spawnSh(wm.QmlEnv + " ryoku-cmd-ryoshot")},

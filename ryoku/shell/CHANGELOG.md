@@ -4,6 +4,10 @@
 - **The system monitor stops warning every second on machines without a fan
   sensor or GPU power reading.** It opened the missing sensor paths anyway on
   each slow sample (`plugin/systemmonitor.cpp`). Contributed by SourceAura.
+- **Voice typing no longer leaves status followers inside the shell daemon.**
+  Ending dictation now kills and reaps its Voxtype status stream, consecutive
+  sessions cannot overlap, and holding the niri shortcut does not repeat the
+  toggle (`ipc/{daemon,voicewatch}.go`, `wm/niri/config_binds.go`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
