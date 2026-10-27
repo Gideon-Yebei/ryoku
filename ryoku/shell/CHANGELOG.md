@@ -5,6 +5,9 @@
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
   `quickshell/shell/modules/stage/StageEditorHost.qml`).
+- **Desktop session confirmation matches Ryoku's paper-and-ink menu.** Power off,
+  restart and log out now show a theme-aware action card with keyboard cancellation
+  and confirmation on every bar style (`quickshell/shell/modules/confirm/RyokuConfirmationDialog.qml`).
 - **Desktop frost blurs the wallpaper and widgets with a visualizer on.**
   The plain visualizer stays sharp above the glass in the same desktop surface
   (`quickshell/shell/modules/desktop/Desktop.qml`).
