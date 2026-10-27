@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **niri can always recover desktop shortcuts from an application's keyboard
+  grab.** Controls and the shortcut-inhibit toggle now bypass the inhibitor,
+  matching the recovery bindings on Hyprland and Wayfire
+  (`wm/niri/config_binds.go`).
 - **Game Mode's live strip comes from the shipped Hyprland config.** Turning it on
   loads the same module that config reloads keep applying while it stays on
   (`wm/hyprland/act.go`).
