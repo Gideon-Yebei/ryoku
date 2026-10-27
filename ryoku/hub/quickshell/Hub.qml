@@ -113,6 +113,14 @@ Rectangle {
     property bool advanced: false
     onAdvancedChanged: Quickshell.execDetached(["ryoku-hub", "config", "set", "advanced", hub.advanced ? "1" : "0"])
 
+    // Toggle decorative Japanese (kanji/kana) glosses shown beside English labels.
+    // Env: RYOKU_SHOW_JAPANESE_GLOSS=0 disables. Default on (preserves current look).
+    property bool showJapaneseGloss: {
+        var v = (typeof Settings !== "undefined" && Settings.get) ? Settings.get("showJapaneseGloss") : undefined;
+        if (v === undefined) v = Quickshell.env("RYOKU_SHOW_JAPANESE_GLOSS");
+        return v === undefined ? true : (v === true || v === "1" || v === 1);
+    }
+
     // The full catalogue. `wired` marks the pages whose content and
     // persistence are ported; the rest render an honest porting plate rather
     // than a settings page that cannot save. `needs` is what the active window
@@ -573,7 +581,7 @@ Rectangle {
         "weatherLocation": "", "weatherUnit": "auto", "formatLocale": "",
         "general.clock_format_24_h": false,
         "reloadCover": ReloadCoverModel.empty(),
-        "language": "Auto", "barStyle": "orpheus", "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
+        "language": "Auto", "barStyle": "orpheus", "showJapaneseGloss": true, "obi": {}, "nacre": NacreConfig.defaultConfig(), "qsbar": {}, "dock": {},
         "notifications.show_images": false,
         "deckFrostEnabled": true, "deckFrost": 0.45,
         "clipboard.widthPercent": 65, "clipboard.heightPercent": 42, "clipboard.bottomPercent": 0,
@@ -1321,7 +1329,7 @@ Rectangle {
                                 Text {
                                     id: navKana
                                     anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
-                                    text: hub.jpName[navItem.modelData.key] || ""
+                                    text: hub.showJapaneseGloss ? (hub.jpName[navItem.modelData.key] || "") : ""
                                     color: navItem.sel ? Tokens.inkOnBoneDim : Tokens.inkFaint
                                     font.family: Tokens.jp; font.pixelSize: 12
                                     Behavior on color { ColorAnimation { duration: Tokens.snap } }
@@ -1788,7 +1796,7 @@ Rectangle {
                 Text {
                     id: kseal
                     anchors { right: parent.right; rightMargin: Tokens.s3; verticalCenter: parent.verticalCenter }
-                    text: hub.jpName[rr.modelData.section] || ""
+                    text: hub.showJapaneseGloss ? (hub.jpName[rr.modelData.section] || "") : ""
                     color: Tokens.inkFaint; font.family: Tokens.jp; font.pixelSize: 12
                 }
                 MouseArea {

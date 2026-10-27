@@ -64,6 +64,14 @@ var rows = [
         "opts": ["auto", "celsius", "fahrenheit"]
     }, {
         "tab": "Region & fonts",
+        "group": "INTERFACE",
+        "key": "showJapaneseGloss",
+        "label": "Japanese glosses",
+        "desc": "Show the kanji/kana glosses beside English labels in Ryoku Hub. Off keeps English only; CJK fonts and web support are unaffected.",
+        "ctl": "sw",
+        "src": "shell"
+    }, {
+        "tab": "Region & fonts",
         "group": "FONT",
         "key": "fontFamily",
         "label": "System font",
