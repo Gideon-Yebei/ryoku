@@ -25,6 +25,10 @@
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
   `quickshell/shell/modules/stage/StageEditorHost.qml`).
+- **Dock window and music previews stay open while the pointer crosses from the
+  dock into their controls.** The first trip gets a longer grace period; after
+  the card is reached, leaving still closes it promptly
+  (`quickshell/shell/modules/bar/popouts/`).
 - **Desktop session confirmation matches Ryoku's paper-and-ink menu.** Power off,
   restart and log out now show a theme-aware action card with keyboard cancellation
   and confirmation on every bar style (`quickshell/shell/modules/confirm/RyokuConfirmationDialog.qml`).
