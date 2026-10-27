@@ -105,6 +105,10 @@
 - Clipboard history and Starred can be navigated and acted on from the keyboard. Tab switches panes; arrows, Page Up/Down, Home/End and Ctrl+J/K or Ctrl+N/P move the selection; Enter copies, Ctrl/Alt+S toggles a star, and Delete removes an item.
 
 ### Fixed
+- **Image notifications keep their full body, actions and bottom edge visible.**
+  A thumbnail that finishes loading can no longer leave the popup surface at
+  the card's shorter pre-image height
+  (`quickshell/shell/modules/notifications/{NotificationCard,NotificationPopups}.qml`).
 - **Every spectrum visualizer reacts at ordinary playback levels.** The shared
   native feed's silence state now wakes desktop looks instead of an unreachable
   average-energy threshold (`quickshell/shell/modules/visualizer/{Motion,AuraMotion}.qml`).
