@@ -1,6 +1,10 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **Shima and Python dock icons stay visible and clickable with the Shima bar.**
+  Their icon surfaces now stay above Shima's full-output chassis, and Python
+  reads each pinned app's bound entry before launching through the shared service
+  (`quickshell/{inir/modules/iris/dock,shell/modules/bar/barstyles/python/dock}/`).
 - **The system monitor stops warning every second on machines without a fan
   sensor or GPU power reading.** It opened the missing sensor paths anyway on
   each slow sample (`plugin/systemmonitor.cpp`). Contributed by SourceAura.
