@@ -25,6 +25,10 @@
   shared feeds now capture the routed sink's monitor, adapt to quiet playback,
   and apply gain consistently to every look (`plugin/cavafeed.cpp`,
   `quickshell/shell/{services/AudioBars.qml,modules/visualizer/}`).
+- **Added visualizers keep their own look and selection.** Every instance now
+  has a stable saved identity, so adding or removing another no longer reuses
+  its number, retargets the editor, or hides it behind the wrong view
+  (`quickshell/shell/modules/{desktop,stage,visualizer}/`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,

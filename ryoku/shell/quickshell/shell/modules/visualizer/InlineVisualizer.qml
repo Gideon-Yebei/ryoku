@@ -10,7 +10,8 @@ Item {
         delegate: VisualizerView {
             id: vizView
             anchors.fill: parent
-            cfg: VizItem { data: Config.dataAt(vizView.index) }
+            instanceId: Config.idAt(vizView.index)
+            cfg: VizItem { data: Config.dataById(vizView.instanceId) }
         }
     }
 }
