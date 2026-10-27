@@ -187,9 +187,9 @@ func shippedBinds() map[string]niriBind {
 		// Media. Locked in the catalogue, so genBinds emits allow-when-locked.
 		"media.volumeUp":   {action: spawnArgs("ryoku-volume", "up")},
 		"media.volumeDown": {action: spawnArgs("ryoku-volume", "down")},
-		"media.mute":       {action: spawnArgs("wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle")},
-		"media.micMute":    {action: spawnArgs("wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle")},
-		"media.play":       {action: spawnArgs("playerctl", "play-pause")},
+		"media.mute":       {action: spawnArgs("wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"), noRepeat: true},
+		"media.micMute":    {action: spawnArgs("wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"), noRepeat: true},
+		"media.play":       {action: spawnArgs("playerctl", "play-pause"), noRepeat: true},
 		"media.next":       {action: spawnArgs("playerctl", "next")},
 		"media.prev":       {action: spawnArgs("playerctl", "previous")},
 

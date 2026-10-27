@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Fixed
+- **Holding a mute, mic-mute or play key on niri toggles once.** niri repeats
+  binds while a key is held, so a slightly long press could mute and unmute
+  the microphone again or pause and resume playback; these toggles now ignore
+  repeat like they do on Hyprland and Wayfire (`wm/niri/config_binds.go`).
 - **niri can always recover desktop shortcuts from an application's keyboard
   grab.** Controls and the shortcut-inhibit toggle now bypass the inhibitor,
   matching the recovery bindings on Hyprland and Wayfire

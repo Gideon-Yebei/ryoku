@@ -75,6 +75,16 @@ func TestRecoveryBindsBypassShortcutInhibitor(t *testing.T) {
 	}
 }
 
+func TestMicMuteKeyDoesNotRepeat(t *testing.T) {
+	if !defaultBinds()["media.micMute"].noRepeat {
+		t.Fatal("media.micMute must ignore key repeat or one press can toggle twice")
+	}
+	rendered, _ := genBinds(loadStore(""))
+	if want := `XF86AudioMicMute allow-when-locked=true repeat=false`; !strings.Contains(rendered, want) {
+		t.Errorf("generated binds missing %q", want)
+	}
+}
+
 func emittedChords(s niriStore) []string {
 	out, _ := resolveBinds(s)
 	chords := make([]string, len(out))
