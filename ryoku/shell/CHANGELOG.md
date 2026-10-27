@@ -11,6 +11,9 @@
 - **The wallpaper picker no longer misses Super+W behind a busy event queue.**
   Picker controls displace an older progress event when a slow subscriber has
   filled its buffer (`ryogami/daemon/topics.go`, `daemon.go`).
+- **Login opens straight into a ready desktop.** The boot cover now maps closed
+  behind the greeter curtain instead of replaying a shell-reload close over the
+  wallpaper while the shell starts (`quickshell/reload-cover/shell.qml`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
