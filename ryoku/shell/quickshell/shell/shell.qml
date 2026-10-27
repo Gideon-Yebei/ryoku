@@ -280,7 +280,9 @@ ShellRoot {
                     active: controlsLoader.showNow
                 }
             }
-            Timer { id: controlsHold; interval: SidebarState.exitDuration + 48 }
+            // The controls tree is expensive to construct; keep it across ordinary
+            // toggles while its active-gated probes and surfaces remain stopped.
+            Timer { id: controlsHold; interval: 15000 }
 
 
             LazyLoader {

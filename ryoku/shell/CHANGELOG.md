@@ -14,6 +14,9 @@
 - **Login opens straight into a ready desktop.** The boot cover now maps closed
   behind the greeter curtain instead of replaying a shell-reload close over the
   wallpaper while the shell starts (`quickshell/reload-cover/shell.qml`).
+- **Super+Escape controls reopen without rebuilding the whole sidebar.** The
+  hidden panel stays warm between ordinary toggles while its probes and surfaces
+  remain inactive (`quickshell/shell/shell.qml`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
