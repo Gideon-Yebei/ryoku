@@ -29,6 +29,10 @@
   has a stable saved identity, so adding or removing another no longer reuses
   its number, retargets the editor, or hides it behind the wrong view
   (`quickshell/shell/modules/{desktop,stage,visualizer}/`).
+- **Ryoshot sends annotated captures to a chosen KDE Connect device.** The
+  transfer uses private temporary files, reports failures, and cleans each file
+  after KDE Connect has accepted it. Contributed by Ronin-CK
+  (`quickshell/ryoshot/`).
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,

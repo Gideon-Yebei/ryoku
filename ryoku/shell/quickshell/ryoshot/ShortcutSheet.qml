@@ -141,4 +141,3 @@ Item {
         }
     }
 }
-        { key: "Ctrl+C", label: I18n.tr("Copy") },

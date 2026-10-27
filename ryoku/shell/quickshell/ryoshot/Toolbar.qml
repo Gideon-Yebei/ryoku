@@ -21,11 +21,14 @@ Item {
     property bool canUndo: false
     property bool canRedo: false
     property bool settingsOpen: false
-    property bool phoneConnected: false
-    property string phoneDeviceName: ""
+    property bool phoneAvailable: false
+    property var phoneDevices: []
+    property bool phoneReady: false
+    property bool phoneBusy: false
 
     readonly property real colorCenterX: colorBtn.x + row.x + colorBtn.width / 2
     readonly property real widthCenterX: widthBtn.x + row.x + widthBtn.width / 2
+    readonly property real phoneCenterX: phoneBtn.x + row.x + phoneBtn.width / 2
     readonly property real gearCenterX: gear.x + row.x + gear.width / 2
 
     signal toolPicked(string tool)
@@ -208,11 +211,16 @@ Item {
             IconButton { icon: "pin"; tooltip: I18n.tr("Pin to desktop") + "  (ctrl+p)"; onClicked: tb.pinRequested() }
             IconButton { icon: "upload"; tooltip: I18n.tr("Upload") + "  (ctrl+u)"; onClicked: tb.uploadRequested() }
             IconButton {
+                id: phoneBtn
+                visible: tb.phoneAvailable
                 icon: "phone"
-                customTint: tb.phoneConnected ? "transparent" : Theme.danger
-                tooltip: (tb.phoneConnected
-                    ? (tb.phoneDeviceName.length > 0 ? I18n.tr("Send to %1").arg(tb.phoneDeviceName) : I18n.tr("Send to phone"))
-                    : I18n.tr("Send to phone (no device connected)")) + "  (ctrl+k)"
+                dim: tb.phoneBusy || !tb.phoneReady || tb.phoneDevices.length === 0
+                tooltip: tb.phoneBusy ? I18n.tr("Sending screenshot")
+                    : !tb.phoneReady ? I18n.tr("Phone transfer is unavailable")
+                    : tb.phoneDevices.length === 0 ? I18n.tr("No connected phone")
+                    : tb.phoneDevices.length === 1
+                        ? I18n.tr("Send to %1").arg(tb.phoneDevices[0].name) + "  (ctrl+k)"
+                        : I18n.tr("Choose a phone") + "  (ctrl+k)"
                 onClicked: tb.phoneRequested()
             }
 

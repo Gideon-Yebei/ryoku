@@ -8,7 +8,6 @@ Rectangle {
     property bool dim: false
     property string tooltip: ""
     property real iconSize: 18
-    property color customTint: "transparent"
 
     signal clicked()
 
@@ -23,15 +22,14 @@ Rectangle {
         anchors.centerIn: parent
         name: btn.icon
         size: btn.iconSize
-        tint: btn.customTint.a > 0 ? btn.customTint : (btn.active ? Theme.accentInk : (btn.dim ? Theme.inkFaint : Theme.inkDim))
+        tint: btn.active ? Theme.accentInk : (btn.dim ? Theme.inkFaint : Theme.inkDim)
     }
 
     MouseArea {
         id: ma
         anchors.fill: parent
         hoverEnabled: true
-        enabled: !btn.dim
-        onClicked: btn.clicked()
+        onClicked: if (!btn.dim) btn.clicked()
     }
 
     Timer {
@@ -41,7 +39,7 @@ Rectangle {
     }
 
     onHoveredChanged: {
-        if (hovered && tooltip.length > 0 && !dim)
+        if (hovered && tooltip.length > 0)
             tipDelay.restart()
         else {
             tipDelay.stop()
