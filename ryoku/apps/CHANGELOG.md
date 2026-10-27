@@ -187,6 +187,10 @@
   v0.56.0-beta.19") via `ryoku version --pretty` (`config.jsonc`).
 
 ### Fixed
+- `fastfetch/`: **The terminal greeting shows the Ryoku logo image in Ghostty.**
+  The greeting kept the image only in kitty, so Ghostty, which speaks the same
+  graphics protocol, fell back to a text logo or none (`ryoku-fastfetch`).
+  Contributed by SourceAura.
 - `ryostore/`: **A bundle install refreshes the store when it finishes.** The
   launcher waited only for the terminal to exist, so the catalogue reloaded
   milliseconds later and kept listing the bundle as not installed until a

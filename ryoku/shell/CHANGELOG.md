@@ -1,6 +1,9 @@
 # Changelog: ryoku/shell/
 
 ## Unreleased
+- **The system monitor stops warning every second on machines without a fan
+  sensor or GPU power reading.** It opened the missing sensor paths anyway on
+  each slow sample (`plugin/systemmonitor.cpp`). Contributed by SourceAura.
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
