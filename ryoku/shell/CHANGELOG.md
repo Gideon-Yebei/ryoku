@@ -44,6 +44,12 @@
   updates shell cards, menus, bar and launcher marks, wallpaper typography and
   Ryogami live, while the default remains the existing Japanese treatment
   (`quickshell/`, `ryogami/picker/qml/`, `../ui/`).
+- **Python bar notification and visualizer controls now share Ryoku settings.**
+  Do Not Disturb and notification sounds follow the shell, including custom
+  clips, volume and critical cues; visualizers follow the active colour and gain
+  (`quickshell/shell/modules/bar/barstyles/python/`).
+- **Bluetooth toggles can recover a radio that an older build left soft-blocked,**
+  even while BlueZ reports no adapter.
 - **Desktop widgets can be added on a second display from the Stage Editor.**
   Switching displays keeps the editor connected to that display's widgets,
   without changing the first display (`quickshell/stage/GlobalStates.qml`,
