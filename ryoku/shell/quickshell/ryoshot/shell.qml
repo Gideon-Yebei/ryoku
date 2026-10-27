@@ -38,6 +38,13 @@ ShellRoot {
     property bool textEditing: false
     property string openPopover: ""
     property bool eyedropArmed: false
+    property bool phoneConnected: false
+    property string phoneDeviceName: ""
+
+    onPhaseChanged: {
+        if (phase === "editing" && !kdeStateProc.running)
+            kdeStateProc.running = true;
+    }
 
     property var selectedIndex: null
     property var moveOffset: null
@@ -1034,6 +1041,14 @@ ShellRoot {
         });
     }
 
+    function doSendPhone() {
+        var tmp = "/tmp/ryoshot-phone-" + Date.now() + ".png";
+        grabTo(tmp, function (ok) {
+            if (ok) { root.shutter(); kdePhoneProc.run(tmp); }
+            else Qt.quit();
+        });
+    }
+
     /**
      * Pins the finished shot: the PNG lands in the pin directory, the poke file
      * wakes an already running host, and the flock spawn starts one if there is
@@ -1261,6 +1276,66 @@ ShellRoot {
         }
     }
 
+    Process {
+        id: kdePhoneProc
+        stdout: StdioCollector { id: kdePhoneOut }
+        function run(file) {
+            command = ["sh", "-c",
+                "dev=$(kdeconnect-cli -a --id-only 2>/dev/null | head -n 1)\n" +
+                "name=$(kdeconnect-cli -a --name-only 2>/dev/null | head -n 1)\n" +
+                "if [ -z \"$dev\" ]; then\n" +
+                "  rm -f -- \"$1\"\n" +
+                "  exit 2\n" +
+                "fi\n" +
+                "if kdeconnect-cli -d \"$dev\" --share \"$1\" >/dev/null 2>&1; then\n" +
+                "  echo \"$name\"\n" +
+                "  (sleep 15; rm -f -- \"$1\") &\n" +
+                "  exit 0\n" +
+                "else\n" +
+                "  (sleep 5; rm -f -- \"$1\") &\n" +
+                "  exit 1\n" +
+                "fi",
+                "sh", file];
+            running = true;
+        }
+        onExited: (code) => {
+            var devName = kdePhoneOut.text.trim();
+            console.log("ryoshot: kdeconnect exit " + code + " target=" + JSON.stringify(devName));
+            if (code === 0) {
+                root.phoneConnected = true;
+                if (devName.length > 0) root.phoneDeviceName = devName;
+                var msg = devName.length > 0 ? I18n.tr("Sent to %1").arg(devName) : I18n.tr("Sent to phone");
+                root.notifySend(I18n.tr("Transferred via KDE Connect"), msg);
+                root.quitSoon();
+            } else if (code === 2) {
+                root.phoneConnected = false;
+                root.phoneDeviceName = "";
+                root.notifySend(I18n.tr("KDE Connect"), I18n.tr("No reachable device found"));
+                Qt.quit();
+            } else {
+                root.notifySend(I18n.tr("KDE Connect"), I18n.tr("Transfer failed"));
+                Qt.quit();
+            }
+        }
+    }
+
+    Process {
+        id: kdeStateProc
+        stdout: StdioCollector { id: kdeStateOut }
+        command: ["sh", "-c", "kdeconnect-cli -a --name-only 2>/dev/null | head -n 1"]
+        Component.onCompleted: running = true
+        onExited: (code) => {
+            if (code === 0) {
+                var name = kdeStateOut.text.trim();
+                root.phoneConnected = name.length > 0;
+                root.phoneDeviceName = name;
+            } else {
+                root.phoneConnected = false;
+                root.phoneDeviceName = "";
+            }
+        }
+    }
+
     // Upload the crop, then open a reverse-image search on the hosted URL. Bing is
     // the default engine iRiS settled on (Google and Yandex paste endpoints broke).
     Process {
@@ -1345,6 +1420,7 @@ ShellRoot {
             if (e.key === Qt.Key_S) { root.exportSaveOrStyled(); return true; }
             if (e.key === Qt.Key_P) { root.doPin(); return true; }
             if (e.key === Qt.Key_U) { root.doUpload(); return true; }
+            if (e.key === Qt.Key_K) { root.doSendPhone(); return true; }
             if (e.key === Qt.Key_B) { root.openBeautify(); return true; }
             if (e.key === Qt.Key_Z) { if (shift) root.redo(); else root.undo(); return true; }
             if (e.key === Qt.Key_Y) { root.redo(); return true; }
@@ -1523,6 +1599,8 @@ ShellRoot {
                     canUndo: { root.annRevision; return root.model ? root.model.canUndo() : false; }
                     canRedo: { root.annRevision; return root.model ? root.model.canRedo() : false; }
                     settingsOpen: root.settingsOpen
+                    phoneConnected: root.phoneConnected
+                    phoneDeviceName: root.phoneDeviceName
 
                     x: {
                         if (!win.selLocal) return 0;
@@ -1546,6 +1624,7 @@ ShellRoot {
                     onCopyRequested: root.exportCopyOrStyled()
                     onSaveRequested: root.exportSaveOrStyled()
                     onUploadRequested: root.doUpload()
+                    onPhoneRequested: root.doSendPhone()
                     onPinRequested: root.doPin()
                     onHelpRequested: root.shortcutsOpen = !root.shortcutsOpen
                     onSettingsRequested: root.settingsOpen = !root.settingsOpen
