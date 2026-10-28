@@ -20,6 +20,11 @@
 - The built-in in-session clockwork lockscreen follows the global 12/24-hour preference, including AM/PM.
 
 ### Fixed
+- **A saved Shima clock choice reaches the lock screen after updating.** Shima
+  now retires its duplicate `inir.time.format` value into the global clock
+  preference once, then every bar style and the lock read that one setting
+  (`../shell/quickshell/inir/modules/common/Config.qml`,
+  `tests/lock-time-format.qml`).
 - **The login clock follows the global 12/24-hour preference.** The shared SDDM
   host passes the preference from its installed theme config to every skin that
   exposes a clock-format property, while keeping the greeter locale for
